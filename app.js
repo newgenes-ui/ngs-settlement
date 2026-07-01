@@ -316,40 +316,53 @@
         const c = (code || '').toUpperCase().trim();
         const n = (name || '').toLowerCase();
 
-        // 1. Serological Pipette 5ml
-        if (c === 'NGS-SEP-5' || c === 'NG-SEP-5') return 'nujen_sep_5';
-        // 2. Serological Pipette 10ml
-        if (c === 'NGS-SEP-10' || c === 'NG-SEP-10' || c === 'SEP-10') return 'nujen_sep_10';
-        // 3. Serological Pipette 25ml
-        if (c === 'NGS-SEP-25' || c === 'NG-SEP-25') return 'nujen_sep_25';
-        // 4. Serological Pipette 50ml
-        if (c === 'NGS-SEP-50' || c === 'NG-SEP-50') return 'nujen_sep_50';
-        // 5. Serological Pipette 100ml
-        if (c === 'NGS-SEP-100' || c === 'NG-SEP-100') return 'nujen_sep_100';
+        // 1대1 코드 매치
+        if (c === 'SEP-10') return 'sep_10';
+        if (c === 'STAG-1250-B') return 'stag_1250_b';
+        if (c === 'NGS-SEP-10' || c === 'NG-SEP-10') return 'ngs_sep_10';
+        if (c === 'NGS-SEP-100' || c === 'NG-SEP-100') return 'ngs_sep_100';
+        if (c === 'NGS-SEP-50' || c === 'NG-SEP-50') return 'ngs_sep_50';
+        if (c === 'NGS-SEP-25' || c === 'NG-SEP-25') return 'ngs_sep_25';
+        if (c === 'NGS-SEP-5' || c === 'NG-SEP-5') return 'ngs_sep_5';
 
-        // 6. Centrifuge Tube 15ml
-        if (c === 'NGS-CT-3015-S' || c === 'NG-CT-3015-S') return 'nujen_ct_15';
-        // 7. Centrifuge Tube 50ml
-        if (c === 'NGS-CT-3050-S' || c === 'NG-CT-3050-S') return 'nujen_ct_50';
+        if (c === 'NG-STAG-1250-RTS-ER' || c === 'NGS-STAG-1250-RTS-ER') return 'ng_stag_1250_rts_er';
+        if (c === 'NG-STAG-200-TRS-ER' || c === 'NG-STAG-200-TRS' || c.includes('200-TRS-ER')) return 'ng_stag_200_trs_er';
+        if (c === 'NG-STAG-10-RTS-ER' || c.includes('10-RTS-ER')) return 'ng_stag_10_rts_er';
 
-        // 8. Pipette Tip 10ul (RS, RTS, RTS-ER)
-        if (c.includes('STAG-10-RS') || c.includes('STAG-10L-RS') || c.includes('STAG-10-RTS')) return 'nujen_tip_10';
-        // 9. Pipette Tip 200ul (RS, RTS, TRS-ER)
-        if (c.includes('STAG-200-RS') || c.includes('STAG-200-RTS') || c.includes('STAG-200-TRS-ER')) return 'nujen_tip_200';
-        // 10. Pipette Tip 1250ul (RS, RTS, RTS-ER, B, RS-2)
-        if (c.includes('STAG-1250-RS') || c.includes('STAG-1250-RTS') || c.includes('STAG-1250-B') || c.includes('STAG1250-RS-2')) return 'nujen_tip_1250';
+        // 팁 1250ul Racked
+        if (c === 'NG-STAG-1250-RS' || c === 'NGS-STAG-1250-RS' || c === 'NGS-STAG1250-RS-2' || c === 'NGS-STAG1250-RS') return 'ng_stag_1250_rs';
+        // 팁 200ul Racked
+        if (c === 'NG-STAG-200-RS' || c === 'NGS-STAG-200-RS') return 'ng_stag_200_rs';
+        // 팁 10ul Extra Long Racked
+        if (c === 'NG-STAG-10L-RS' || c === 'NGS-STAG-10L-RS') return 'ng_stag_10l_rs';
+        // 팁 10ul Racked
+        if (c === 'NG-STAG-10-RS' || c === 'NGS-STAG-10-RS') return 'ng_stag_10_rs';
 
-        // fallback by name keywords
-        if (n.includes('serological') && n.includes('5ml')) return 'nujen_sep_5';
-        if (n.includes('serological') && n.includes('10ml')) return 'nujen_sep_10';
-        if (n.includes('serological') && n.includes('25ml')) return 'nujen_sep_25';
-        if (n.includes('serological') && n.includes('50ml')) return 'nujen_sep_50';
-        if (n.includes('serological') && n.includes('100ml')) return 'nujen_sep_100';
-        if (n.includes('centrifuge') && n.includes('15ml')) return 'nujen_ct_15';
-        if (n.includes('centrifuge') && n.includes('50ml')) return 'nujen_ct_50';
-        if (n.includes('tip') && n.includes('10ul')) return 'nujen_tip_10';
-        if (n.includes('tip') && n.includes('200ul')) return 'nujen_tip_200';
-        if (n.includes('tip') && n.includes('1250ul')) return 'nujen_tip_1250';
+        // 팁 1250ul Refill
+        if (c === 'NG-STAG-1250-RTS' || c === 'NGS-STAG-1250-RTS') return 'ng_stag_1250_rts';
+        // 팁 200ul Refill
+        if (c === 'NG-STAG-200-RTS' || c === 'NGS-STAG-200-RTS') return 'ng_stag_200_rts';
+        // 팁 10ul Refill
+        if (c === 'NG-STAG-10-RTS' || c === 'NGS-STAG-10-RTS') return 'ng_stag_10_rts';
+
+        // Centrifuge Tubes
+        if (c === 'NG-CT-3050-S' || c === 'NGS-CT-3050-S') return 'ng_ct_3050_s';
+        if (c === 'NG-CT-3015-S' || c === 'NGS-CT-3015-S') return 'ng_ct_3015_s';
+
+        // fallback keyword 매치
+        if (n.includes('serological') && n.includes('100ml')) return 'ngs_sep_100';
+        if (n.includes('serological') && n.includes('50ml')) return 'ngs_sep_50';
+        if (n.includes('serological') && n.includes('25ml')) return 'ngs_sep_25';
+        if (n.includes('serological') && n.includes('10ml')) return 'ngs_sep_10';
+        if (n.includes('serological') && n.includes('5ml')) return 'ngs_sep_5';
+        if (n.includes('centrifuge') && n.includes('50ml')) return 'ng_ct_3050_s';
+        if (n.includes('centrifuge') && n.includes('15ml')) return 'ng_ct_3015_s';
+        if (n.includes('refill') && n.includes('1250')) return 'ng_stag_1250_rts';
+        if (n.includes('refill') && n.includes('200')) return 'ng_stag_200_rts';
+        if (n.includes('refill') && n.includes('10')) return 'ng_stag_10_rts';
+        if (n.includes('racked') && n.includes('1250')) return 'ng_stag_1250_rs';
+        if (n.includes('racked') && n.includes('200')) return 'ng_stag_200_rs';
+        if (n.includes('racked') && n.includes('10')) return 'ng_stag_10_rs';
 
         return null;
     }
