@@ -14,7 +14,6 @@
         purchaseData: [],
         extPurchaseData: [],
         extSalesData: [],
-        extPeriodMode: 'all',    // 'all' | 'quarterly' | 'monthly'
         charts: {}
     };
 
@@ -265,6 +264,30 @@
     function isExtProduct(row) {
         const name = (row.itemName || '').toLowerCase();
         return name.includes('extransfection') || name.includes('ext-') || name.includes('exttransfection') || name.includes('starter pack');
+    }
+
+    // ===== ExT 글로벌 기간 필터 적용 =====
+    function getFilteredExtSalesData() {
+        const data = state.extSalesData;
+        if (state.currentPeriod === 'all' || !state.selectedSubPeriod) {
+            return data;
+        }
+        return data.filter(r => {
+            if (!r.dateNo) return false;
+            const m = r.dateNo.match(/^(\d{4})[/-](\d{2})/);
+            if (!m) return false;
+            const year = m[1];
+            const month = parseInt(m[2], 10);
+            if (state.currentPeriod === 'monthly') {
+                const targetStr = `${year}-${m[2]}`; // YYYY-MM
+                return targetStr === state.selectedSubPeriod;
+            } else if (state.currentPeriod === 'quarterly') {
+                const q = Math.ceil(month / 3);
+                const targetStr = `${year}-Q${q}`; // YYYY-Q#
+                return targetStr === state.selectedSubPeriod;
+            }
+            return true;
+        });
     }
 
     // ===== 유틸리티 =====
@@ -573,7 +596,7 @@
 
     // ===== ExT 매출 세부내역 렌더 (재고관리 탭 하단용) =====
     function renderExtSalesList(searchTerm = '') {
-        const data = state.extSalesData;
+        const data = getFilteredExtSalesData();
         const filtered = searchTerm
             ? data.filter(r =>
                 (r.buyer && r.buyer.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -754,7 +777,7 @@
             soldAmounts[c.id] = 0;
         });
 
-        state.extSalesData.forEach(s => {
+        getFilteredExtSalesData().forEach(s => {
             const catId = classifyExtProduct(s.code, s.name);
             if (catId) {
                 soldCounts[catId] += s.qty;
@@ -781,75 +804,42 @@
             createSummaryCard('emerald', ICONS.profit, '현재 재고 현황', formatCurrency(totalStockAmount), `수량: ${totalStockQty}개`)
         ].join('');
 
-        // 3. ExT 결산 보고서 동적 집계 (전체, 분기별, 월별)
+        // 3. ExT 결산 보고서 동적 집계 (글로벌 필터 연동)
         const reportTbody = document.getElementById('ext-report-tbody');
-        let reportHTML = '';
+        const reportData = getFilteredExtSalesData();
 
-        function getPeriodKey(dateNoStr, mode) {
-            const m = (dateNoStr || '').match(/^(\d{4})[/-](\d{2})[/-]/);
-            if (!m) return '기타';
-            const year = m[1];
-            const month = parseInt(m[2], 10);
-            if (mode === 'monthly') {
-                return `${year}년 ${month}월`;
-            } else if (mode === 'quarterly') {
-                const q = Math.ceil(month / 3);
-                return `${year}년 ${q}분기`;
+        const totalSalesAmt = reportData.reduce((s, r) => s + r.totalAmount, 0);
+        const totalPurchaseCost = reportData.reduce((s, r) => {
+            const catId = classifyExtProduct(r.code, r.name);
+            const cat = categories.find(c => c.id === catId);
+            const costPrice = cat ? cat.unitPrice * 1.1 : 0;
+            return s + (r.qty * costPrice);
+        }, 0);
+        const profit = totalSalesAmt - totalPurchaseCost;
+        const margin = totalSalesAmt !== 0 ? ((profit / totalSalesAmt) * 100).toFixed(1) : '0.0';
+
+        let label = '전체 기간 (2026년 상반기)';
+        if (state.currentPeriod === 'quarterly' && state.selectedSubPeriod) {
+            const m = state.selectedSubPeriod.match(/^(\d{4})-Q(\d)/);
+            if (m) {
+                label = `${m[1]}년 ${m[2]}분기`;
             }
-            return '전체 기간';
+        } else if (state.currentPeriod === 'monthly' && state.selectedSubPeriod) {
+            const m = state.selectedSubPeriod.match(/^(\d{4})-(\d{2})/);
+            if (m) {
+                label = `${m[1]}년 ${parseInt(m[2], 10)}월`;
+            }
         }
 
-        if (state.extPeriodMode === 'all') {
-            const totalSalesAmt = state.extSalesData.reduce((s, r) => s + r.totalAmount, 0);
-            const totalPurchaseCost = state.extSalesData.reduce((s, r) => {
-                const catId = classifyExtProduct(r.code, r.name);
-                const cat = categories.find(c => c.id === catId);
-                const costPrice = cat ? cat.unitPrice * 1.1 : 0;
-                return s + (r.qty * costPrice);
-            }, 0);
-            const profit = totalSalesAmt - totalPurchaseCost;
-            const margin = totalSalesAmt !== 0 ? ((profit / totalSalesAmt) * 100).toFixed(1) : '0.0';
-
-            reportHTML = `
-                <tr>
-                    <td style="font-weight: 700;">전체 기간 (2026년 상반기)</td>
-                    <td class="text-right">${totalSalesAmt.toLocaleString()}원</td>
-                    <td class="text-right">${totalPurchaseCost.toLocaleString()}원</td>
-                    <td class="text-right ${profit >= 0 ? 'positive' : 'negative'}">${profit.toLocaleString()}원</td>
-                    <td class="text-right ${profit >= 0 ? 'positive' : 'negative'}">${margin}%</td>
-                </tr>
-            `;
-        } else {
-            const periods = {};
-            state.extSalesData.forEach(r => {
-                const pKey = getPeriodKey(r.dateNo, state.extPeriodMode);
-                if (!periods[pKey]) {
-                    periods[pKey] = { sales: 0, cost: 0 };
-                }
-                periods[pKey].sales += r.totalAmount;
-                const catId = classifyExtProduct(r.code, r.name);
-                const cat = categories.find(c => c.id === catId);
-                const costPrice = cat ? cat.unitPrice * 1.1 : 0;
-                periods[pKey].cost += (r.qty * costPrice);
-            });
-
-            // 기간 순 정렬
-            const sortedKeys = Object.keys(periods).sort();
-            reportHTML = sortedKeys.map(k => {
-                const d = periods[k];
-                const profit = d.sales - d.cost;
-                const margin = d.sales !== 0 ? ((profit / d.sales) * 100).toFixed(1) : '0.0';
-                return `
-                    <tr>
-                        <td style="font-weight: 700;">${k}</td>
-                        <td class="text-right">${d.sales.toLocaleString()}원</td>
-                        <td class="text-right">${d.cost.toLocaleString()}원</td>
-                        <td class="text-right ${profit >= 0 ? 'positive' : 'negative'}">${profit.toLocaleString()}원</td>
-                        <td class="text-right ${profit >= 0 ? 'positive' : 'negative'}">${margin}%</td>
-                    </tr>
-                `;
-            }).join('');
-        }
+        const reportHTML = `
+            <tr>
+                <td style="font-weight: 700;">${label}</td>
+                <td class="text-right">${totalSalesAmt.toLocaleString()}원</td>
+                <td class="text-right">${totalPurchaseCost.toLocaleString()}원</td>
+                <td class="text-right ${profit >= 0 ? 'positive' : 'negative'}">${profit.toLocaleString()}원</td>
+                <td class="text-right ${profit >= 0 ? 'positive' : 'negative'}">${margin}%</td>
+            </tr>
+        `;
 
         reportTbody.innerHTML = reportHTML;
 
@@ -1066,15 +1056,7 @@
             });
         });
 
-        // ExT 결산 보고서 기간 필터 선택
-        document.querySelectorAll('.ext-period-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                state.extPeriodMode = btn.dataset.extPeriod;
-                document.querySelectorAll('.ext-period-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                renderInventoryView();
-            });
-        });        // 하위 기간 선택
+        // 하위 기간 선택
         document.getElementById('sub-period-select').addEventListener('change', e => {
             state.selectedSubPeriod = e.target.value;
             renderCurrentView();
