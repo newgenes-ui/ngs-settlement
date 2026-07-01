@@ -1115,17 +1115,12 @@
                         }
                     },
                     y: {
+                        grace: '15%',
                         grid: {
                             color: 'rgba(243, 244, 246, 0.8)'
                         },
                         ticks: {
-                            color: '#6b7280',
-                            font: {
-                                size: 9
-                            },
-                            callback: function(value) {
-                                return formatKoreanUnit(value);
-                            }
+                            display: false
                         }
                     }
                 }
@@ -1198,7 +1193,7 @@
             };
         });
 
-        return trend.reverse();
+        return trend.filter(d => d.sales !== 0 || d.cost !== 0).reverse();
     }
 
     // ===== NuGen 결산 트랜드 데이터 수집 =====
@@ -1265,7 +1260,7 @@
             };
         });
 
-        return trend.reverse();
+        return trend.filter(d => d.sales !== 0 || d.cost !== 0).reverse();
     }
 
     function renderInventoryView() {
