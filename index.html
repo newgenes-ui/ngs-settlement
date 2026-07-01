@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NGS 결산보고서 | (주)뉴진사이언스</title>
+    <meta name="description" content="(주)뉴진사이언스 결산보고서 - 매출, 카드매출, 매입 현황을 월별, 분기별, 전체 기간으로 조회합니다.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <svg viewBox="0 0 32 32" fill="none">
+                            <rect width="32" height="32" rx="8" fill="url(#logoGrad)"/>
+                            <path d="M8 16L14 10L20 16L14 22Z" fill="white" opacity="0.9"/>
+                            <path d="M14 16L20 10L26 16L20 22Z" fill="white" opacity="0.6"/>
+                            <defs>
+                                <linearGradient id="logoGrad" x1="0" y1="0" x2="32" y2="32">
+                                    <stop stop-color="#6366f1"/>
+                                    <stop offset="1" stop-color="#8b5cf6"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                    </div>
+                    <div class="logo-text">
+                        <span class="logo-title">NGS 결산</span>
+                        <span class="logo-subtitle">(주)뉴진사이언스</span>
+                    </div>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <span class="nav-label">대시보드</span>
+                    <a href="#" class="nav-item active" data-view="dashboard" id="nav-dashboard">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                        <span>종합 현황</span>
+                    </a>
+                </div>
+                <div class="nav-section">
+                    <span class="nav-label">세부 내역</span>
+                    <a href="#" class="nav-item" data-view="sales" id="nav-sales">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                        <span>매출</span>
+                        <span class="nav-badge" id="badge-sales">0</span>
+                    </a>
+                    <a href="#" class="nav-item" data-view="card-sales" id="nav-card-sales">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                        <span>카드매출</span>
+                        <span class="nav-badge" id="badge-card-sales">0</span>
+                    </a>
+                    <a href="#" class="nav-item" data-view="purchases" id="nav-purchases">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+                        <span>매입</span>
+                        <span class="nav-badge" id="badge-purchases">0</span>
+                    </a>
+                    <a href="#" class="nav-item" data-view="inventory" id="nav-inventory">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                        <span>ExT 재고관리</span>
+                        <span class="nav-badge" id="badge-inventory">0</span>
+                    </a>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="period-info">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    <span id="data-period">데이터 로딩 중...</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <header class="topbar">
+                <button class="sidebar-toggle" id="sidebar-toggle">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                </button>
+                <div class="topbar-title">
+                    <h1 id="page-title">종합 현황</h1>
+                    <span class="topbar-desc" id="page-desc">매출, 카드매출, 매입 종합 현황을 확인합니다.</span>
+                </div>
+                <div class="topbar-actions">
+                    <div class="period-selector">
+                        <button class="period-btn active" data-period="all" id="period-all">전체</button>
+                        <button class="period-btn" data-period="quarterly" id="period-quarterly">분기별</button>
+                        <button class="period-btn" data-period="monthly" id="period-monthly">월별</button>
+                    </div>
+                    <div class="sub-period-selector" id="sub-period-selector" style="display:none;">
+                        <select id="sub-period-select" class="sub-period-select"></select>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content Area -->
+            <div class="content-area" id="content-area">
+                <!-- Dashboard View -->
+                <div class="view active" id="view-dashboard">
+                    <div class="summary-cards" id="summary-cards"></div>
+
+                    <div class="profit-trend-card">
+                        <div class="profit-trend-header">
+                            <div>
+                                <h2 class="profit-trend-title">영업 이익 (Profit) 트렌드</h2>
+                                <p class="profit-trend-desc" id="profit-trend-desc">2026년 상반기 월별 영업 이익(매출 - 매입) 현황입니다.</p>
+                            </div>
+                        </div>
+                        <div class="profit-bars" id="profit-bars">
+                            <!-- Generated by JS -->
+                        </div>
+                    </div>
+
+                    <div class="summary-table-card">
+                        <table class="summary-table" id="summary-table">
+                            <thead>
+                                <tr>
+                                    <th class="text-left">구분</th>
+                                    <th class="text-right">판매 매출액 (A)</th>
+                                    <th class="text-right">매입 원가 (B)</th>
+                                    <th class="text-right">영업 이익 (A - B)</th>
+                                    <th class="text-right">이익률</th>
+                                </tr>
+                            </thead>
+                            <tbody id="summary-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Sales Detail View -->
+                <div class="view" id="view-sales">
+                    <div class="summary-cards" id="sales-summary-cards"></div>
+                    <div class="table-card">
+                        <div class="table-header">
+                            <h3>매출 세부내역</h3>
+                            <div class="table-actions">
+                                <div class="search-box">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                                    <input type="text" id="sales-search" placeholder="거래처명, 품목 검색...">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="table-wrapper">
+                            <table class="data-table" id="sales-table">
+                                <thead>
+                                    <tr>
+                                        <th>작성일자</th>
+                                        <th>거래처(공급받는자)</th>
+                                        <th>품목명</th>
+                                        <th class="text-right">합계금액</th>
+                                        <th class="text-right">공급가액</th>
+                                        <th class="text-right">세액</th>
+                                        <th>분류</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sales-tbody"></tbody>
+                            </table>
+                        </div>
+                        <div class="table-footer" id="sales-footer"></div>
+                    </div>
+                </div>
+
+                <!-- ExT Inventory View -->
+                <div class="view" id="view-inventory">
+                    <div class="summary-cards" id="inventory-summary-cards"></div>
+                    <div class="table-card">
+                        <div class="table-header">
+                            <h3>ExT 제품 재고 및 금액 현황 (기초입고: 2025/12/30)</h3>
+                        </div>
+                        <div class="table-wrapper">
+                            <table class="data-table" id="inventory-table">
+                                <thead>
+                                    <tr>
+                                        <th rowspan="2">제품 분류</th>
+                                        <th rowspan="2">대표 품목명 (규격)</th>
+                                        <th colspan="2" class="text-center" style="border-bottom: 1px solid var(--border-subtle)">기초 매입 (A)</th>
+                                        <th colspan="2" class="text-center" style="border-bottom: 1px solid var(--border-subtle)">당기 매출 (B)</th>
+                                        <th colspan="2" class="text-center" style="border-bottom: 1px solid var(--border-subtle)">현재 재고 (A - B)</th>
+                                        <th rowspan="2" class="text-center">상태</th>
+                                    </tr>
+                                    <tr>
+                                        <th class="text-center" style="font-size: 0.65rem;">수량</th>
+                                        <th class="text-right" style="font-size: 0.65rem;">금액</th>
+                                        <th class="text-center" style="font-size: 0.65rem;">수량</th>
+                                        <th class="text-right" style="font-size: 0.65rem;">금액</th>
+                                        <th class="text-center" style="font-size: 0.65rem;">수량</th>
+                                        <th class="text-right" style="font-size: 0.65rem;">금액(원가)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="inventory-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- ExT Sales Detail inside Inventory -->
+                    <div class="table-card" style="margin-top: 24px;">
+                        <div class="table-header">
+                            <h3>ExT 매출 세부내역</h3>
+                            <div class="table-actions">
+                                <div class="search-box">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                                    <input type="text" id="ext-sales-search" placeholder="거래처명, 품목 검색...">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="table-wrapper">
+                            <table class="data-table" id="ext-sales-table">
+                                <thead>
+                                    <tr>
+                                        <th>작성일자</th>
+                                        <th>거래처(공급받는자)</th>
+                                        <th>품목명</th>
+                                        <th class="text-right">합계금액</th>
+                                        <th class="text-right">공급가액</th>
+                                        <th class="text-right">세액</th>
+                                        <th>분류</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ext-sales-tbody"></tbody>
+                            </table>
+                        </div>
+                        <div class="table-footer" id="ext-sales-footer"></div>
+                    </div>
+                </div>
+
+                <!-- Card Sales View -->
+                <div class="view" id="view-card-sales">
+                    <div class="summary-cards" id="card-sales-summary-cards"></div>
+                    <div class="table-card">
+                        <div class="table-header">
+                            <h3>카드매출 세부내역</h3>
+                        </div>
+                        <div class="table-wrapper">
+                            <table class="data-table" id="card-sales-table">
+                                <thead>
+                                    <tr>
+                                        <th>거래일자</th>
+                                        <th class="text-right">거래합계</th>
+                                        <th class="text-center">거래건수</th>
+                                        <th class="text-right">승인소계</th>
+                                        <th class="text-center">승인건수</th>
+                                        <th class="text-right">취소소계</th>
+                                        <th class="text-center">취소건수</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="card-sales-tbody"></tbody>
+                            </table>
+                        </div>
+                        <div class="table-footer" id="card-sales-footer"></div>
+                    </div>
+                </div>
+
+                <!-- Purchases View -->
+                <div class="view" id="view-purchases">
+                    <div class="summary-cards" id="purchases-summary-cards"></div>
+                    <div class="table-card">
+                        <div class="table-header">
+                            <h3>매입 세부내역</h3>
+                            <div class="table-actions">
+                                <div class="search-box">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                                    <input type="text" id="purchases-search" placeholder="거래처명, 품목 검색...">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="table-wrapper">
+                            <table class="data-table" id="purchases-table">
+                                <thead>
+                                    <tr>
+                                        <th>작성일자</th>
+                                        <th>거래처(공급자)</th>
+                                        <th>품목명</th>
+                                        <th class="text-right">합계금액</th>
+                                        <th class="text-right">공급가액</th>
+                                        <th class="text-right">세액</th>
+                                        <th>분류</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="purchases-tbody"></tbody>
+                            </table>
+                        </div>
+                        <div class="table-footer" id="purchases-footer"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Detail Modal -->
+    <div class="modal-overlay" id="detail-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modal-title">거래 상세</h3>
+                <button class="modal-close" id="modal-close">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="modal-body" id="modal-body"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
