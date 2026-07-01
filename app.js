@@ -314,6 +314,22 @@
                 });
             }
 
+            // 3분기 제외 필터링 (2026년 2분기인 2026/06/30 까지만 반영)
+            const cutoffDate = "2026/06/30";
+            function filterCutoff(d, dateField) {
+                if (!d[dateField]) return true;
+                const clean = d[dateField].split(' ')[0].replace(/-/g, '/');
+                return clean <= cutoffDate;
+            }
+
+            state.salesData = state.salesData.filter(d => filterCutoff(d, 'date'));
+            state.cardSalesData = state.cardSalesData.filter(d => filterCutoff(d, 'date'));
+            state.purchaseData = state.purchaseData.filter(d => filterCutoff(d, 'date'));
+            state.extSalesData = state.extSalesData.filter(d => filterCutoff(d, 'dateNo'));
+            state.extPurchaseData = state.extPurchaseData.filter(d => filterCutoff(d, 'dateNo'));
+            state.nujenSalesData = state.nujenSalesData.filter(d => filterCutoff(d, 'dateNo'));
+            state.nujenPurchaseData = state.nujenPurchaseData.filter(d => filterCutoff(d, 'dateNo'));
+
             // 배지 업데이트
             document.getElementById('badge-sales').textContent = state.salesData.length;
             document.getElementById('badge-inventory').textContent = '7'; // ExT 제품군 수
