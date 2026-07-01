@@ -678,6 +678,7 @@
     function renderDashboardMonthly() {
         const months = new Set();
         state.salesData.forEach(r => { const m = getMonth(r.date); if (m) months.add(m); });
+        state.cardSalesData.forEach(r => { const m = getMonth(r.date); if (m) months.add(m); });
         state.purchaseData.forEach(r => { const m = getMonth(r.date); if (m) months.add(m); });
         const sortedMonths = [...months].sort();
 
@@ -685,6 +686,10 @@
         const purchasesByMonth = {};
         sortedMonths.forEach(m => { salesByMonth[m] = 0; purchasesByMonth[m] = 0; });
         state.salesData.forEach(r => {
+            const m = getMonth(r.date);
+            if (m) salesByMonth[m] = (salesByMonth[m] || 0) + r.totalAmount;
+        });
+        state.cardSalesData.forEach(r => {
             const m = getMonth(r.date);
             if (m) salesByMonth[m] = (salesByMonth[m] || 0) + r.totalAmount;
         });
@@ -711,6 +716,7 @@
     function renderDashboardQuarterly() {
         const quarters = new Set();
         state.salesData.forEach(r => { const q = getQuarter(r.date); if (q) quarters.add(q); });
+        state.cardSalesData.forEach(r => { const q = getQuarter(r.date); if (q) quarters.add(q); });
         state.purchaseData.forEach(r => { const q = getQuarter(r.date); if (q) quarters.add(q); });
         const sortedQuarters = [...quarters].sort();
 
@@ -718,6 +724,10 @@
         const purchasesByQ = {};
         sortedQuarters.forEach(q => { salesByQ[q] = 0; purchasesByQ[q] = 0; });
         state.salesData.forEach(r => {
+            const q = getQuarter(r.date);
+            if (q) salesByQ[q] = (salesByQ[q] || 0) + r.totalAmount;
+        });
+        state.cardSalesData.forEach(r => {
             const q = getQuarter(r.date);
             if (q) salesByQ[q] = (salesByQ[q] || 0) + r.totalAmount;
         });
