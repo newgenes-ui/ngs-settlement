@@ -1116,7 +1116,10 @@
                     },
                     y: {
                         display: false,
-                        grace: '15%'
+                        grace: '15%',
+                        grid: {
+                            display: false
+                        }
                     }
                 }
             },
