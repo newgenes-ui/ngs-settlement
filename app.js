@@ -290,6 +290,38 @@
         });
     }
 
+    // ===== ExT 누적 매출 필터 (기말 재고 계산용) =====
+    function getAccumulatedExtSalesData() {
+        const data = state.extSalesData;
+        if (state.currentPeriod === 'all' || !state.selectedSubPeriod) {
+            return data;
+        }
+        return data.filter(r => {
+            if (!r.dateNo) return false;
+            const m = r.dateNo.match(/^(\d{4})[/-](\d{2})/);
+            if (!m) return false;
+            const year = parseInt(m[1], 10);
+            const month = parseInt(m[2], 10);
+            
+            if (state.currentPeriod === 'monthly') {
+                const [targetYear, targetMonth] = state.selectedSubPeriod.split('-').map(Number);
+                if (year < targetYear) return true;
+                if (year === targetYear && month <= targetMonth) return true;
+                return false;
+            } else if (state.currentPeriod === 'quarterly') {
+                const [targetYear, targetQStr] = state.selectedSubPeriod.split('-Q');
+                const targetYearNum = parseInt(targetYear, 10);
+                const targetQ = parseInt(targetQStr, 10);
+                const q = Math.ceil(month / 3);
+                
+                if (year < targetYearNum) return true;
+                if (year === targetYearNum && q <= targetQ) return true;
+                return false;
+            }
+            return true;
+        });
+    }
+
     // ===== 유틸리티 =====
     function formatCurrency(amount) {
         if (amount === 0) return '0원';
@@ -772,9 +804,11 @@
         // 2. 당기 매출 및 판매량 집계 (부가세 포함)
         const soldCounts = {};
         const soldAmounts = {};
+        const accumulatedSoldCounts = {};
         categories.forEach(c => {
             soldCounts[c.id] = 0;
             soldAmounts[c.id] = 0;
+            accumulatedSoldCounts[c.id] = 0;
         });
 
         getFilteredExtSalesData().forEach(s => {
@@ -785,15 +819,27 @@
             }
         });
 
+        // 2-1. 누적 매출 집계 (기말 재고 차감용)
+        getAccumulatedExtSalesData().forEach(s => {
+            const catId = classifyExtProduct(s.code, s.name);
+            if (catId) {
+                accumulatedSoldCounts[catId] += s.qty;
+            }
+        });
+
         const totalInitQty = categories.reduce((s, c) => s + c.initQty, 0);
         const totalInitAmount = categories.reduce((s, c) => s + c.initAmount, 0);
         const totalSoldQty = Object.values(soldCounts).reduce((s, v) => s + v, 0);
         const totalSoldAmount = Object.values(soldAmounts).reduce((s, v) => s + v, 0);
-        const totalStockQty = totalInitQty - totalSoldQty;
         
+        // 기말 재고 수량 = 기초 입고 수량 - 누적 매출 수량
+        const totalAccumulatedSoldQty = Object.values(accumulatedSoldCounts).reduce((s, v) => s + v, 0);
+        const totalStockQty = Math.max(totalInitQty - totalAccumulatedSoldQty, 0);
+        
+        // 기말 재고 금액
         const totalStockAmount = categories.reduce((s, c) => {
-            const sold = soldCounts[c.id] || 0;
-            const stock = Math.max(c.initQty - sold, 0);
+            const accSold = accumulatedSoldCounts[c.id] || 0;
+            const stock = Math.max(c.initQty - accSold, 0);
             return s + (stock * c.unitPrice * 1.1);
         }, 0);
 
@@ -848,8 +894,9 @@
         tbody.innerHTML = categories.map(c => {
             const soldQty = soldCounts[c.id] || 0;
             const soldAmt = soldAmounts[c.id] || 0;
-            const stockQty = c.initQty - soldQty;
-            const stockAmt = Math.max(stockQty, 0) * c.unitPrice * 1.1;
+            const accSoldQty = accumulatedSoldCounts[c.id] || 0;
+            const stockQty = Math.max(c.initQty - accSoldQty, 0);
+            const stockAmt = stockQty * c.unitPrice * 1.1;
             
             let statusHTML = '';
             if (stockQty <= 0) {
