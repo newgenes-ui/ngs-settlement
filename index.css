@@ -652,7 +652,14 @@ body {
 .summary-table {
     width: 100%;
     border-collapse: collapse;
+    table-layout: fixed;
 }
+
+.summary-table th:nth-child(1), .summary-table td:nth-child(1) { width: 14%; text-align: left; }
+.summary-table th:nth-child(2), .summary-table td:nth-child(2) { width: 21.5%; text-align: right; }
+.summary-table th:nth-child(3), .summary-table td:nth-child(3) { width: 21.5%; text-align: right; }
+.summary-table th:nth-child(4), .summary-table td:nth-child(4) { width: 21.5%; text-align: right; }
+.summary-table th:nth-child(5), .summary-table td:nth-child(5) { width: 21.5%; text-align: right; }
 
 .summary-table th {
     padding: 14px 24px;
