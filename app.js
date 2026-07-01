@@ -214,7 +214,8 @@
                     qty: parseInt(v[4]) || 0,
                     unitPrice: parseAmount(v[5]),
                     supplyAmount: parseAmount(v[6]),
-                    taxAmount: parseAmount(v[7])
+                    taxAmount: parseAmount(v[7]),
+                    totalAmount: parseAmount(v[6]) + parseAmount(v[7])
                 });
             }
 
@@ -735,17 +736,17 @@
             { id: 'tube', name: 'ExTransfection Tube', spec: 'EXT50T', initQty: 0, initAmount: 0, unitPrice: 280000 }
         ];
 
-        // 1. 기초 매입(구매현황) 데이터 실시간 집계
+        // 1. 기초 매입(구매현황) 데이터 실시간 집계 (부가세 포함)
         state.extPurchaseData.forEach(p => {
             const catId = classifyExtProduct(p.code, p.name);
             const cat = categories.find(c => c.id === catId);
             if (cat) {
                 cat.initQty += p.qty;
-                cat.initAmount += p.supplyAmount;
+                cat.initAmount += p.totalAmount;
             }
         });
 
-        // 2. 당기 매출 및 판매량 집계
+        // 2. 당기 매출 및 판매량 집계 (부가세 포함)
         const soldCounts = {};
         const soldAmounts = {};
         categories.forEach(c => {
@@ -757,7 +758,7 @@
             const catId = classifyExtProduct(s.code, s.name);
             if (catId) {
                 soldCounts[catId] += s.qty;
-                soldAmounts[catId] += s.supplyAmount;
+                soldAmounts[catId] += s.totalAmount;
             }
         });
 
@@ -770,7 +771,7 @@
         const totalStockAmount = categories.reduce((s, c) => {
             const sold = soldCounts[c.id] || 0;
             const stock = Math.max(c.initQty - sold, 0);
-            return s + (stock * c.unitPrice);
+            return s + (stock * c.unitPrice * 1.1);
         }, 0);
 
         // 상단 재고 현황 카드 렌더
@@ -799,11 +800,11 @@
         }
 
         if (state.extPeriodMode === 'all') {
-            const totalSalesAmt = state.extSalesData.reduce((s, r) => s + r.supplyAmount, 0);
+            const totalSalesAmt = state.extSalesData.reduce((s, r) => s + r.totalAmount, 0);
             const totalPurchaseCost = state.extSalesData.reduce((s, r) => {
                 const catId = classifyExtProduct(r.code, r.name);
                 const cat = categories.find(c => c.id === catId);
-                const costPrice = cat ? cat.unitPrice : 0;
+                const costPrice = cat ? cat.unitPrice * 1.1 : 0;
                 return s + (r.qty * costPrice);
             }, 0);
             const profit = totalSalesAmt - totalPurchaseCost;
@@ -825,10 +826,10 @@
                 if (!periods[pKey]) {
                     periods[pKey] = { sales: 0, cost: 0 };
                 }
-                periods[pKey].sales += r.supplyAmount;
+                periods[pKey].sales += r.totalAmount;
                 const catId = classifyExtProduct(r.code, r.name);
                 const cat = categories.find(c => c.id === catId);
-                const costPrice = cat ? cat.unitPrice : 0;
+                const costPrice = cat ? cat.unitPrice * 1.1 : 0;
                 periods[pKey].cost += (r.qty * costPrice);
             });
 
