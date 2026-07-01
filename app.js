@@ -775,9 +775,9 @@
 
         // 상단 재고 현황 카드 렌더
         document.getElementById('inventory-summary-cards').innerHTML = [
-            createSummaryCard('indigo', ICONS.purchase, '기초 입고 현황', `${totalInitQty}개`, `매입액: ${formatCurrency(totalInitAmount)}`),
-            createSummaryCard('blue', ICONS.sales, '당기 매출 현황', `${totalSoldQty}개`, `매출액: ${formatCurrency(totalSoldAmount)}`),
-            createSummaryCard('emerald', ICONS.profit, '현재 재고 현황', `${totalStockQty}개`, `평가액: ${formatCurrency(totalStockAmount)}`)
+            createSummaryCard('indigo', ICONS.purchase, '기초 입고 현황', formatCurrency(totalInitAmount), `수량: ${totalInitQty}개`),
+            createSummaryCard('blue', ICONS.sales, '당기 매출 현황', formatCurrency(totalSoldAmount), `수량: ${totalSoldQty}개`),
+            createSummaryCard('emerald', ICONS.profit, '현재 재고 현황', formatCurrency(totalStockAmount), `수량: ${totalStockQty}개`)
         ].join('');
 
         // 3. ExT 결산 보고서 동적 집계 (전체, 분기별, 월별)
