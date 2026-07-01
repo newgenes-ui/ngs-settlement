@@ -19,6 +19,38 @@
         charts: {}
     };
 
+    const EXT_CATEGORIES = [
+        { id: 'starter_192', code: 'EXT1000S', name: 'ExT Starter Pack (192 rxn)', spec: '192 reactions [set]', initQty: 0, initAmount: 0, unitPrice: 8500000 },
+        { id: 'starter_96', code: 'EXT1000S(Demo)', name: 'ExT Starter Pack (96 rxn)', spec: '96 reactions [set]', initQty: 0, initAmount: 0, unitPrice: 7225000 },
+        { id: 'kit_10_25', code: 'EXT1025K', name: 'ExT 10 ul Kit (25 rxn)', spec: '25 x 2 reactions [kit]', initQty: 0, initAmount: 0, unitPrice: 420000 },
+        { id: 'kit_100_25', code: 'EXT10025K', name: 'ExT 100 ul Kit (25 rxn)', spec: '25 x 2 reactions [kit]', initQty: 0, initAmount: 0, unitPrice: 420000 },
+        { id: 'kit_10_96', code: 'EXT1096K', name: 'ExT 10 ul Kit (96 rxn)', spec: '96 x 2 reactions [kit]', initQty: 0, initAmount: 0, unitPrice: 1250000 },
+        { id: 'kit_100_96', code: 'EXT10096K', name: 'ExT 100 ul Kit (96 rxn)', spec: '96 x 2 reactions [kit]', initQty: 0, initAmount: 0, unitPrice: 1250000 },
+        { id: 'tube', code: 'EXT50T', name: 'ExTransfection Tube', spec: 'EXT50T', initQty: 0, initAmount: 0, unitPrice: 280000 }
+    ];
+
+    const NUJEN_CATEGORIES = [
+        { id: 'sep_10', code: 'SEP-10', name: 'Xcent Serological pipette, 10ml', spec: '200pcs/Box', initQty: 0, initAmount: 0, unitPrice: 30000 },
+        { id: 'stag_1250_b', code: 'STAG-1250-B', name: 'EXCELL AG Tip, 1250ul, Nature', spec: '1000 Tips/Pack, 5 packs/carton', initQty: 0, initAmount: 0, unitPrice: 11200 },
+        { id: 'ngs_sep_10', code: 'NGS-SEP-10', name: 'NuGen Serological pipette, Stretching, 10ml', spec: '200 PCS/BOX, 6 BOXES/CASE', initQty: 0, initAmount: 0, unitPrice: 30000 },
+        { id: 'ngs_sep_100', code: 'NGS-SEP-100', name: 'NuGen Serological pipette, Welding, 100ml', spec: '40 PCS/BOX, 6 BOXES/CASE', initQty: 0, initAmount: 0, unitPrice: 59500 },
+        { id: 'ngs_sep_50', code: 'NGS-SEP-50', name: 'NuGen Serological pipette, Welding, 50ml', spec: '75 PCS/BOX, 6 BOXES/CASE', initQty: 0, initAmount: 0, unitPrice: 49000 },
+        { id: 'ngs_sep_25', code: 'NGS-SEP-25', name: 'NuGen Serological pipette, Welding, 25ml', spec: '100 PCS/BOX, 6 BOXES/CASE', initQty: 0, initAmount: 0, unitPrice: 28000 },
+        { id: 'ngs_sep_5', code: 'NGS-SEP-5', name: 'NuGen Serological pipette, Stretching, 5ml', spec: '200 PCS/BOX, 6 BOXES/CASE', initQty: 0, initAmount: 0, unitPrice: 30000 },
+        { id: 'ng_stag_1250_rts_er', code: 'NG-STAG-1250-RTS-ER', name: 'NuGen AG Tip, Empty rack, 1250ul', spec: '10 racks/Pack, 5 Packs/Case', initQty: 0, initAmount: 0, unitPrice: 2500 },
+        { id: 'ng_stag_200_trs_er', code: 'NG-STAG-200-TRS-ER', name: 'NuGen AG Tip, Empty rack, 200ul', spec: '10 racks/Pack, 5 Packs/Case', initQty: 0, initAmount: 0, unitPrice: 2000 },
+        { id: 'ng_stag_10_rts_er', code: 'NG-STAG-10-RTS-ER', name: 'NuGen AG Tip, Empty rack, 10ul', spec: '10 racks/Pack, 5 Packs/Case', initQty: 0, initAmount: 0, unitPrice: 2000 },
+        { id: 'ng_stag_1250_rs', code: 'NG-STAG-1250-RS', name: 'NuGen AG Tip, 1250ul, Nature, Racked', spec: '96 Tips/rack, 10 racks/Pack, 5 Packs/Carton', initQty: 0, initAmount: 0, unitPrice: 3200 },
+        { id: 'ng_stag_200_rs', code: 'NG-STAG-200-RS', name: 'NuGen AG Tip, 200ul, Yellow, Racked', spec: '96 Tips/rack, 10 racks/Pack, 5 Packs/Carton', initQty: 0, initAmount: 0, unitPrice: 2800 },
+        { id: 'ng_stag_10l_rs', code: 'NG-STAG-10L-RS', name: 'NuGen AG Tip, 10ul, Extra Long, Nature', spec: '96 Tips/rack, 10 racks/Pack, 5 Packs/Carton', initQty: 0, initAmount: 0, unitPrice: 2800 },
+        { id: 'ng_stag_10_rs', code: 'NG-STAG-10-RS', name: 'NuGen AG Tip, 10ul, Nature, Racked', spec: '96 Tips/rack, 10 racks/Pack, 5 Packs/Carton', initQty: 0, initAmount: 0, unitPrice: 2800 },
+        { id: 'ng_stag_1250_rts', code: 'NG-STAG-1250-RTS', name: 'NuGen AG Refill Tip, 1250ul, Nature', spec: '480 Tips/Pack, 10 Packs/Carton', initQty: 0, initAmount: 0, unitPrice: 12500 },
+        { id: 'ng_stag_200_rts', code: 'NG-STAG-200-RTS', name: 'NuGen AG Refill Tip, 200ul, Yellow', spec: '960 Tips/Pack, 10 Packs/Carton', initQty: 0, initAmount: 0, unitPrice: 16000 },
+        { id: 'ng_stag_10_rts', code: 'NG-STAG-10-RTS', name: 'NuGen AG Refill Tip, 10ul, Nature', spec: '960 Tips/Pack, 10 Packs/Carton', initQty: 0, initAmount: 0, unitPrice: 16000 },
+        { id: 'ng_ct_3050_s', code: 'NG-CT-3050-S', name: 'NuGen 50ml Centrifuge Tube, Sterile', spec: '25 PCS/Bag, 500PCS/Box', initQty: 0, initAmount: 0, unitPrice: 60000 },
+        { id: 'ng_ct_3015_s', code: 'NG-CT-3015-S', name: 'NuGen 15ml Centrifuge Tube, Sterile', spec: '25 PCS/Bag, 500PCS/Box', initQty: 0, initAmount: 0, unitPrice: 44800 }
+    ];
+
     // ===== CSV 파싱 =====
     function parseCSVLine(line) {
         const result = [];
@@ -970,8 +1002,19 @@
         return null;
     }
 
-    // ===== 결산 보고서 막대 그래프 그리기 =====
-    function updateReportChart(canvasId, totalSales, totalCost, profit) {
+    // ===== 금액 및 수량의 한국어 단위 포맷 =====
+    function formatKoreanUnit(val) {
+        if (Math.abs(val) >= 100000000) {
+            return (val / 100000000).toFixed(1).replace('.0', '') + '억';
+        }
+        if (Math.abs(val) >= 10000) {
+            return (val / 10000).toFixed(1).replace('.0', '') + '만';
+        }
+        return val.toLocaleString() + '원';
+    }
+
+    // ===== 결산 보고서 영업 이익 트렌드 막대 그래프 그리기 =====
+    function updateReportTrendChart(canvasId, trendData) {
         const ctx = document.getElementById(canvasId);
         if (!ctx) return;
 
@@ -980,31 +1023,42 @@
         }
 
         const dCtx = ctx.getContext('2d');
-        
-        let gradSales = dCtx.createLinearGradient(0, 0, 0, 200);
-        gradSales.addColorStop(0, 'rgba(79, 70, 229, 0.85)'); // Indigo
-        gradSales.addColorStop(1, 'rgba(124, 58, 237, 0.4)');
-
-        let gradCost = dCtx.createLinearGradient(0, 0, 0, 200);
-        gradCost.addColorStop(0, 'rgba(245, 158, 11, 0.85)'); // Amber/Orange
-        gradCost.addColorStop(1, 'rgba(217, 119, 6, 0.4)');
-
         let gradProfit = dCtx.createLinearGradient(0, 0, 0, 200);
-        gradProfit.addColorStop(0, 'rgba(16, 185, 129, 0.85)'); // Emerald/Mint
-        gradProfit.addColorStop(1, 'rgba(5, 150, 105, 0.4)');
+        gradProfit.addColorStop(0, 'rgba(124, 58, 237, 0.85)'); // Indigo/Purple
+        gradProfit.addColorStop(1, 'rgba(139, 92, 246, 0.35)');
+
+        // 시계열 흐름(오름차순)으로 보여주기 위해 reverse
+        const chartData = [...trendData].reverse();
+
+        const topLabelsPlugin = {
+            id: 'topLabels',
+            afterDatasetsDraw(chart) {
+                const { ctx } = chart;
+                ctx.save();
+                ctx.font = 'bold 11px sans-serif';
+                ctx.fillStyle = '#6d28d9';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                
+                chart.data.datasets.forEach((dataset, i) => {
+                    chart.getDatasetMeta(i).data.forEach((bar, index) => {
+                        const value = dataset.data[index];
+                        const formatted = formatKoreanUnit(value);
+                        ctx.fillText(formatted, bar.x, bar.y - 6);
+                    });
+                });
+                ctx.restore();
+            }
+        };
 
         state.charts[canvasId] = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: ['판매 매출액 (A)', '매입 원가 (B)', '영업 이익 (A-B)'],
+                labels: chartData.map(d => d.label),
                 datasets: [{
-                    data: [totalSales, totalCost, profit],
-                    backgroundColor: [gradSales, gradCost, gradProfit],
-                    borderColor: [
-                        '#4f46e5',
-                        '#f59e0b',
-                        '#10b981'
-                    ],
+                    data: chartData.map(d => d.profit),
+                    backgroundColor: gradProfit,
+                    borderColor: '#7c3aed',
                     borderWidth: 1.5,
                     borderRadius: 6,
                     borderSkipped: false,
@@ -1020,13 +1074,13 @@
                     },
                     tooltip: {
                         backgroundColor: 'rgba(17, 24, 39, 0.95)',
-                        titleFont: { size: 13, weight: 'bold' },
-                        bodyFont: { size: 12 },
+                        titleFont: { size: 12, weight: 'bold' },
+                        bodyFont: { size: 11 },
                         padding: 10,
                         cornerRadius: 6,
                         callbacks: {
                             label: function(context) {
-                                return ' 금액: ' + context.raw.toLocaleString() + '원';
+                                return ' 영업이익: ' + context.raw.toLocaleString() + '원';
                             }
                         }
                     }
@@ -1039,7 +1093,7 @@
                         ticks: {
                             color: '#6b7280',
                             font: {
-                                size: 12,
+                                size: 11,
                                 weight: '500'
                             }
                         }
@@ -1051,22 +1105,151 @@
                         ticks: {
                             color: '#6b7280',
                             font: {
-                                size: 10
+                                size: 9
                             },
                             callback: function(value) {
-                                if (value >= 100000000) {
-                                    return (value / 100000000).toFixed(1) + '억원';
-                                }
-                                if (value >= 10000) {
-                                    return (value / 10000).toLocaleString() + '만원';
-                                }
-                                return value.toLocaleString() + '원';
+                                return formatKoreanUnit(value);
                             }
                         }
                     }
                 }
+            },
+            plugins: [topLabelsPlugin]
+        });
+    }
+
+    // ===== ExT 결산 트랜드 데이터 수집 =====
+    function getExtTrendData() {
+        const periods = new Set();
+        state.extSalesData.forEach(r => {
+            if (!r.dateNo) return;
+            const m = r.dateNo.match(/^(\d{4})[/-](\d{2})/);
+            if (m) {
+                const year = m[1];
+                const month = m[2];
+                if (state.currentPeriod === 'monthly') {
+                    periods.add(`${year}-${month}`);
+                } else {
+                    const q = Math.ceil(parseInt(month, 10) / 3);
+                    periods.add(`${year}-Q${q}`);
+                }
             }
         });
+
+        const sortedPeriods = Array.from(periods).sort();
+
+        const trend = sortedPeriods.map(pStr => {
+            let filteredSales = [];
+            let label = '';
+            let fullLabel = '';
+            
+            if (state.currentPeriod === 'monthly') {
+                const [year, month] = pStr.split('-');
+                filteredSales = state.extSalesData.filter(r => {
+                    const m = r.dateNo.match(/^(\d{4})[/-](\d{2})/);
+                    return m && m[1] === year && m[2] === month;
+                });
+                label = `${parseInt(month, 10)}월`;
+                fullLabel = `${year}년 ${parseInt(month, 10)}월`;
+            } else {
+                const [year, qNum] = pStr.split('-Q');
+                const q = parseInt(qNum, 10);
+                filteredSales = state.extSalesData.filter(r => {
+                    const m = r.dateNo.match(/^(\d{4})[/-](\d{2})/);
+                    if (!m) return false;
+                    const rQ = Math.ceil(parseInt(m[2], 10) / 3);
+                    return m[1] === year && rQ === q;
+                });
+                label = `${qNum}분기`;
+                fullLabel = `${year}년 ${qNum}분기`;
+            }
+
+            const totalSales = filteredSales.reduce((s, r) => s + r.totalAmount, 0);
+            const totalCost = filteredSales.reduce((s, r) => {
+                const catId = classifyExtProduct(r.code, r.name);
+                const cat = EXT_CATEGORIES.find(c => c.id === catId);
+                const cost = cat ? cat.unitPrice * 1.1 : 0;
+                return s + (r.qty * cost);
+            }, 0);
+
+            return {
+                label,
+                fullLabel,
+                sales: totalSales,
+                cost: totalCost,
+                profit: totalSales - totalCost,
+                margin: totalSales !== 0 ? (((totalSales - totalCost) / totalSales) * 100).toFixed(1) : '0.0'
+            };
+        });
+
+        return trend.reverse();
+    }
+
+    // ===== NuGen 결산 트랜드 데이터 수집 =====
+    function getNujenTrendData() {
+        const periods = new Set();
+        state.nujenSalesData.forEach(r => {
+            if (!r.dateNo) return;
+            const m = r.dateNo.match(/^(\d{4})[/-](\d{2})/);
+            if (m) {
+                const year = m[1];
+                const month = m[2];
+                if (state.currentPeriod === 'monthly') {
+                    periods.add(`${year}-${month}`);
+                } else {
+                    const q = Math.ceil(parseInt(month, 10) / 3);
+                    periods.add(`${year}-Q${q}`);
+                }
+            }
+        });
+
+        const sortedPeriods = Array.from(periods).sort();
+
+        const trend = sortedPeriods.map(pStr => {
+            let filteredSales = [];
+            let label = '';
+            let fullLabel = '';
+            
+            if (state.currentPeriod === 'monthly') {
+                const [year, month] = pStr.split('-');
+                filteredSales = state.nujenSalesData.filter(r => {
+                    const m = r.dateNo.match(/^(\d{4})[/-](\d{2})/);
+                    return m && m[1] === year && m[2] === month;
+                });
+                label = `${parseInt(month, 10)}월`;
+                fullLabel = `${year}년 ${parseInt(month, 10)}월`;
+            } else {
+                const [year, qNum] = pStr.split('-Q');
+                const q = parseInt(qNum, 10);
+                filteredSales = state.nujenSalesData.filter(r => {
+                    const m = r.dateNo.match(/^(\d{4})[/-](\d{2})/);
+                    if (!m) return false;
+                    const rQ = Math.ceil(parseInt(m[2], 10) / 3);
+                    return m[1] === year && rQ === q;
+                });
+                label = `${qNum}분기`;
+                fullLabel = `${year}년 ${qNum}분기`;
+            }
+
+            const totalSales = filteredSales.reduce((s, r) => s + r.totalAmount, 0);
+            const totalCost = filteredSales.reduce((s, r) => {
+                const catId = classifyNujenProduct(r.code, r.name);
+                const cat = NUJEN_CATEGORIES.find(c => c.id === catId);
+                const cost = cat ? cat.unitPrice * 1.1 : 0;
+                return s + (r.qty * cost);
+            }, 0);
+
+            return {
+                label,
+                fullLabel,
+                sales: totalSales,
+                cost: totalCost,
+                profit: totalSales - totalCost,
+                margin: totalSales !== 0 ? (((totalSales - totalCost) / totalSales) * 100).toFixed(1) : '0.0'
+            };
+        });
+
+        return trend.reverse();
     }
 
     function renderInventoryView() {
@@ -1139,47 +1322,33 @@
             createSummaryCard('emerald', ICONS.profit, '현재 재고 현황', formatCurrency(totalStockAmount), `수량: ${totalStockQty}개`)
         ].join('');
 
-        // 3. ExT 결산 보고서 동적 집계 (글로벌 필터 연동)
+        // 3. ExT 결산 보고서 동적 집계 (트랜드 뷰)
         const reportTbody = document.getElementById('ext-report-tbody');
-        const reportData = getFilteredExtSalesData();
+        const trendData = getExtTrendData();
 
-        const totalSalesAmt = reportData.reduce((s, r) => s + r.totalAmount, 0);
-        const totalPurchaseCost = reportData.reduce((s, r) => {
-            const catId = classifyExtProduct(r.code, r.name);
-            const cat = categories.find(c => c.id === catId);
-            const costPrice = cat ? cat.unitPrice * 1.1 : 0;
-            return s + (r.qty * costPrice);
-        }, 0);
-        const profit = totalSalesAmt - totalPurchaseCost;
-        const margin = totalSalesAmt !== 0 ? ((profit / totalSalesAmt) * 100).toFixed(1) : '0.0';
+        reportTbody.innerHTML = trendData.map(d => `
+            <tr>
+                <td style="font-weight: 700;">${d.fullLabel}</td>
+                <td class="text-right">${d.sales.toLocaleString()}원</td>
+                <td class="text-right">${d.cost.toLocaleString()}원</td>
+                <td class="text-right" style="color: var(--accent-indigo); font-weight: 700;">${d.profit.toLocaleString()}원</td>
+                <td class="text-right" style="color: var(--accent-indigo); font-weight: 700;">${d.margin}%</td>
+            </tr>
+        `).join('');
 
-        let label = '전체 기간 (2026년 상반기)';
-        if (state.currentPeriod === 'quarterly' && state.selectedSubPeriod) {
-            const m = state.selectedSubPeriod.match(/^(\d{4})-Q(\d)/);
-            if (m) {
-                label = `${m[1]}년 ${m[2]}분기`;
-            }
-        } else if (state.currentPeriod === 'monthly' && state.selectedSubPeriod) {
-            const m = state.selectedSubPeriod.match(/^(\d{4})-(\d{2})/);
-            if (m) {
-                label = `${m[1]}년 ${parseInt(m[2], 10)}월`;
-            }
+        // 차트 헤더 정보 동적 조절 (ExT)
+        const extChartHeader = document.querySelector('#view-inventory .table-card .table-header h3');
+        if (extChartHeader) {
+            extChartHeader.innerHTML = `
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                    <span style="font-size:1.15rem; font-weight:800; color:var(--text-primary);">영업 이익 (Profit) 트렌드</span>
+                    <span style="font-size:0.75rem; font-weight:400; color:var(--text-secondary);">2026년 ${state.currentPeriod === 'monthly' ? '월별' : '분기별'} 영업 이익(매출 - 매입) 현황입니다.</span>
+                </div>
+            `;
         }
 
-        const reportHTML = `
-            <tr>
-                <td style="font-weight: 700;">${label}</td>
-                <td class="text-right">${totalSalesAmt.toLocaleString()}원</td>
-                <td class="text-right">${totalPurchaseCost.toLocaleString()}원</td>
-                <td class="text-right ${profit >= 0 ? 'positive' : 'negative'}">${profit.toLocaleString()}원</td>
-                <td class="text-right ${profit >= 0 ? 'positive' : 'negative'}">${margin}%</td>
-            </tr>
-        `;
-
-        reportTbody.innerHTML = reportHTML;
-
         // 차트 업데이트
-        updateReportChart('ext-report-chart', totalSalesAmt, totalPurchaseCost, profit);
+        updateReportTrendChart('ext-report-chart', trendData);
 
         // 4. ExT 제품 재고 및 금액 현황 테이블 렌더
         const tbody = document.getElementById('inventory-tbody');
@@ -1300,47 +1469,33 @@
             createSummaryCard('emerald', ICONS.profit, '현재 재고 현황', formatCurrency(totalStockAmount), `수량: ${totalStockQty}개`)
         ].join('');
 
-        // 3. NuGen 결산 보고서 동적 집계 (글로벌 필터 연동)
+        // 3. NuGen 결산 보고서 동적 집계 (트랜드 뷰)
         const reportTbody = document.getElementById('nujen-report-tbody');
-        const reportData = getFilteredNujenSalesData();
+        const trendData = getNujenTrendData();
 
-        const totalSalesAmt = reportData.reduce((s, r) => s + r.totalAmount, 0);
-        const totalPurchaseCost = reportData.reduce((s, r) => {
-            const catId = classifyNujenProduct(r.code, r.name);
-            const cat = categories.find(c => c.id === catId);
-            const costPrice = cat ? cat.unitPrice * 1.1 : 0;
-            return s + (r.qty * costPrice);
-        }, 0);
-        const profit = totalSalesAmt - totalPurchaseCost;
-        const margin = totalSalesAmt !== 0 ? ((profit / totalSalesAmt) * 100).toFixed(1) : '0.0';
+        reportTbody.innerHTML = trendData.map(d => `
+            <tr>
+                <td style="font-weight: 700;">${d.fullLabel}</td>
+                <td class="text-right">${d.sales.toLocaleString()}원</td>
+                <td class="text-right">${d.cost.toLocaleString()}원</td>
+                <td class="text-right" style="color: var(--accent-indigo); font-weight: 700;">${d.profit.toLocaleString()}원</td>
+                <td class="text-right" style="color: var(--accent-indigo); font-weight: 700;">${d.margin}%</td>
+            </tr>
+        `).join('');
 
-        let label = '전체 기간 (2025/01/01 ~ 2026/07/01)';
-        if (state.currentPeriod === 'quarterly' && state.selectedSubPeriod) {
-            const m = state.selectedSubPeriod.match(/^(\d{4})-Q(\d)/);
-            if (m) {
-                label = `${m[1]}년 ${m[2]}분기`;
-            }
-        } else if (state.currentPeriod === 'monthly' && state.selectedSubPeriod) {
-            const m = state.selectedSubPeriod.match(/^(\d{4})-(\d{2})/);
-            if (m) {
-                label = `${m[1]}년 ${parseInt(m[2], 10)}월`;
-            }
+        // 차트 헤더 정보 동적 조절 (NuGen)
+        const nujenChartHeader = document.querySelector('#view-nujen .table-card .table-header h3');
+        if (nujenChartHeader) {
+            nujenChartHeader.innerHTML = `
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                    <span style="font-size:1.15rem; font-weight:800; color:var(--text-primary);">영업 이익 (Profit) 트렌드</span>
+                    <span style="font-size:0.75rem; font-weight:400; color:var(--text-secondary);">2026년 ${state.currentPeriod === 'monthly' ? '월별' : '분기별'} 영업 이익(매출 - 매입) 현황입니다.</span>
+                </div>
+            `;
         }
 
-        const reportHTML = `
-            <tr>
-                <td style="font-weight: 700;">${label}</td>
-                <td class="text-right">${totalSalesAmt.toLocaleString()}원</td>
-                <td class="text-right">${totalPurchaseCost.toLocaleString()}원</td>
-                <td class="text-right ${profit >= 0 ? 'positive' : 'negative'}">${profit.toLocaleString()}원</td>
-                <td class="text-right ${profit >= 0 ? 'positive' : 'negative'}">${margin}%</td>
-            </tr>
-        `;
-
-        reportTbody.innerHTML = reportHTML;
-
         // 차트 업데이트
-        updateReportChart('nujen-report-chart', totalSalesAmt, totalPurchaseCost, profit);
+        updateReportTrendChart('nujen-report-chart', trendData);
 
         // 4. NuGen 제품 재고 및 금액 현황 테이블 렌더
         const tbody = document.getElementById('nujen-tbody');
