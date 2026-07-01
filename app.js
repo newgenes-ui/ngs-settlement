@@ -12,6 +12,9 @@
         salesData: [],
         cardSalesData: [],
         purchaseData: [],
+        extPurchaseData: [],
+        extSalesData: [],
+        extPeriodMode: 'all',    // 'all' | 'quarterly' | 'monthly'
         charts: {}
     };
 
@@ -69,17 +72,19 @@
     // ===== 데이터 로드 =====
     async function loadData() {
         try {
-            const [salesRes, cardRes, purchaseRes, extInventoryRes] = await Promise.all([
+            const [salesRes, cardRes, purchaseRes, extPurchaseRes, extSalesRes] = await Promise.all([
                 fetch('매출.csv'),
                 fetch('카드매출전표.csv'),
                 fetch('매입.csv'),
-                fetch('ExT 재고매입.csv')
+                fetch('ExT구매현항.csv'),
+                fetch('ExT판매현황.csv')
             ]);
 
             const salesText = await salesRes.text();
             const cardText = await cardRes.text();
             const purchaseText = await purchaseRes.text();
-            const extInventoryText = await extInventoryRes.text();
+            const extPurchaseText = await extPurchaseRes.text();
+            const extSalesText = await extSalesRes.text();
 
             // 매출 CSV: 1행=제목, 2행=헤더
             state.salesData = parseCSV(salesText, 2).map(row => ({
@@ -195,19 +200,41 @@
                 });
             }
 
-            // ExT 재고매입 CSV 파싱
-            const extInventoryLines = extInventoryText.split('\n').filter(l => l.trim());
-            state.extInventoryRawData = [];
-            for (let i = 6; i < extInventoryLines.length; i++) {
-                const v = parseCSVLine(extInventoryLines[i]);
-                if (!v[0] || v[1] === '총합계') continue;
-                state.extInventoryRawData.push({
-                    date: v[0],
-                    itemName: v[1],
-                    qty: parseInt(v[2]) || 0,
-                    unitPrice: parseAmount(v[3]),
-                    supplyAmount: parseAmount(v[4]),
-                    taxAmount: parseAmount(v[5])
+            // ExT구매현항 CSV 파싱
+            const extPurchaseLines = extPurchaseText.split('\n').filter(l => l.trim());
+            state.extPurchaseData = [];
+            for (let i = 1; i < extPurchaseLines.length; i++) {
+                const v = parseCSVLine(extPurchaseLines[i]);
+                if (!v[0] || v[0].startsWith('총합계')) continue;
+                state.extPurchaseData.push({
+                    dateNo: v[0],
+                    supplier: v[1],
+                    code: v[2],
+                    name: v[3],
+                    qty: parseInt(v[4]) || 0,
+                    unitPrice: parseAmount(v[5]),
+                    supplyAmount: parseAmount(v[6]),
+                    taxAmount: parseAmount(v[7])
+                });
+            }
+
+            // ExT판매현황 CSV 파싱
+            const extSalesLines = extSalesText.split('\n').filter(l => l.trim());
+            state.extSalesData = [];
+            for (let i = 2; i < extSalesLines.length; i++) {
+                const v = parseCSVLine(extSalesLines[i]);
+                if (!v[0] || v[0].startsWith('총합계')) continue;
+                state.extSalesData.push({
+                    dateNo: v[0],
+                    buyer: v[1],
+                    collectionDate: v[2],
+                    qty: parseInt(v[3]) || 0,
+                    unitPrice: parseAmount(v[4]),
+                    supplyAmount: parseAmount(v[5]),
+                    taxAmount: parseAmount(v[6]),
+                    totalAmount: parseAmount(v[7]),
+                    code: v[8],
+                    name: v[9]
                 });
             }
 
@@ -545,26 +572,25 @@
 
     // ===== ExT 매출 세부내역 렌더 (재고관리 탭 하단용) =====
     function renderExtSalesList(searchTerm = '') {
-        const allData = getFilteredData(state.salesData);
-        const data = allData.filter(isExtProduct);
+        const data = state.extSalesData;
         const filtered = searchTerm
             ? data.filter(r =>
-                (r.buyerName && r.buyerName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                (r.itemName && r.itemName.toLowerCase().includes(searchTerm.toLowerCase())))
+                (r.buyer && r.buyer.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                (r.name && r.name.toLowerCase().includes(searchTerm.toLowerCase())))
             : data;
 
         const totalAmount = filtered.reduce((s, r) => s + r.totalAmount, 0);
 
         const tbody = document.getElementById('ext-sales-tbody');
         tbody.innerHTML = filtered.map((r) => `
-            <tr data-type="sales" data-idx="${state.salesData.indexOf(r)}">
-                <td>${r.date}</td>
-                <td>${r.buyerName || '-'}</td>
-                <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;">${r.itemName || '-'}</td>
-                <td class="text-right amount ${r.totalAmount < 0 ? 'negative' : ''}">${r.totalAmount.toLocaleString()}</td>
-                <td class="text-right amount">${r.supplyAmount.toLocaleString()}</td>
-                <td class="text-right amount">${r.taxAmount.toLocaleString()}</td>
-                <td><span class="tag ${r.classification === '수정세금계사항' || r.classification === '수정세금계산서' ? 'correction' : 'normal'}">${r.classification === '수정세금계산서' ? '수정' : '일반'}</span></td>
+            <tr data-type="ext-sales" data-idx="${state.extSalesData.indexOf(r)}">
+                <td>${r.dateNo.split(' ')[0]}</td>
+                <td>${r.buyer || '-'}</td>
+                <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;">${r.name || '-'}</td>
+                <td class="text-right amount ${r.totalAmount < 0 ? 'negative' : ''}">${r.totalAmount.toLocaleString()}원</td>
+                <td class="text-right amount">${r.supplyAmount.toLocaleString()}원</td>
+                <td class="text-right amount">${r.taxAmount.toLocaleString()}원</td>
+                <td><span class="tag normal">일반</span></td>
             </tr>
         `).join('');
 
@@ -655,41 +681,71 @@
     }
 
     // ===== ExT 재고 관리 렌더 =====
-    function classifyExtProduct(itemName) {
-        const name = (itemName || '').toLowerCase();
-        if (!name.includes('extransfection') && !name.includes('ext-') && !name.includes('exttransfection')) {
-            return null;
+    // ===== ExT 제품 분류 규칙 =====
+    function classifyExtProduct(code, name) {
+        const c = (code || '').toUpperCase();
+        const n = (name || '').toLowerCase();
+        
+        if (c.includes('EXT1000S') || n.includes('192reaction') || n.includes('192 rxn')) {
+            if (c.includes('DEMO')) return 'starter_96';
+            return 'starter_192';
         }
-        if (name.includes('192')) return 'starter_192';
-        if (name.includes('96') && name.includes('starter')) return 'starter_96';
-        if (name.includes('tube')) return 'tube';
-        
-        const is25 = name.includes('25') || name.includes('25k');
-        const is10 = name.includes('10 ') || name.includes('10u') || name.includes('10μ') || name.includes('10 μ');
-        const is100 = name.includes('100 ') || name.includes('100u') || name.includes('100μ') || name.includes('100 μ') || name.includes('10096k') || name.includes('10025k') || (!name.includes('10 ') && !name.includes('10u') && !name.includes('10μ'));
-        
-        if (is10) {
-            if (is25) return 'kit_10_25';
+        if (c.includes('DEMO') || n.includes('starter pack [ea]') || n.includes('96x2reaction')) {
+            return 'starter_96';
+        }
+        if (c.includes('EXT1025K') || c.includes('EXT1025K(할증)')) {
+            return 'kit_10_25';
+        }
+        if (c.includes('EXT10025K') || c.includes('EXT10025K(할증)') || c.includes('EXT-10025K')) {
+            return 'kit_100_25';
+        }
+        if (c.includes('EXT1096K') || c.includes('EXT1096K(할증)')) {
             return 'kit_10_96';
         }
-        if (is100) {
-            if (is25) return 'kit_100_25';
+        if (c.includes('EXT10096K') || c.includes('EXT10096K(할증)') || c.includes('EXT-10096K') || n.includes('100 μl kit')) {
             return 'kit_100_96';
         }
-        return 'kit_100_96';
+        if (c.includes('EXT50T') || n.includes('tube')) {
+            return 'tube';
+        }
+        if (c.includes('DEMO_VERSION')) {
+            return 'starter_96';
+        }
+        
+        // fallback by name
+        if (n.includes('192')) return 'starter_192';
+        if (n.includes('96') && n.includes('starter')) return 'starter_96';
+        if (n.includes('10 ') && n.includes('25')) return 'kit_10_25';
+        if (n.includes('100 ') && n.includes('25')) return 'kit_100_25';
+        if (n.includes('10 ') && n.includes('96')) return 'kit_10_96';
+        if (n.includes('100 ') && n.includes('96')) return 'kit_100_96';
+        if (n.includes('tube')) return 'tube';
+
+        return null;
     }
 
     function renderInventoryView() {
         const categories = [
-            { id: 'starter_192', name: 'ExT Starter Pack (192 rxn)', spec: '192 reactions [set]', initQty: 20, initAmount: 170000000, unitPrice: 8500000 },
-            { id: 'starter_96', name: 'ExT Starter Pack (96 rxn)', spec: '96 reactions [set]', initQty: 3, initAmount: 21675000, unitPrice: 7225000 },
-            { id: 'kit_10_25', name: 'ExT 10 ul Kit (25 rxn)', spec: '25 x 2 reactions [kit]', initQty: 11, initAmount: 4200000, unitPrice: 420000 },
-            { id: 'kit_100_25', name: 'ExT 100 ul Kit (25 rxn)', spec: '25 x 2 reactions [kit]', initQty: 11, initAmount: 4200000, unitPrice: 420000 },
-            { id: 'kit_10_96', name: 'ExT 10 ul Kit (96 rxn)', spec: '96 x 2 reactions [kit]', initQty: 162, initAmount: 200000000, unitPrice: 1250000 },
-            { id: 'kit_100_96', name: 'ExT 100 ul Kit (96 rxn)', spec: '96 x 2 reactions [kit]', initQty: 132, initAmount: 162500000, unitPrice: 1250000 },
-            { id: 'tube', name: 'ExTransfection Tube', spec: 'EXT50T', initQty: 2, initAmount: 560000, unitPrice: 280000 }
+            { id: 'starter_192', name: 'ExT Starter Pack (192 rxn)', spec: '192 reactions [set]', initQty: 0, initAmount: 0, unitPrice: 8500000 },
+            { id: 'starter_96', name: 'ExT Starter Pack (96 rxn)', spec: '96 reactions [set]', initQty: 0, initAmount: 0, unitPrice: 7225000 },
+            { id: 'kit_10_25', name: 'ExT 10 ul Kit (25 rxn)', spec: '25 x 2 reactions [kit]', initQty: 0, initAmount: 0, unitPrice: 420000 },
+            { id: 'kit_100_25', name: 'ExT 100 ul Kit (25 rxn)', spec: '25 x 2 reactions [kit]', initQty: 0, initAmount: 0, unitPrice: 420000 },
+            { id: 'kit_10_96', name: 'ExT 10 ul Kit (96 rxn)', spec: '96 x 2 reactions [kit]', initQty: 0, initAmount: 0, unitPrice: 1250000 },
+            { id: 'kit_100_96', name: 'ExT 100 ul Kit (96 rxn)', spec: '96 x 2 reactions [kit]', initQty: 0, initAmount: 0, unitPrice: 1250000 },
+            { id: 'tube', name: 'ExTransfection Tube', spec: 'EXT50T', initQty: 0, initAmount: 0, unitPrice: 280000 }
         ];
 
+        // 1. 기초 매입(구매현황) 데이터 실시간 집계
+        state.extPurchaseData.forEach(p => {
+            const catId = classifyExtProduct(p.code, p.name);
+            const cat = categories.find(c => c.id === catId);
+            if (cat) {
+                cat.initQty += p.qty;
+                cat.initAmount += p.supplyAmount;
+            }
+        });
+
+        // 2. 당기 매출 및 판매량 집계
         const soldCounts = {};
         const soldAmounts = {};
         categories.forEach(c => {
@@ -697,36 +753,106 @@
             soldAmounts[c.id] = 0;
         });
 
-        // 당기 매출 및 판매량 집계
-        state.salesData.forEach(r => {
-            const catId = classifyExtProduct(r.itemName);
+        state.extSalesData.forEach(s => {
+            const catId = classifyExtProduct(s.code, s.name);
             if (catId) {
-                const qty = parseInt(r.itemQty) || 0;
-                const supply = parseAmount(r.itemSupply) || 0;
-                soldCounts[catId] += qty;
-                soldAmounts[catId] += supply;
+                soldCounts[catId] += s.qty;
+                soldAmounts[catId] += s.supplyAmount;
             }
         });
 
         const totalInitQty = categories.reduce((s, c) => s + c.initQty, 0);
         const totalInitAmount = categories.reduce((s, c) => s + c.initAmount, 0);
-        
         const totalSoldQty = Object.values(soldCounts).reduce((s, v) => s + v, 0);
         const totalSoldAmount = Object.values(soldAmounts).reduce((s, v) => s + v, 0);
-        
         const totalStockQty = totalInitQty - totalSoldQty;
+        
         const totalStockAmount = categories.reduce((s, c) => {
             const sold = soldCounts[c.id] || 0;
             const stock = Math.max(c.initQty - sold, 0);
             return s + (stock * c.unitPrice);
         }, 0);
 
+        // 상단 재고 현황 카드 렌더
         document.getElementById('inventory-summary-cards').innerHTML = [
             createSummaryCard('indigo', ICONS.purchase, '기초 입고 현황', `${totalInitQty}개`, `매입액: ${formatCurrency(totalInitAmount)}`),
             createSummaryCard('blue', ICONS.sales, '당기 매출 현황', `${totalSoldQty}개`, `매출액: ${formatCurrency(totalSoldAmount)}`),
             createSummaryCard('emerald', ICONS.profit, '현재 재고 현황', `${totalStockQty}개`, `평가액: ${formatCurrency(totalStockAmount)}`)
         ].join('');
 
+        // 3. ExT 결산 보고서 동적 집계 (전체, 분기별, 월별)
+        const reportTbody = document.getElementById('ext-report-tbody');
+        let reportHTML = '';
+
+        function getPeriodKey(dateNoStr, mode) {
+            const m = (dateNoStr || '').match(/^(\d{4})[/-](\d{2})[/-]/);
+            if (!m) return '기타';
+            const year = m[1];
+            const month = parseInt(m[2], 10);
+            if (mode === 'monthly') {
+                return `${year}년 ${month}월`;
+            } else if (mode === 'quarterly') {
+                const q = Math.ceil(month / 3);
+                return `${year}년 ${q}분기`;
+            }
+            return '전체 기간';
+        }
+
+        if (state.extPeriodMode === 'all') {
+            const totalSalesAmt = state.extSalesData.reduce((s, r) => s + r.supplyAmount, 0);
+            const totalPurchaseCost = state.extSalesData.reduce((s, r) => {
+                const catId = classifyExtProduct(r.code, r.name);
+                const cat = categories.find(c => c.id === catId);
+                const costPrice = cat ? cat.unitPrice : 0;
+                return s + (r.qty * costPrice);
+            }, 0);
+            const profit = totalSalesAmt - totalPurchaseCost;
+            const margin = totalSalesAmt !== 0 ? ((profit / totalSalesAmt) * 100).toFixed(1) : '0.0';
+
+            reportHTML = `
+                <tr>
+                    <td style="font-weight: 700;">전체 기간 (2026년 상반기)</td>
+                    <td class="text-right">${totalSalesAmt.toLocaleString()}원</td>
+                    <td class="text-right">${totalPurchaseCost.toLocaleString()}원</td>
+                    <td class="text-right ${profit >= 0 ? 'positive' : 'negative'}">${profit.toLocaleString()}원</td>
+                    <td class="text-right ${profit >= 0 ? 'positive' : 'negative'}">${margin}%</td>
+                </tr>
+            `;
+        } else {
+            const periods = {};
+            state.extSalesData.forEach(r => {
+                const pKey = getPeriodKey(r.dateNo, state.extPeriodMode);
+                if (!periods[pKey]) {
+                    periods[pKey] = { sales: 0, cost: 0 };
+                }
+                periods[pKey].sales += r.supplyAmount;
+                const catId = classifyExtProduct(r.code, r.name);
+                const cat = categories.find(c => c.id === catId);
+                const costPrice = cat ? cat.unitPrice : 0;
+                periods[pKey].cost += (r.qty * costPrice);
+            });
+
+            // 기간 순 정렬
+            const sortedKeys = Object.keys(periods).sort();
+            reportHTML = sortedKeys.map(k => {
+                const d = periods[k];
+                const profit = d.sales - d.cost;
+                const margin = d.sales !== 0 ? ((profit / d.sales) * 100).toFixed(1) : '0.0';
+                return `
+                    <tr>
+                        <td style="font-weight: 700;">${k}</td>
+                        <td class="text-right">${d.sales.toLocaleString()}원</td>
+                        <td class="text-right">${d.cost.toLocaleString()}원</td>
+                        <td class="text-right ${profit >= 0 ? 'positive' : 'negative'}">${profit.toLocaleString()}원</td>
+                        <td class="text-right ${profit >= 0 ? 'positive' : 'negative'}">${margin}%</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        reportTbody.innerHTML = reportHTML;
+
+        // 4. ExT 제품 재고 및 금액 현황 테이블 렌더
         const tbody = document.getElementById('inventory-tbody');
         tbody.innerHTML = categories.map(c => {
             const soldQty = soldCounts[c.id] || 0;
@@ -836,7 +962,23 @@
         const title = document.getElementById('modal-title');
         let html = '';
 
-        if (type === 'sales') {
+        if (type === 'ext-sales') {
+            const r = state.extSalesData[idx];
+            if (!r) return;
+            title.textContent = 'ExT 매출 상세';
+            html = buildDetailHTML([
+                ['일자/번호', r.dateNo],
+                ['거래처', r.buyer],
+                ['수금일자', r.collectionDate || '-'],
+                ['품목코드', r.code || '-'],
+                ['품목명', r.name || '-'],
+                ['수량', (r.qty || 0).toLocaleString() + '개'],
+                ['단가', formatFullCurrency(r.unitPrice)],
+                ['공급가액', formatFullCurrency(r.supplyAmount)],
+                ['세액', formatFullCurrency(r.taxAmount)],
+                ['합계금액', { value: formatFullCurrency(r.totalAmount), highlight: true }]
+            ]);
+        } else if (type === 'sales') {
             const r = state.salesData[idx];
             if (!r) return;
             title.textContent = '매출 거래 상세';
@@ -922,9 +1064,15 @@
             });
         });
 
-
-
-        // 하위 기간 선택
+        // ExT 결산 보고서 기간 필터 선택
+        document.querySelectorAll('.ext-period-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                state.extPeriodMode = btn.dataset.extPeriod;
+                document.querySelectorAll('.ext-period-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                renderInventoryView();
+            });
+        });        // 하위 기간 선택
         document.getElementById('sub-period-select').addEventListener('change', e => {
             state.selectedSubPeriod = e.target.value;
             renderCurrentView();

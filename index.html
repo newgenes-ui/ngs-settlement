@@ -170,6 +170,33 @@
                 <!-- ExT Inventory View -->
                 <div class="view" id="view-inventory">
                     <div class="summary-cards" id="inventory-summary-cards"></div>
+
+                    <!-- ExT 결산 보고서 카드 -->
+                    <div class="table-card" style="margin-bottom: 24px;">
+                        <div class="table-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                            <h3 style="margin: 0;">ExT 결산 보고서</h3>
+                            <div class="trend-toggle" style="display: flex; gap: 4px;">
+                                <button class="trend-toggle-btn active ext-period-btn" data-ext-period="all" id="ext-btn-all" style="padding: 6px 12px; font-size: 0.8rem; border-radius: 6px; cursor: pointer;">전체</button>
+                                <button class="trend-toggle-btn ext-period-btn" data-ext-period="quarterly" id="ext-btn-quarterly" style="padding: 6px 12px; font-size: 0.8rem; border-radius: 6px; cursor: pointer;">분기별</button>
+                                <button class="trend-toggle-btn ext-period-btn" data-ext-period="monthly" id="ext-btn-monthly" style="padding: 6px 12px; font-size: 0.8rem; border-radius: 6px; cursor: pointer;">월별</button>
+                            </div>
+                        </div>
+                        <div class="table-wrapper">
+                            <table class="data-table" id="ext-report-table">
+                                <thead>
+                                    <tr>
+                                        <th class="text-left">구분</th>
+                                        <th class="text-right">판매 매출액 (A)</th>
+                                        <th class="text-right">매입 원가 (B)</th>
+                                        <th class="text-right">영업 이익 (A - B)</th>
+                                        <th class="text-right">이익률</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ext-report-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
                     <div class="table-card">
                         <div class="table-header">
                             <h3>ExT 제품 재고 및 금액 현황 (기초입고: 2025/12/30)</h3>
