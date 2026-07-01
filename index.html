@@ -181,6 +181,11 @@
                         <div class="table-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
                             <h3 style="margin: 0;">ExT 결산 보고서</h3>
                         </div>
+                        <div class="chart-container" style="padding: 20px; border-bottom: 1px solid var(--border-subtle); background: var(--bg-card); display: flex; justify-content: center;">
+                            <div style="width: 100%; max-width: 800px; height: 260px;">
+                                <canvas id="ext-report-chart"></canvas>
+                            </div>
+                        </div>
                         <div class="table-wrapper">
                             <table class="data-table" id="ext-report-table">
                                 <thead>
@@ -267,6 +272,11 @@
                     <div class="table-card" style="margin-bottom: 24px;">
                         <div class="table-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
                             <h3 style="margin: 0;">뉴진스 결산 보고서</h3>
+                        </div>
+                        <div class="chart-container" style="padding: 20px; border-bottom: 1px solid var(--border-subtle); background: var(--bg-card); display: flex; justify-content: center;">
+                            <div style="width: 100%; max-width: 800px; height: 260px;">
+                                <canvas id="nujen-report-chart"></canvas>
+                            </div>
                         </div>
                         <div class="table-wrapper">
                             <table class="data-table" id="nujen-report-table">
@@ -423,6 +433,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-    <script src="app.js?v=1.0.9"></script>
+    <script src="app.js?v=1.1.0"></script>
 </body>
 </html>

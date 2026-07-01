@@ -970,6 +970,105 @@
         return null;
     }
 
+    // ===== 결산 보고서 막대 그래프 그리기 =====
+    function updateReportChart(canvasId, totalSales, totalCost, profit) {
+        const ctx = document.getElementById(canvasId);
+        if (!ctx) return;
+
+        if (state.charts[canvasId]) {
+            state.charts[canvasId].destroy();
+        }
+
+        const dCtx = ctx.getContext('2d');
+        
+        let gradSales = dCtx.createLinearGradient(0, 0, 0, 200);
+        gradSales.addColorStop(0, 'rgba(79, 70, 229, 0.85)'); // Indigo
+        gradSales.addColorStop(1, 'rgba(124, 58, 237, 0.4)');
+
+        let gradCost = dCtx.createLinearGradient(0, 0, 0, 200);
+        gradCost.addColorStop(0, 'rgba(245, 158, 11, 0.85)'); // Amber/Orange
+        gradCost.addColorStop(1, 'rgba(217, 119, 6, 0.4)');
+
+        let gradProfit = dCtx.createLinearGradient(0, 0, 0, 200);
+        gradProfit.addColorStop(0, 'rgba(16, 185, 129, 0.85)'); // Emerald/Mint
+        gradProfit.addColorStop(1, 'rgba(5, 150, 105, 0.4)');
+
+        state.charts[canvasId] = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['판매 매출액 (A)', '매입 원가 (B)', '영업 이익 (A-B)'],
+                datasets: [{
+                    data: [totalSales, totalCost, profit],
+                    backgroundColor: [gradSales, gradCost, gradProfit],
+                    borderColor: [
+                        '#4f46e5',
+                        '#f59e0b',
+                        '#10b981'
+                    ],
+                    borderWidth: 1.5,
+                    borderRadius: 6,
+                    borderSkipped: false,
+                    barThickness: 45
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                        titleFont: { size: 13, weight: 'bold' },
+                        bodyFont: { size: 12 },
+                        padding: 10,
+                        cornerRadius: 6,
+                        callbacks: {
+                            label: function(context) {
+                                return ' 금액: ' + context.raw.toLocaleString() + '원';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: '#6b7280',
+                            font: {
+                                size: 12,
+                                weight: '500'
+                            }
+                        }
+                    },
+                    y: {
+                        grid: {
+                            color: 'rgba(243, 244, 246, 0.8)'
+                        },
+                        ticks: {
+                            color: '#6b7280',
+                            font: {
+                                size: 10
+                            },
+                            callback: function(value) {
+                                if (value >= 100000000) {
+                                    return (value / 100000000).toFixed(1) + '억원';
+                                }
+                                if (value >= 10000) {
+                                    return (value / 10000).toLocaleString() + '만원';
+                                }
+                                return value.toLocaleString() + '원';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
     function renderInventoryView() {
         const categories = [
             { id: 'starter_192', code: 'EXT1000S', name: 'ExT Starter Pack (192 rxn)', spec: '192 reactions [set]', initQty: 0, initAmount: 0, unitPrice: 8500000 },
@@ -1078,6 +1177,9 @@
         `;
 
         reportTbody.innerHTML = reportHTML;
+
+        // 차트 업데이트
+        updateReportChart('ext-report-chart', totalSalesAmt, totalPurchaseCost, profit);
 
         // 4. ExT 제품 재고 및 금액 현황 테이블 렌더
         const tbody = document.getElementById('inventory-tbody');
@@ -1236,6 +1338,9 @@
         `;
 
         reportTbody.innerHTML = reportHTML;
+
+        // 차트 업데이트
+        updateReportChart('nujen-report-chart', totalSalesAmt, totalPurchaseCost, profit);
 
         // 4. NuGen 제품 재고 및 금액 현황 테이블 렌더
         const tbody = document.getElementById('nujen-tbody');
