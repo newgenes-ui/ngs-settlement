@@ -1185,6 +1185,9 @@
 
             const totalSales = filteredSales.reduce((s, r) => s + r.totalAmount, 0);
             const totalCost = filteredSales.reduce((s, r) => {
+                if (r.buyer === '주식회사 다윈바이오텍' && r.totalAmount === 42515000) {
+                    return s + 30800000; // (850만*3 + 125만*2) * 1.1 = 3,080만원
+                }
                 const catId = classifyExtProduct(r.code, r.name);
                 const cat = EXT_CATEGORIES.find(c => c.id === catId);
                 const cost = cat ? cat.unitPrice * 1.1 : 0;
