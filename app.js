@@ -14,6 +14,8 @@
         purchaseData: [],
         extPurchaseData: [],
         extSalesData: [],
+        nujenPurchaseData: [],
+        nujenSalesData: [],
         charts: {}
     };
 
@@ -71,12 +73,14 @@
     // ===== 데이터 로드 =====
     async function loadData() {
         try {
-            const [salesRes, cardRes, purchaseRes, extPurchaseRes, extSalesRes] = await Promise.all([
+            const [salesRes, cardRes, purchaseRes, extPurchaseRes, extSalesRes, nujenPurchaseRes, nujenSalesRes] = await Promise.all([
                 fetch('매출.csv'),
                 fetch('카드매출전표.csv'),
                 fetch('매입.csv'),
                 fetch('ExT구매현항.csv'),
-                fetch('ExT판매현황.csv')
+                fetch('ExT판매현황.csv'),
+                fetch('뉴진스제품 구매현황.csv'),
+                fetch('뉴진스제품 판매현황.csv')
             ]);
 
             const salesText = await salesRes.text();
@@ -84,6 +88,8 @@
             const purchaseText = await purchaseRes.text();
             const extPurchaseText = await extPurchaseRes.text();
             const extSalesText = await extSalesRes.text();
+            const nujenPurchaseText = await nujenPurchaseRes.text();
+            const nujenSalesText = await nujenSalesRes.text();
 
             // 매출 CSV: 1행=제목, 2행=헤더
             state.salesData = parseCSV(salesText, 2).map(row => ({
@@ -238,9 +244,48 @@
                 });
             }
 
+            // 뉴진스제품 구매현황 CSV 파싱
+            const nujenPurchaseLines = nujenPurchaseText.split('\n').filter(l => l.trim());
+            state.nujenPurchaseData = [];
+            for (let i = 2; i < nujenPurchaseLines.length; i++) {
+                const v = parseCSVLine(nujenPurchaseLines[i]);
+                if (!v[0] || v[0].startsWith('총합계') || v[0].startsWith('총계') || v[0].includes('오후')) continue;
+                state.nujenPurchaseData.push({
+                    dateNo: v[0],
+                    supplier: v[1],
+                    code: v[3],
+                    name: v[4],
+                    qty: parseInt(v[5]) || 0,
+                    unitPrice: parseAmount(v[6]),
+                    supplyAmount: parseAmount(v[7]),
+                    taxAmount: parseAmount(v[8]),
+                    totalAmount: parseAmount(v[9])
+                });
+            }
+
+            // 뉴진스제품 판매현황 CSV 파싱
+            const nujenSalesLines = nujenSalesText.split('\n').filter(l => l.trim());
+            state.nujenSalesData = [];
+            for (let i = 1; i < nujenSalesLines.length; i++) {
+                const v = parseCSVLine(nujenSalesLines[i]);
+                if (!v[0] || v[0].startsWith('총합계') || v[0].startsWith('총계') || v[0].includes('오후')) continue;
+                state.nujenSalesData.push({
+                    dateNo: v[0],
+                    buyer: v[1],
+                    qty: parseInt(v[2]) || 0,
+                    unitPrice: parseAmount(v[3]),
+                    supplyAmount: parseAmount(v[4]),
+                    taxAmount: parseAmount(v[5]),
+                    totalAmount: parseAmount(v[6]),
+                    code: v[7],
+                    name: v[8]
+                });
+            }
+
             // 배지 업데이트
             document.getElementById('badge-sales').textContent = state.salesData.length;
-            document.getElementById('badge-inventory').textContent = '7'; // ExT 제품군 수 (고유 품목 수)
+            document.getElementById('badge-inventory').textContent = '7'; // ExT 제품군 수
+            document.getElementById('badge-nujen').textContent = '10'; // 뉴진스 제품군 수
             document.getElementById('badge-card-sales').textContent = state.cardSalesData.length;
             document.getElementById('badge-purchases').textContent = state.purchaseData.length;
 
@@ -264,6 +309,105 @@
     function isExtProduct(row) {
         const name = (row.itemName || '').toLowerCase();
         return name.includes('extransfection') || name.includes('ext-') || name.includes('exttransfection') || name.includes('starter pack');
+    }
+
+    // ===== 뉴진스 제품 분류 =====
+    function classifyNujenProduct(code, name) {
+        const c = (code || '').toUpperCase().trim();
+        const n = (name || '').toLowerCase();
+
+        // 1. Serological Pipette 5ml
+        if (c === 'NGS-SEP-5' || c === 'NG-SEP-5') return 'nujen_sep_5';
+        // 2. Serological Pipette 10ml
+        if (c === 'NGS-SEP-10' || c === 'NG-SEP-10' || c === 'SEP-10') return 'nujen_sep_10';
+        // 3. Serological Pipette 25ml
+        if (c === 'NGS-SEP-25' || c === 'NG-SEP-25') return 'nujen_sep_25';
+        // 4. Serological Pipette 50ml
+        if (c === 'NGS-SEP-50' || c === 'NG-SEP-50') return 'nujen_sep_50';
+        // 5. Serological Pipette 100ml
+        if (c === 'NGS-SEP-100' || c === 'NG-SEP-100') return 'nujen_sep_100';
+
+        // 6. Centrifuge Tube 15ml
+        if (c === 'NGS-CT-3015-S' || c === 'NG-CT-3015-S') return 'nujen_ct_15';
+        // 7. Centrifuge Tube 50ml
+        if (c === 'NGS-CT-3050-S' || c === 'NG-CT-3050-S') return 'nujen_ct_50';
+
+        // 8. Pipette Tip 10ul (RS, RTS, RTS-ER)
+        if (c.includes('STAG-10-RS') || c.includes('STAG-10L-RS') || c.includes('STAG-10-RTS')) return 'nujen_tip_10';
+        // 9. Pipette Tip 200ul (RS, RTS, TRS-ER)
+        if (c.includes('STAG-200-RS') || c.includes('STAG-200-RTS') || c.includes('STAG-200-TRS-ER')) return 'nujen_tip_200';
+        // 10. Pipette Tip 1250ul (RS, RTS, RTS-ER, B, RS-2)
+        if (c.includes('STAG-1250-RS') || c.includes('STAG-1250-RTS') || c.includes('STAG-1250-B') || c.includes('STAG1250-RS-2')) return 'nujen_tip_1250';
+
+        // fallback by name keywords
+        if (n.includes('serological') && n.includes('5ml')) return 'nujen_sep_5';
+        if (n.includes('serological') && n.includes('10ml')) return 'nujen_sep_10';
+        if (n.includes('serological') && n.includes('25ml')) return 'nujen_sep_25';
+        if (n.includes('serological') && n.includes('50ml')) return 'nujen_sep_50';
+        if (n.includes('serological') && n.includes('100ml')) return 'nujen_sep_100';
+        if (n.includes('centrifuge') && n.includes('15ml')) return 'nujen_ct_15';
+        if (n.includes('centrifuge') && n.includes('50ml')) return 'nujen_ct_50';
+        if (n.includes('tip') && n.includes('10ul')) return 'nujen_tip_10';
+        if (n.includes('tip') && n.includes('200ul')) return 'nujen_tip_200';
+        if (n.includes('tip') && n.includes('1250ul')) return 'nujen_tip_1250';
+
+        return null;
+    }
+
+    // ===== NuGen 글로벌 기간 필터 적용 =====
+    function getFilteredNujenSalesData() {
+        const data = state.nujenSalesData;
+        if (state.currentPeriod === 'all' || !state.selectedSubPeriod) {
+            return data;
+        }
+        return data.filter(r => {
+            if (!r.dateNo) return false;
+            const m = r.dateNo.match(/^(\d{4})[/-](\d{2})/);
+            if (!m) return false;
+            const year = m[1];
+            const month = parseInt(m[2], 10);
+            if (state.currentPeriod === 'monthly') {
+                const targetStr = `${year}-${m[2]}`;
+                return targetStr === state.selectedSubPeriod;
+            } else if (state.currentPeriod === 'quarterly') {
+                const q = Math.ceil(month / 3);
+                const targetStr = `${year}-Q${q}`;
+                return targetStr === state.selectedSubPeriod;
+            }
+            return true;
+        });
+    }
+
+    // ===== NuGen 누적 매출 필터 (기말 재고 계산용) =====
+    function getAccumulatedNujenSalesData() {
+        const data = state.nujenSalesData;
+        if (state.currentPeriod === 'all' || !state.selectedSubPeriod) {
+            return data;
+        }
+        return data.filter(r => {
+            if (!r.dateNo) return false;
+            const m = r.dateNo.match(/^(\d{4})[/-](\d{2})/);
+            if (!m) return false;
+            const year = parseInt(m[1], 10);
+            const month = parseInt(m[2], 10);
+            
+            if (state.currentPeriod === 'monthly') {
+                const [targetYear, targetMonth] = state.selectedSubPeriod.split('-').map(Number);
+                if (year < targetYear) return true;
+                if (year === targetYear && month <= targetMonth) return true;
+                return false;
+            } else if (state.currentPeriod === 'quarterly') {
+                const [targetYear, targetQStr] = state.selectedSubPeriod.split('-Q');
+                const targetYearNum = parseInt(targetYear, 10);
+                const targetQ = parseInt(targetQStr, 10);
+                const q = Math.ceil(month / 3);
+                
+                if (year < targetYearNum) return true;
+                if (year === targetYearNum && q <= targetQ) return true;
+                return false;
+            }
+            return true;
+        });
     }
 
     // ===== ExT 글로벌 기간 필터 적용 =====
@@ -657,6 +801,38 @@
         `;
     }
 
+    // ===== 뉴진스 매출 세부내역 렌더 =====
+    function renderNujenSalesList(searchTerm = '') {
+        const data = getFilteredNujenSalesData();
+        const filtered = searchTerm
+            ? data.filter(r =>
+                (r.buyer && r.buyer.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                (r.name && r.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                (r.code && r.code.toLowerCase().includes(searchTerm.toLowerCase())))
+            : data;
+
+        const totalAmount = filtered.reduce((s, r) => s + r.totalAmount, 0);
+
+        const tbody = document.getElementById('nujen-sales-tbody');
+        tbody.innerHTML = filtered.map((r) => `
+            <tr data-type="nujen-sales" data-idx="${state.nujenSalesData.indexOf(r)}">
+                <td>${r.dateNo.split(' ')[0]}</td>
+                <td>${r.buyer || '-'}</td>
+                <td style="font-family:monospace;font-size:0.82rem;color:var(--text-secondary);">${r.code || '-'}</td>
+                <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;">${r.name || '-'}</td>
+                <td class="text-right amount ${r.totalAmount < 0 ? 'negative' : ''}">${r.totalAmount.toLocaleString()}원</td>
+                <td class="text-right amount">${r.supplyAmount.toLocaleString()}원</td>
+                <td class="text-right amount">${r.taxAmount.toLocaleString()}원</td>
+                <td><span class="tag normal" style="background:rgba(124,58,237,0.1);color:var(--accent-indigo);">뉴진스</span></td>
+            </tr>
+        `).join('');
+
+        document.getElementById('nujen-sales-footer').innerHTML = `
+            <span>${filtered.length}건 조회됨</span>
+            <span class="table-footer-total">합계: ${formatFullCurrency(totalAmount)}</span>
+        `;
+    }
+
     // ===== 카드매출 세부 렌더 =====
     function renderCardSalesView() {
         const data = getFilteredData(state.cardSalesData);
@@ -927,6 +1103,164 @@
         renderExtSalesList();
     }
 
+    function renderNujenView() {
+        const categories = [
+            { id: 'sep_10', code: 'SEP-10', name: 'Xcent Serological pipette, 10ml', spec: '200pcs/Box', initQty: 0, initAmount: 0, unitPrice: 30000 },
+            { id: 'stag_1250_b', code: 'STAG-1250-B', name: 'EXCELL AG Tip, 1250ul, Nature', spec: '1000 Tips/Pack, 5 packs/carton', initQty: 0, initAmount: 0, unitPrice: 11200 },
+            { id: 'ngs_sep_10', code: 'NGS-SEP-10', name: 'NuGen Serological pipette, Stretching, 10ml', spec: '200 PCS/BOX, 6 BOXES/CASE', initQty: 0, initAmount: 0, unitPrice: 30000 },
+            { id: 'ngs_sep_100', code: 'NGS-SEP-100', name: 'NuGen Serological pipette, Welding, 100ml', spec: '40 PCS/BOX, 6 BOXES/CASE', initQty: 0, initAmount: 0, unitPrice: 59500 },
+            { id: 'ngs_sep_50', code: 'NGS-SEP-50', name: 'NuGen Serological pipette, Welding, 50ml', spec: '75 PCS/BOX, 6 BOXES/CASE', initQty: 0, initAmount: 0, unitPrice: 49000 },
+            { id: 'ngs_sep_25', code: 'NGS-SEP-25', name: 'NuGen Serological pipette, Welding, 25ml', spec: '100 PCS/BOX, 6 BOXES/CASE', initQty: 0, initAmount: 0, unitPrice: 28000 },
+            { id: 'ngs_sep_5', code: 'NGS-SEP-5', name: 'NuGen Serological pipette, Stretching, 5ml', spec: '200 PCS/BOX, 6 BOXES/CASE', initQty: 0, initAmount: 0, unitPrice: 30000 },
+            { id: 'ng_stag_1250_rts_er', code: 'NG-STAG-1250-RTS-ER', name: 'NuGen AG Tip, Empty rack, 1250ul', spec: '10 racks/Pack, 5 Packs/Case', initQty: 0, initAmount: 0, unitPrice: 2500 },
+            { id: 'ng_stag_200_trs_er', code: 'NG-STAG-200-TRS-ER', name: 'NuGen AG Tip, Empty rack, 200ul', spec: '10 racks/Pack, 5 Packs/Case', initQty: 0, initAmount: 0, unitPrice: 2000 },
+            { id: 'ng_stag_10_rts_er', code: 'NG-STAG-10-RTS-ER', name: 'NuGen AG Tip, Empty rack, 10ul', spec: '10 racks/Pack, 5 Packs/Case', initQty: 0, initAmount: 0, unitPrice: 2000 },
+            { id: 'ng_stag_1250_rs', code: 'NG-STAG-1250-RS', name: 'NuGen AG Tip, 1250ul, Nature, Racked', spec: '96 Tips/rack, 10 racks/Pack, 5 Packs/Carton', initQty: 0, initAmount: 0, unitPrice: 3200 },
+            { id: 'ng_stag_200_rs', code: 'NG-STAG-200-RS', name: 'NuGen AG Tip, 200ul, Yellow, Racked', spec: '96 Tips/rack, 10 racks/Pack, 5 Packs/Carton', initQty: 0, initAmount: 0, unitPrice: 2800 },
+            { id: 'ng_stag_10l_rs', code: 'NG-STAG-10L-RS', name: 'NuGen AG Tip, 10ul, Extra Long, Nature', spec: '96 Tips/rack, 10 racks/Pack, 5 Packs/Carton', initQty: 0, initAmount: 0, unitPrice: 2800 },
+            { id: 'ng_stag_10_rs', code: 'NG-STAG-10-RS', name: 'NuGen AG Tip, 10ul, Nature, Racked', spec: '96 Tips/rack, 10 racks/Pack, 5 Packs/Carton', initQty: 0, initAmount: 0, unitPrice: 2800 },
+            { id: 'ng_stag_1250_rts', code: 'NG-STAG-1250-RTS', name: 'NuGen AG Refill Tip, 1250ul, Nature', spec: '480 Tips/Pack, 10 Packs/Carton', initQty: 0, initAmount: 0, unitPrice: 12500 },
+            { id: 'ng_stag_200_rts', code: 'NG-STAG-200-RTS', name: 'NuGen AG Refill Tip, 200ul, Yellow', spec: '960 Tips/Pack, 10 Packs/Carton', initQty: 0, initAmount: 0, unitPrice: 16000 },
+            { id: 'ng_stag_10_rts', code: 'NG-STAG-10-RTS', name: 'NuGen AG Refill Tip, 10ul, Nature', spec: '960 Tips/Pack, 10 Packs/Carton', initQty: 0, initAmount: 0, unitPrice: 16000 },
+            { id: 'ng_ct_3050_s', code: 'NG-CT-3050-S', name: 'NuGen 50ml Centrifuge Tube, Sterile', spec: '25 PCS/Bag, 500PCS/Box', initQty: 0, initAmount: 0, unitPrice: 60000 },
+            { id: 'ng_ct_3015_s', code: 'NG-CT-3015-S', name: 'NuGen 15ml Centrifuge Tube, Sterile', spec: '25 PCS/Bag, 500PCS/Box', initQty: 0, initAmount: 0, unitPrice: 44800 }
+        ];
+
+        // 1. 기초 매입 데이터 실시간 집계 (부가세 포함)
+        state.nujenPurchaseData.forEach(p => {
+            const catId = classifyNujenProduct(p.code, p.name);
+            const cat = categories.find(c => c.id === catId);
+            if (cat) {
+                cat.initQty += p.qty;
+                cat.initAmount += p.totalAmount;
+            }
+        });
+
+        // 2. 당기 매출 및 판매량 집계 (부가세 포함)
+        const soldCounts = {};
+        const soldAmounts = {};
+        const accumulatedSoldCounts = {};
+        categories.forEach(c => {
+            soldCounts[c.id] = 0;
+            soldAmounts[c.id] = 0;
+            accumulatedSoldCounts[c.id] = 0;
+        });
+
+        getFilteredNujenSalesData().forEach(s => {
+            const catId = classifyNujenProduct(s.code, s.name);
+            if (catId) {
+                soldCounts[catId] += s.qty;
+                soldAmounts[catId] += s.totalAmount;
+            }
+        });
+
+        // 2-1. 누적 매출 집계 (기말 재고 차감용)
+        getAccumulatedNujenSalesData().forEach(s => {
+            const catId = classifyNujenProduct(s.code, s.name);
+            if (catId) {
+                accumulatedSoldCounts[catId] += s.qty;
+            }
+        });
+
+        const totalInitQty = categories.reduce((s, c) => s + c.initQty, 0);
+        const totalInitAmount = categories.reduce((s, c) => s + c.initAmount, 0);
+        const totalSoldQty = Object.values(soldCounts).reduce((s, v) => s + v, 0);
+        const totalSoldAmount = Object.values(soldAmounts).reduce((s, v) => s + v, 0);
+        
+        // 기말 재고 수량
+        const totalAccumulatedSoldQty = Object.values(accumulatedSoldCounts).reduce((s, v) => s + v, 0);
+        const totalStockQty = Math.max(totalInitQty - totalAccumulatedSoldQty, 0);
+        
+        // 기말 재고 금액 (원가)
+        const totalStockAmount = categories.reduce((s, c) => {
+            const accSold = accumulatedSoldCounts[c.id] || 0;
+            const stock = Math.max(c.initQty - accSold, 0);
+            return s + (stock * c.unitPrice * 1.1);
+        }, 0);
+
+        // 상단 재고 현황 카드 렌더
+        document.getElementById('nujen-summary-cards').innerHTML = [
+            createSummaryCard('indigo', ICONS.purchase, '기초 입고 현황', formatCurrency(totalInitAmount), `수량: ${totalInitQty}개`),
+            createSummaryCard('blue', ICONS.sales, '당기 매출 현황', formatCurrency(totalSoldAmount), `수량: ${totalSoldQty}개`),
+            createSummaryCard('emerald', ICONS.profit, '현재 재고 현황', formatCurrency(totalStockAmount), `수량: ${totalStockQty}개`)
+        ].join('');
+
+        // 3. NuGen 결산 보고서 동적 집계 (글로벌 필터 연동)
+        const reportTbody = document.getElementById('nujen-report-tbody');
+        const reportData = getFilteredNujenSalesData();
+
+        const totalSalesAmt = reportData.reduce((s, r) => s + r.totalAmount, 0);
+        const totalPurchaseCost = reportData.reduce((s, r) => {
+            const catId = classifyNujenProduct(r.code, r.name);
+            const cat = categories.find(c => c.id === catId);
+            const costPrice = cat ? cat.unitPrice * 1.1 : 0;
+            return s + (r.qty * costPrice);
+        }, 0);
+        const profit = totalSalesAmt - totalPurchaseCost;
+        const margin = totalSalesAmt !== 0 ? ((profit / totalSalesAmt) * 100).toFixed(1) : '0.0';
+
+        let label = '전체 기간 (2025/01/01 ~ 2026/07/01)';
+        if (state.currentPeriod === 'quarterly' && state.selectedSubPeriod) {
+            const m = state.selectedSubPeriod.match(/^(\d{4})-Q(\d)/);
+            if (m) {
+                label = `${m[1]}년 ${m[2]}분기`;
+            }
+        } else if (state.currentPeriod === 'monthly' && state.selectedSubPeriod) {
+            const m = state.selectedSubPeriod.match(/^(\d{4})-(\d{2})/);
+            if (m) {
+                label = `${m[1]}년 ${parseInt(m[2], 10)}월`;
+            }
+        }
+
+        const reportHTML = `
+            <tr>
+                <td style="font-weight: 700;">${label}</td>
+                <td class="text-right">${totalSalesAmt.toLocaleString()}원</td>
+                <td class="text-right">${totalPurchaseCost.toLocaleString()}원</td>
+                <td class="text-right ${profit >= 0 ? 'positive' : 'negative'}">${profit.toLocaleString()}원</td>
+                <td class="text-right ${profit >= 0 ? 'positive' : 'negative'}">${margin}%</td>
+            </tr>
+        `;
+
+        reportTbody.innerHTML = reportHTML;
+
+        // 4. NuGen 제품 재고 및 금액 현황 테이블 렌더
+        const tbody = document.getElementById('nujen-tbody');
+        tbody.innerHTML = categories.map(c => {
+            const soldQty = soldCounts[c.id] || 0;
+            const soldAmt = soldAmounts[c.id] || 0;
+            const accSoldQty = accumulatedSoldCounts[c.id] || 0;
+            const stockQty = Math.max(c.initQty - accSoldQty, 0);
+            const stockAmt = stockQty * c.unitPrice * 1.1;
+            
+            let statusHTML = '';
+            if (stockQty <= 0) {
+                statusHTML = '<span class="tag correction">품절</span>';
+            } else if (stockQty <= 5) {
+                statusHTML = '<span class="tag correction" style="background:rgba(245,158,11,0.1);color:var(--accent-amber);">재고 부족</span>';
+            } else {
+                statusHTML = '<span class="tag normal" style="background:rgba(16,185,129,0.1);color:var(--accent-emerald);">보유중</span>';
+            }
+
+            return `
+                <tr>
+                    <td style="font-weight:700;">${c.name}</td>
+                    <td style="font-family:monospace;font-size:0.82rem;color:var(--text-secondary);">${c.code}</td>
+                    <td style="font-size:0.82rem;color:var(--text-secondary);">${c.spec}</td>
+                    <td class="text-center" style="font-weight:600;">${c.initQty}개</td>
+                    <td class="text-right" style="font-feature-settings:'tnum';font-variant-numeric:tabular-nums;">${c.initAmount.toLocaleString()}원</td>
+                    <td class="text-center" style="font-weight:600;color:var(--accent-indigo);">${soldQty}개</td>
+                    <td class="text-right" style="font-feature-settings:'tnum';font-variant-numeric:tabular-nums;color:var(--accent-indigo);">${soldAmt.toLocaleString()}원</td>
+                    <td class="text-center" style="font-weight:700;color:${stockQty <= 5 ? 'var(--accent-rose)' : 'var(--text-primary)'}">${stockQty}개</td>
+                    <td class="text-right" style="font-feature-settings:'tnum';font-variant-numeric:tabular-nums;font-weight:600;">${stockAmt.toLocaleString()}원</td>
+                    <td class="text-center">${statusHTML}</td>
+                </tr>
+            `;
+        }).join('');
+
+        renderNujenSalesList();
+    }
+
     // ===== 뷰 전환 =====
     function switchView(viewName) {
         state.currentView = viewName;
@@ -946,6 +1280,7 @@
             'dashboard': ['종합 현황', '매출, 카드매출, 매입 종합 현황을 확인합니다.'],
             'sales': ['매출 내역', '세금계산서 기반 매출 세부내역을 확인합니다.'],
             'inventory': ['ExT 재고관리', 'ExTransfection 제품군별 기초 입고 및 판매 대비 재고 현황입니다.'],
+            'nujen': ['뉴진스 재고관리', 'NuGen 제품군별 기초 입고 및 판매 대비 재고 현황입니다.'],
             'card-sales': ['카드매출 내역', '카드매출전표 세부내역을 확인합니다.'],
             'purchases': ['매입 내역', '세금계산서 기반 매입 세부내역을 확인합니다.']
         };
@@ -964,6 +1299,7 @@
             case 'dashboard': renderDashboard(); break;
             case 'sales': renderSalesView(); break;
             case 'inventory': renderInventoryView(); break;
+            case 'nujen': renderNujenView(); break;
             case 'card-sales': renderCardSalesView(); break;
             case 'purchases': renderPurchasesView(); break;
         }
@@ -1002,7 +1338,22 @@
         const title = document.getElementById('modal-title');
         let html = '';
 
-        if (type === 'ext-sales') {
+        if (type === 'nujen-sales') {
+            const r = state.nujenSalesData[idx];
+            if (!r) return;
+            title.textContent = '뉴진스 매출 상세';
+            html = buildDetailHTML([
+                ['일자/번호', r.dateNo],
+                ['거래처', r.buyer],
+                ['품목코드', r.code || '-'],
+                ['품목명', r.name || '-'],
+                ['수량', (r.qty || 0).toLocaleString() + '개'],
+                ['단가', formatFullCurrency(r.unitPrice)],
+                ['공급가액', formatFullCurrency(r.supplyAmount)],
+                ['세액', formatFullCurrency(r.taxAmount)],
+                ['합계금액', { value: formatFullCurrency(r.totalAmount), highlight: true }]
+            ]);
+        } else if (type === 'ext-sales') {
             const r = state.extSalesData[idx];
             if (!r) return;
             title.textContent = 'ExT 매출 상세';
@@ -1124,6 +1475,9 @@
         });
         document.getElementById('ext-sales-search').addEventListener('input', e => {
             renderExtSalesList(e.target.value);
+        });
+        document.getElementById('nujen-sales-search').addEventListener('input', e => {
+            renderNujenSalesList(e.target.value);
         });
 
         // 테이블 클릭 → 상세 모달
