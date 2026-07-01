@@ -642,6 +642,7 @@
             <tr data-type="ext-sales" data-idx="${state.extSalesData.indexOf(r)}">
                 <td>${r.dateNo.split(' ')[0]}</td>
                 <td>${r.buyer || '-'}</td>
+                <td style="font-family:monospace;font-size:0.82rem;color:var(--text-secondary);">${r.code || '-'}</td>
                 <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;">${r.name || '-'}</td>
                 <td class="text-right amount ${r.totalAmount < 0 ? 'negative' : ''}">${r.totalAmount.toLocaleString()}원</td>
                 <td class="text-right amount">${r.supplyAmount.toLocaleString()}원</td>
