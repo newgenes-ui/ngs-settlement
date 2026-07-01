@@ -727,13 +727,13 @@
 
     function renderInventoryView() {
         const categories = [
-            { id: 'starter_192', name: 'ExT Starter Pack (192 rxn)', spec: '192 reactions [set]', initQty: 0, initAmount: 0, unitPrice: 8500000 },
-            { id: 'starter_96', name: 'ExT Starter Pack (96 rxn)', spec: '96 reactions [set]', initQty: 0, initAmount: 0, unitPrice: 7225000 },
-            { id: 'kit_10_25', name: 'ExT 10 ul Kit (25 rxn)', spec: '25 x 2 reactions [kit]', initQty: 0, initAmount: 0, unitPrice: 420000 },
-            { id: 'kit_100_25', name: 'ExT 100 ul Kit (25 rxn)', spec: '25 x 2 reactions [kit]', initQty: 0, initAmount: 0, unitPrice: 420000 },
-            { id: 'kit_10_96', name: 'ExT 10 ul Kit (96 rxn)', spec: '96 x 2 reactions [kit]', initQty: 0, initAmount: 0, unitPrice: 1250000 },
-            { id: 'kit_100_96', name: 'ExT 100 ul Kit (96 rxn)', spec: '96 x 2 reactions [kit]', initQty: 0, initAmount: 0, unitPrice: 1250000 },
-            { id: 'tube', name: 'ExTransfection Tube', spec: 'EXT50T', initQty: 0, initAmount: 0, unitPrice: 280000 }
+            { id: 'starter_192', code: 'EXT1000S', name: 'ExT Starter Pack (192 rxn)', spec: '192 reactions [set]', initQty: 0, initAmount: 0, unitPrice: 8500000 },
+            { id: 'starter_96', code: 'EXT1000S(Demo)', name: 'ExT Starter Pack (96 rxn)', spec: '96 reactions [set]', initQty: 0, initAmount: 0, unitPrice: 7225000 },
+            { id: 'kit_10_25', code: 'EXT1025K', name: 'ExT 10 ul Kit (25 rxn)', spec: '25 x 2 reactions [kit]', initQty: 0, initAmount: 0, unitPrice: 420000 },
+            { id: 'kit_100_25', code: 'EXT10025K', name: 'ExT 100 ul Kit (25 rxn)', spec: '25 x 2 reactions [kit]', initQty: 0, initAmount: 0, unitPrice: 420000 },
+            { id: 'kit_10_96', code: 'EXT1096K', name: 'ExT 10 ul Kit (96 rxn)', spec: '96 x 2 reactions [kit]', initQty: 0, initAmount: 0, unitPrice: 1250000 },
+            { id: 'kit_100_96', code: 'EXT10096K', name: 'ExT 100 ul Kit (96 rxn)', spec: '96 x 2 reactions [kit]', initQty: 0, initAmount: 0, unitPrice: 1250000 },
+            { id: 'tube', code: 'EXT50T', name: 'ExTransfection Tube', spec: 'EXT50T', initQty: 0, initAmount: 0, unitPrice: 280000 }
         ];
 
         // 1. 기초 매입(구매현황) 데이터 실시간 집계 (부가세 포함)
@@ -859,7 +859,7 @@
             const soldQty = soldCounts[c.id] || 0;
             const soldAmt = soldAmounts[c.id] || 0;
             const stockQty = c.initQty - soldQty;
-            const stockAmt = Math.max(stockQty, 0) * c.unitPrice;
+            const stockAmt = Math.max(stockQty, 0) * c.unitPrice * 1.1;
             
             let statusHTML = '';
             if (stockQty <= 0) {
@@ -873,6 +873,7 @@
             return `
                 <tr>
                     <td style="font-weight:700;">${c.name}</td>
+                    <td style="font-family:monospace;font-size:0.82rem;color:var(--text-secondary);">${c.code}</td>
                     <td style="font-size:0.82rem;color:var(--text-secondary);">${c.spec}</td>
                     <td class="text-center" style="font-weight:600;">${c.initQty}개</td>
                     <td class="text-right" style="font-feature-settings:'tnum';font-variant-numeric:tabular-nums;">${c.initAmount.toLocaleString()}원</td>
