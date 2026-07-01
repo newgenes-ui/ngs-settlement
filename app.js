@@ -1115,13 +1115,8 @@
                         }
                     },
                     y: {
-                        grace: '15%',
-                        grid: {
-                            color: 'rgba(243, 244, 246, 0.8)'
-                        },
-                        ticks: {
-                            display: false
-                        }
+                        display: false,
+                        grace: '15%'
                     }
                 }
             },
