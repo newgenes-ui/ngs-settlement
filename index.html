@@ -238,6 +238,18 @@
                         <div class="table-footer" id="ext-sales-footer"></div>
                     </div>
 
+                    <!-- 판매율 비교 그래프 카드 -->
+                    <div class="table-card" style="margin-top: 24px;">
+                        <div class="table-header">
+                            <h3>ExT 품목별 판매율 비교 (%)</h3>
+                        </div>
+                        <div class="chart-container" style="padding: 20px; background: var(--bg-card); display: flex; justify-content: center;">
+                            <div style="width: 100%; max-width: 800px; height: 320px;">
+                                <canvas id="ext-sales-rate-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="table-card" style="margin-top: 24px;">
                         <div class="table-header">
                             <h3>ExT 제품 재고 및 금액 현황 (기초입고: 2025/12/30)</h3>
@@ -328,6 +340,18 @@
                             </table>
                         </div>
                         <div class="table-footer" id="nujen-sales-footer"></div>
+                    </div>
+
+                    <!-- 판매율 비교 그래프 카드 -->
+                    <div class="table-card" style="margin-top: 24px;">
+                        <div class="table-header">
+                            <h3>뉴진스 품목별 판매율 비교 (%)</h3>
+                        </div>
+                        <div class="chart-container" style="padding: 20px; background: var(--bg-card); display: flex; justify-content: center;">
+                            <div style="width: 100%; max-width: 800px; height: 420px;">
+                                <canvas id="nujen-sales-rate-chart"></canvas>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="table-card" style="margin-top: 24px;">
@@ -512,6 +536,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-    <script src="app.js?v=1.2.7"></script>
+    <script src="app.js?v=1.2.8"></script>
 </body>
 </html>

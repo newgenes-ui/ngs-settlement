@@ -1169,6 +1169,117 @@
         });
     }
 
+    // ===== 품목별 판매율 비교 가로 막대 그래프 그리기 =====
+    function updateSalesRateChart(canvasId, categories, soldCounts) {
+        const ctx = document.getElementById(canvasId);
+        if (!ctx) return;
+
+        if (state.charts[canvasId]) {
+            state.charts[canvasId].destroy();
+        }
+
+        const data = categories.map(c => {
+            const soldQty = soldCounts[c.id] || 0;
+            const initQty = c.initQty || 0;
+            const rate = initQty !== 0 ? parseFloat(((soldQty / initQty) * 100).toFixed(1)) : 0.0;
+            return {
+                name: c.name,
+                code: c.code,
+                rate: rate
+            };
+        });
+
+        const dCtx = ctx.getContext('2d');
+        let grad = dCtx.createLinearGradient(0, 0, 400, 0);
+        grad.addColorStop(0, 'rgba(99, 102, 241, 0.25)'); // Indigo light
+        grad.addColorStop(1, 'rgba(99, 102, 241, 0.85)'); // Indigo dark
+
+        const topLabelsPlugin = {
+            id: 'topLabelsHorizontal',
+            afterDatasetsDraw(chart) {
+                const { ctx } = chart;
+                ctx.save();
+                ctx.font = 'bold 10px sans-serif';
+                ctx.fillStyle = '#4f46e5';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+                
+                chart.data.datasets.forEach((dataset, i) => {
+                    chart.getDatasetMeta(i).data.forEach((bar, index) => {
+                        const value = dataset.data[index];
+                        ctx.fillText(value + '%', bar.x + 8, bar.y);
+                    });
+                });
+                ctx.restore();
+            }
+        };
+
+        state.charts[canvasId] = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: data.map(d => `${d.code} (${d.name.length > 25 ? d.name.substring(0, 25) + '...' : d.name})`),
+                datasets: [{
+                    data: data.map(d => d.rate),
+                    backgroundColor: grad,
+                    borderColor: '#6366f1',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    borderSkipped: false,
+                    barThickness: 14
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                        titleFont: { size: 11, weight: 'bold' },
+                        bodyFont: { size: 11 },
+                        padding: 8,
+                        cornerRadius: 6,
+                        callbacks: {
+                            label: function(context) {
+                                return ' 판매율: ' + context.raw + '%';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        min: 0,
+                        max: 100,
+                        grace: '10%',
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        },
+                        ticks: {
+                            color: '#6b7280',
+                            font: { size: 10 },
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    },
+                    y: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: '#1e1b16',
+                            font: { size: 10, weight: '500' }
+                        }
+                    }
+                }
+            },
+            plugins: [topLabelsPlugin]
+        });
+    }
+
     // ===== ExT 결산 트랜드 데이터 수집 =====
     function getExtTrendData() {
         const periods = new Set();
@@ -1415,6 +1526,7 @@
 
         // 차트 업데이트
         updateReportTrendChart('ext-report-chart', trendData);
+        updateSalesRateChart('ext-sales-rate-chart', categories, soldCounts);
 
         // 4. ExT 제품 재고 및 금액 현황 테이블 렌더
         const tbody = document.getElementById('inventory-tbody');
@@ -1571,6 +1683,7 @@
 
         // 차트 업데이트
         updateReportTrendChart('nujen-report-chart', trendData);
+        updateSalesRateChart('nujen-sales-rate-chart', categories, soldCounts);
 
         // 4. NuGen 제품 재고 및 금액 현황 테이블 렌더
         const tbody = document.getElementById('nujen-tbody');
