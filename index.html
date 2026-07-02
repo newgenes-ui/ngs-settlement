@@ -193,6 +193,36 @@
                         </div>
                     </div>
 
+                    <div class="table-card" style="margin-bottom: 24px;">
+                        <div class="table-header">
+                            <h3>ExT 제품 재고 및 금액 현황 (기초입고: 2025/12/30)</h3>
+                        </div>
+                        <div class="table-wrapper">
+                            <table class="data-table" id="inventory-table">
+                                <thead>
+                                    <tr>
+                                        <th rowspan="2">제품 분류</th>
+                                        <th rowspan="2">품목 코드</th>
+                                        <th rowspan="2">대표 품목명 (규격)</th>
+                                        <th colspan="2" class="text-center" style="border-bottom: 1px solid var(--border-subtle)">기초 매입 (A)</th>
+                                        <th colspan="2" class="text-center" style="border-bottom: 1px solid var(--border-subtle)">당기 매출 (B)</th>
+                                        <th colspan="2" class="text-center" style="border-bottom: 1px solid var(--border-subtle)">현재 재고 (A - B)</th>
+                                        <th rowspan="2" class="text-center">상태</th>
+                                    </tr>
+                                    <tr>
+                                        <th class="text-center" style="font-size: 0.65rem;">수량</th>
+                                        <th class="text-right" style="font-size: 0.65rem;">금액</th>
+                                        <th class="text-center" style="font-size: 0.65rem;">수량</th>
+                                        <th class="text-right" style="font-size: 0.65rem;">금액</th>
+                                        <th class="text-center" style="font-size: 0.65rem;">수량</th>
+                                        <th class="text-right" style="font-size: 0.65rem;">금액(원가)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="inventory-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
                     <!-- ExT 결산 보고서 카드 -->
                     <div class="table-card" style="margin-bottom: 24px;">
                         <div class="table-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
@@ -250,35 +280,6 @@
                         <div class="table-footer" id="ext-sales-footer"></div>
                     </div>
 
-                    <div class="table-card" style="margin-top: 24px;">
-                        <div class="table-header">
-                            <h3>ExT 제품 재고 및 금액 현황 (기초입고: 2025/12/30)</h3>
-                        </div>
-                        <div class="table-wrapper">
-                            <table class="data-table" id="inventory-table">
-                                <thead>
-                                    <tr>
-                                        <th rowspan="2">제품 분류</th>
-                                        <th rowspan="2">품목 코드</th>
-                                        <th rowspan="2">대표 품목명 (규격)</th>
-                                        <th colspan="2" class="text-center" style="border-bottom: 1px solid var(--border-subtle)">기초 매입 (A)</th>
-                                        <th colspan="2" class="text-center" style="border-bottom: 1px solid var(--border-subtle)">당기 매출 (B)</th>
-                                        <th colspan="2" class="text-center" style="border-bottom: 1px solid var(--border-subtle)">현재 재고 (A - B)</th>
-                                        <th rowspan="2" class="text-center">상태</th>
-                                    </tr>
-                                    <tr>
-                                        <th class="text-center" style="font-size: 0.65rem;">수량</th>
-                                        <th class="text-right" style="font-size: 0.65rem;">금액</th>
-                                        <th class="text-center" style="font-size: 0.65rem;">수량</th>
-                                        <th class="text-right" style="font-size: 0.65rem;">금액</th>
-                                        <th class="text-center" style="font-size: 0.65rem;">수량</th>
-                                        <th class="text-right" style="font-size: 0.65rem;">금액(원가)</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="inventory-tbody"></tbody>
-                            </table>
-                        </div>
-                    </div>
                 </div>
 
                 <!-- NuGen Inventory View -->
@@ -537,6 +538,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-    <script src="app.js?v=1.4.6"></script>
+    <script src="app.js?v=1.4.7"></script>
 </body>
 </html>
