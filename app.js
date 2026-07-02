@@ -1239,27 +1239,38 @@
         if (!ctx) return;
 
         // Register custom tooltip positioner across all possible namespaces
-        const registerPositioner = function(name, fn) {
-            if (typeof Chart !== 'undefined') {
-                if (Chart.Tooltip && Chart.Tooltip.positioners) {
-                    Chart.Tooltip.positioners[name] = fn;
+        const findAndRegisterPositioner = function(name, fn) {
+            if (typeof Chart === 'undefined') return;
+            const visited = new Set();
+            const search = function(obj) {
+                if (!obj || typeof obj !== 'object' || visited.has(obj)) return;
+                visited.add(obj);
+                
+                if (typeof obj.average === 'function' && typeof obj.nearest === 'function') {
+                    obj[name] = fn;
                 }
-                try {
-                    const tooltipPlugin = Chart.registry.getPlugin('tooltip');
-                    if (tooltipPlugin && tooltipPlugin.positioners) {
-                        tooltipPlugin.positioners[name] = fn;
-                    }
-                } catch (e) {}
-                if (Chart.defaults && Chart.defaults.plugins && Chart.defaults.plugins.tooltip) {
-                    if (!Chart.defaults.plugins.tooltip.positioners) {
-                        Chart.defaults.plugins.tooltip.positioners = {};
-                    }
-                    Chart.defaults.plugins.tooltip.positioners[name] = fn;
+                
+                for (const key in obj) {
+                    try {
+                        search(obj[key]);
+                    } catch (e) {}
                 }
+            };
+            
+            if (Chart.Tooltip && Chart.Tooltip.positioners) {
+                Chart.Tooltip.positioners[name] = fn;
             }
+            try {
+                const tooltipPlugin = Chart.registry.getPlugin('tooltip');
+                if (tooltipPlugin && tooltipPlugin.positioners) {
+                    tooltipPlugin.positioners[name] = fn;
+                }
+            } catch (e) {}
+            
+            search(Chart);
         };
 
-        registerPositioner('barEnd', function(elements) {
+        findAndRegisterPositioner('barEnd', function(elements) {
             if (!elements || !elements.length) return false;
             const el = elements[0].element;
             return {
