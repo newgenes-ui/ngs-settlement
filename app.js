@@ -1354,6 +1354,8 @@
                 maintainAspectRatio: false,
                 layout: {
                     padding: {
+                        top: 10,
+                        bottom: 10,
                         right: 120
                     }
                 },
@@ -1381,6 +1383,7 @@
                     tooltip: {
                         position: 'barEnd',
                         xAlign: 'left',
+                        yAlign: 'center',
                         backgroundColor: 'rgba(59, 130, 246, 0.95)',
                         titleFont: { size: 11, weight: 'bold' },
                         bodyFont: { size: 11 },
