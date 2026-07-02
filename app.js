@@ -659,8 +659,8 @@
         const totalPurchaseSupply = purchases.reduce((s, r) => s + r.supplyAmount, 0);
         const totalPurchaseTax = purchases.reduce((s, r) => s + r.taxAmount, 0);
         
-        const profit = totalSupply - totalPurchaseSupply;
-        const profitRate = totalSupply !== 0 ? ((profit / totalSupply) * 100).toFixed(1) : '0.0';
+        const profit = (totalSupply + cardSalesSupply) - totalPurchaseSupply;
+        const profitRate = (totalSupply + cardSalesSupply) !== 0 ? ((profit / (totalSupply + cardSalesSupply)) * 100).toFixed(1) : '0.0';
 
         const html = [
             createSummaryCard('indigo', ICONS.sales, '매출 합계',
