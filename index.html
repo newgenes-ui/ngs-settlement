@@ -71,6 +71,11 @@
                         <span>뉴진스 재고관리</span>
                         <span class="nav-badge" id="badge-nujen">0</span>
                     </a>
+                    <a href="#" class="nav-item" data-view="vat" id="nav-vat">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                        <span>부가세 신고</span>
+                        <span class="nav-badge" id="badge-vat">6</span>
+                    </a>
                 </div>
             </nav>
 
@@ -413,6 +418,49 @@
                             </table>
                         </div>
                         <div class="table-footer" id="purchases-footer"></div>
+                </div>
+
+                <!-- VAT View -->
+                <div class="view" id="view-vat">
+                    <div class="summary-cards" id="vat-summary-cards">
+                        <!-- Rendered by JS -->
+                    </div>
+                    
+                    <div class="table-card">
+                        <div class="table-header">
+                            <h3>사업용신용카드 매입내역누계 (2026년 상반기)</h3>
+                            <div class="table-actions">
+                                <span style="font-size: 0.8rem; color: var(--text-secondary); margin-right: 10px;">※ 숫자를 직접 클릭하여 값을 수정할 수 있습니다. (수정 시 실시간 합계 연동 및 자동 저장)</span>
+                                <button id="btn-reset-vat" style="font-size:0.85rem; padding:6px 12px; border-radius:6px; background:var(--bg-secondary); color:var(--text-primary); border:1px solid var(--border); cursor:pointer;">초기화</button>
+                            </div>
+                        </div>
+                        <div class="table-wrapper">
+                            <table class="data-table" id="vat-table" style="width:100%; border-collapse:collapse;">
+                                <thead>
+                                    <tr>
+                                        <th rowspan="2" class="text-center" style="vertical-align:middle; text-align:center; border-right:1px solid var(--border); font-weight: 600;">거래년월</th>
+                                        <th colspan="4" class="text-center" style="text-align:center; border-bottom:1px solid var(--border); border-right:1px solid var(--border); padding:8px; font-weight: 600;">공제대상</th>
+                                        <th colspan="4" class="text-center" style="text-align:center; border-bottom:1px solid var(--border); padding:8px; font-weight: 600;">전체</th>
+                                    </tr>
+                                    <tr>
+                                        <th class="text-right" style="text-align:right; font-weight: 600;">건수</th>
+                                        <th class="text-right" style="text-align:right; font-weight: 600;">공급가액(①)</th>
+                                        <th class="text-right" style="text-align:right; font-weight: 600;">세액(②)</th>
+                                        <th class="text-right" style="text-align:right; border-right:1px solid var(--border); font-weight: 600;">합계(①+②)</th>
+                                        <th class="text-right" style="text-align:right; font-weight: 600;">건수</th>
+                                        <th class="text-right" style="text-align:right; font-weight: 600;">공급가액(③)</th>
+                                        <th class="text-right" style="text-align:right; font-weight: 600;">세액(④)</th>
+                                        <th class="text-right" style="text-align:right; font-weight: 600;">합계(③+④)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="vat-tbody">
+                                    <!-- Dynamic rows -->
+                                </tbody>
+                                <tfoot id="vat-tfoot" style="font-weight:bold; background:var(--bg-secondary);">
+                                    <!-- Dynamic totals -->
+                                </tfoot>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>

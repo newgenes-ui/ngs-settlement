@@ -1051,6 +1051,51 @@ body {
     to { transform: rotate(360deg); }
 }
 
+/* ===== VAT View Styles ===== */
+.vat-input {
+    width: 90px;
+    border: 1px solid transparent;
+    background: transparent;
+    text-align: right;
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: 500;
+    color: var(--text-primary);
+    padding: 4px 6px;
+    border-radius: 4px;
+    transition: all 0.15s ease-in-out;
+}
+.vat-input:hover {
+    border-color: var(--border-subtle);
+    background: var(--bg-secondary);
+}
+.vat-input:focus {
+    border-color: var(--primary);
+    background: var(--bg-primary);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+}
+/* Style the double-header borders in data-table for VAT */
+#vat-table th {
+    border-right: 1px solid var(--border-subtle);
+}
+#vat-table th:last-child {
+    border-right: none;
+}
+#vat-table td {
+    border-right: 1px solid var(--border-subtle);
+}
+#vat-table td:last-child {
+    border-right: none;
+}
+#vat-table tfoot td {
+    border-top: 2px solid var(--border);
+    border-right: 1px solid var(--border-subtle);
+}
+#vat-table tfoot td:last-child {
+    border-right: none;
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 1024px) {
     .sidebar {

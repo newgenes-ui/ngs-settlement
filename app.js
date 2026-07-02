@@ -16,8 +16,18 @@
         extSalesData: [],
         nujenPurchaseData: [],
         nujenSalesData: [],
+        vatCardData: [],
         charts: {}
     };
+
+    const DEFAULT_VAT_CARD_DATA = [
+        { month: '2026-01', dedCount: 21, dedSupply: 244097, dedTax: 24403, dedTotal: 268500, totCount: 116, totSupply: 3689117, totTax: 341133, totTotal: 4030250 },
+        { month: '2026-02', dedCount: 11, dedSupply: 830275, dedTax: 83025, dedTotal: 913300, totCount: 81, totSupply: 2644540, totTax: 240600, totTotal: 2885140 },
+        { month: '2026-03', dedCount: 8, dedSupply: 131457, dedTax: 13143, dedTotal: 144600, totCount: 105, totSupply: 2214410, totTax: 205840, totTotal: 2420250 },
+        { month: '2026-04', dedCount: 16, dedSupply: 520729, dedTax: 52071, dedTotal: 572800, totCount: 131, totSupply: 4093245, totTax: 275505, totTotal: 4368750 },
+        { month: '2026-05', dedCount: 11, dedSupply: 247356, dedTax: 24734, dedTotal: 272090, totCount: 106, totSupply: 2954198, totTax: 271936, totTotal: 3226134 },
+        { month: '2026-06', dedCount: 0, dedSupply: 0, dedTax: 0, dedTotal: 0, totCount: 0, totSupply: 3837825, totTax: 383782, totTotal: 4221607 }
+    ];
 
     const EXT_CATEGORIES = [
         { id: 'starter_192', code: 'EXT1000S', name: 'ExT Starter Pack (192 rxn)', spec: '192 reactions [set]', initQty: 0, initAmount: 0, unitPrice: 8500000 },
@@ -331,12 +341,25 @@
             state.nujenSalesData = state.nujenSalesData.filter(d => filterCutoff(d, 'dateNo'));
             state.nujenPurchaseData = state.nujenPurchaseData.filter(d => filterCutoff(d, 'dateNo'));
 
+            // 부가세 카드 데이터 로드
+            const savedVatData = localStorage.getItem('vat_card_data');
+            if (savedVatData) {
+                try {
+                    state.vatCardData = JSON.parse(savedVatData);
+                } catch(e) {
+                    state.vatCardData = JSON.parse(JSON.stringify(DEFAULT_VAT_CARD_DATA));
+                }
+            } else {
+                state.vatCardData = JSON.parse(JSON.stringify(DEFAULT_VAT_CARD_DATA));
+            }
+
             // 배지 업데이트
             document.getElementById('badge-sales').textContent = state.salesData.length;
             document.getElementById('badge-inventory').textContent = '7'; // ExT 제품군 수
             document.getElementById('badge-nujen').textContent = '10'; // 뉴진스 제품군 수
             document.getElementById('badge-card-sales').textContent = state.cardSalesData.length;
             document.getElementById('badge-purchases').textContent = state.purchaseData.length;
+            document.getElementById('badge-vat').textContent = state.vatCardData.length;
 
             // 기간 정보
             const allDates = [
@@ -1581,7 +1604,8 @@
             'inventory': ['ExT 재고관리', 'ExTransfection 제품군별 기초 입고 및 판매 대비 재고 현황입니다.'],
             'nujen': ['뉴진스 재고관리', 'NuGen 제품군별 기초 입고 및 판매 대비 재고 현황입니다.'],
             'card-sales': ['카드매출 내역', '카드매출전표 세부내역을 확인합니다.'],
-            'purchases': ['매입 내역', '세금계산서 기반 매입 세부내역을 확인합니다.']
+            'purchases': ['매입 내역', '세금계산서 기반 매입 세부내역을 확인합니다.'],
+            'vat': ['부가세 신고', '2026년 상반기 부가가치세 신고를 위한 세금계산서 및 신용카드 매입 집계 현황입니다.']
         };
         const [title, desc] = titles[viewName] || ['', ''];
         document.getElementById('page-title').textContent = title;
@@ -1601,6 +1625,7 @@
             case 'nujen': renderNujenView(); break;
             case 'card-sales': renderCardSalesView(); break;
             case 'purchases': renderPurchasesView(); break;
+            case 'vat': renderVatView(); break;
         }
     }
 
@@ -1803,6 +1828,174 @@
                 document.getElementById('detail-modal').classList.remove('active');
             }
         });
+    }
+
+    // ===== 부가세 신고 렌더 =====
+    function renderVatView() {
+        const tbody = document.getElementById('vat-tbody');
+        const tfoot = document.getElementById('vat-tfoot');
+        const cardContainer = document.getElementById('vat-summary-cards');
+
+        if (!tbody || !tfoot || !cardContainer) return;
+
+        // 1. 세금계산서 기반 집계
+        const salesTaxInvoiceSupply = state.salesData.reduce((sum, d) => sum + (d.supplyAmount || 0), 0);
+        const salesTaxInvoiceTax = state.salesData.reduce((sum, d) => sum + (d.taxAmount || 0), 0);
+
+        const purchaseTaxInvoiceSupply = state.purchaseData.reduce((sum, d) => sum + (d.supplyAmount || 0), 0);
+        const purchaseTaxInvoiceTax = state.purchaseData.reduce((sum, d) => sum + (d.taxAmount || 0), 0);
+
+        // 2. 신용카드 매입 집계 및 렌더링 함수
+        function updateVatCalculations() {
+            let totalDedCount = 0;
+            let totalDedSupply = 0;
+            let totalDedTax = 0;
+            let totalDedTotal = 0;
+
+            let totalTotCount = 0;
+            let totalTotSupply = 0;
+            let totalTotTax = 0;
+            let totalTotTotal = 0;
+
+            state.vatCardData.forEach(row => {
+                row.dedTotal = (row.dedSupply || 0) + (row.dedTax || 0);
+                row.totTotal = (row.totSupply || 0) + (row.totTax || 0);
+
+                totalDedCount += (row.dedCount || 0);
+                totalDedSupply += (row.dedSupply || 0);
+                totalDedTax += (row.dedTax || 0);
+                totalDedTotal += (row.dedTotal || 0);
+
+                totalTotCount += (row.totCount || 0);
+                totalTotSupply += (row.totSupply || 0);
+                totalTotTax += (row.totTax || 0);
+                totalTotTotal += (row.totTotal || 0);
+            });
+
+            // 상단 요약 카드 데이터
+            const outputVat = salesTaxInvoiceTax;
+            const inputVat = purchaseTaxInvoiceTax + totalDedTax;
+            const netVat = outputVat - inputVat;
+
+            cardContainer.innerHTML = `
+                <div class="summary-card blue">
+                    <div class="summary-card-header">
+                        <span class="summary-card-title">매출세액 (세금계산서)</span>
+                        <div class="summary-card-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                        </div>
+                    </div>
+                    <div class="summary-card-value">${formatCurrency(outputVat)}원</div>
+                    <div class="summary-card-desc">공급가액 합계: ${formatCurrency(salesTaxInvoiceSupply)}원</div>
+                </div>
+                <div class="summary-card rose">
+                    <div class="summary-card-header">
+                        <span class="summary-card-title">매입세액 (세금계산서 + 카드공제)</span>
+                        <div class="summary-card-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>
+                        </div>
+                    </div>
+                    <div class="summary-card-value">${formatCurrency(inputVat)}원</div>
+                    <div class="summary-card-desc">세금계산서: ${formatCurrency(purchaseTaxInvoiceTax)}원 | 신용카드 공제: ${formatCurrency(totalDedTax)}원</div>
+                </div>
+                <div class="summary-card ${netVat <= 0 ? 'emerald' : 'amber'}">
+                    <div class="summary-card-header">
+                        <span class="summary-card-title">예상 납부(환급)세액</span>
+                        <div class="summary-card-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                        </div>
+                    </div>
+                    <div class="summary-card-value">${formatCurrency(Math.abs(netVat))}원</div>
+                    <div class="summary-card-desc" style="color: ${netVat <= 0 ? 'var(--accent-emerald-light)' : 'var(--accent-amber)'}; font-weight: 600;">
+                        ${netVat <= 0 ? '환급 예정 (매입세액 초과)' : '납부 필요 (매출세액 초과)'}
+                    </div>
+                </div>
+            `;
+
+            tfoot.innerHTML = `
+                <tr>
+                    <td class="text-center" style="text-align:center; border-right:1px solid var(--border-subtle); font-weight: 600;">합계</td>
+                    <td class="text-right" style="text-align:right; font-weight: 600;">${totalDedCount}</td>
+                    <td class="text-right" style="text-align:right; font-weight: 600;">${formatCurrency(totalDedSupply)}</td>
+                    <td class="text-right" style="text-align:right; font-weight: 600;">${formatCurrency(totalDedTax)}</td>
+                    <td class="text-right" style="text-align:right; border-right:1px solid var(--border-subtle); font-weight: 600;">${formatCurrency(totalDedTotal)}</td>
+                    <td class="text-right" style="text-align:right; font-weight: 600;">${totalTotCount}</td>
+                    <td class="text-right" style="text-align:right; font-weight: 600;">${formatCurrency(totalTotSupply)}</td>
+                    <td class="text-right" style="text-align:right; font-weight: 600;">${formatCurrency(totalTotTax)}</td>
+                    <td class="text-right" style="text-align:right; font-weight: 600;">${formatCurrency(totalTotTotal)}</td>
+                </tr>
+            `;
+        }
+
+        tbody.innerHTML = '';
+        state.vatCardData.forEach((row, idx) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="text-center" style="text-align:center; border-right:1px solid var(--border-subtle); font-weight:500;">${row.month}</td>
+                
+                <td class="text-right" style="text-align:right; padding: 2px 4px;">
+                    <input type="number" class="vat-input" data-idx="${idx}" data-field="dedCount" value="${row.dedCount || 0}">
+                </td>
+                <td class="text-right" style="text-align:right; padding: 2px 4px;">
+                    <input type="number" class="vat-input" data-idx="${idx}" data-field="dedSupply" value="${row.dedSupply || 0}">
+                </td>
+                <td class="text-right" style="text-align:right; padding: 2px 4px;">
+                    <input type="number" class="vat-input" data-idx="${idx}" data-field="dedTax" value="${row.dedTax || 0}">
+                </td>
+                <td class="text-right" id="dedTotal-${idx}" style="text-align:right; border-right:1px solid var(--border-subtle); font-weight:500; padding-right:12px;">
+                    ${formatCurrency(row.dedTotal || 0)}
+                </td>
+                
+                <td class="text-right" style="text-align:right; padding: 2px 4px;">
+                    <input type="number" class="vat-input" data-idx="${idx}" data-field="totCount" value="${row.totCount || 0}">
+                </td>
+                <td class="text-right" style="text-align:right; padding: 2px 4px;">
+                    <input type="number" class="vat-input" data-idx="${idx}" data-field="totSupply" value="${row.totSupply || 0}">
+                </td>
+                <td class="text-right" style="text-align:right; padding: 2px 4px;">
+                    <input type="number" class="vat-input" data-idx="${idx}" data-field="totTax" value="${row.totTax || 0}">
+                </td>
+                <td class="text-right" id="totTotal-${idx}" style="text-align:right; font-weight:500; padding-right:12px;">
+                    ${formatCurrency(row.totTotal || 0)}
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        updateVatCalculations();
+
+        // 실시간 입력 이벤트 바인딩
+        tbody.querySelectorAll('.vat-input').forEach(input => {
+            input.addEventListener('input', e => {
+                const idx = parseInt(e.target.dataset.idx, 10);
+                const field = e.target.dataset.field;
+                const value = parseInt(e.target.value, 10) || 0;
+
+                state.vatCardData[idx][field] = value;
+
+                const row = state.vatCardData[idx];
+                row.dedTotal = (row.dedSupply || 0) + (row.dedTax || 0);
+                row.totTotal = (row.totSupply || 0) + (row.totTax || 0);
+
+                document.getElementById(`dedTotal-${idx}`).textContent = formatCurrency(row.dedTotal);
+                document.getElementById(`totTotal-${idx}`).textContent = formatCurrency(row.totTotal);
+
+                updateVatCalculations();
+                localStorage.setItem('vat_card_data', JSON.stringify(state.vatCardData));
+            });
+        });
+
+        // 초기화 버튼 이벤트 바인딩
+        const resetBtn = document.getElementById('btn-reset-vat');
+        if (resetBtn) {
+            resetBtn.onclick = () => {
+                if (confirm('모든 신용카드 매입 내역을 초기값으로 되돌리시겠습니까?')) {
+                    localStorage.removeItem('vat_card_data');
+                    state.vatCardData = JSON.parse(JSON.stringify(DEFAULT_VAT_CARD_DATA));
+                    renderVatView();
+                }
+            };
+        }
     }
 
     // ===== 초기화 =====
