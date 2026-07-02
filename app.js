@@ -1150,20 +1150,20 @@
         const c = (code || '').toUpperCase();
         const n = (name || '').toLowerCase();
         
-        if (c.includes('EXT1000S') || n.includes('192reaction') || n.includes('192 rxn')) {
+        if (c.includes('EXT1000S') || c.includes('EXT1001S') || n.includes('192reaction') || n.includes('192 rxn') || n.includes('19*2')) {
             if (c.includes('DEMO')) return 'starter_96';
             return 'starter_192';
         }
         if (c.includes('DEMO') || n.includes('starter pack [ea]') || n.includes('96x2reaction')) {
             return 'starter_96';
         }
-        if (c.includes('EXT1025K') || c.includes('EXT1025K(할증)')) {
+        if (c.includes('EXT1025K') || c.includes('EXT1025K(할증)') || c.includes('EXT-1025K')) {
             return 'kit_10_25';
         }
         if (c.includes('EXT10025K') || c.includes('EXT10025K(할증)') || c.includes('EXT-10025K')) {
             return 'kit_100_25';
         }
-        if (c.includes('EXT1096K') || c.includes('EXT1096K(할증)')) {
+        if (c.includes('EXT1096K') || c.includes('EXT1096K(할증)') || c.includes('EXT-1096K')) {
             return 'kit_10_96';
         }
         if (c.includes('EXT10096K') || c.includes('EXT10096K(할증)') || c.includes('EXT-10096K') || n.includes('100 μl kit')) {
