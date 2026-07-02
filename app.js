@@ -596,7 +596,7 @@
         toast.innerHTML = `
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <span style="font-family:var(--font-mono); font-size:0.85rem; color:var(--text-tertiary); font-weight:600;">${code}</span>
-                <span class="tag normal" style="background:rgba(59,130,246,0.1); color:var(--accent-blue); font-weight:700; font-size:0.85rem; padding:4px 8px; border-radius:6px; margin: 0;">판매율 ${rate}%</span>
+                <span class="tag normal" style="background:rgba(59,130,246,0.1); color:var(--accent-blue); font-weight:700; font-size:0.85rem; padding:4px 8px; border-radius:6px; margin: 0;">판매율 ${rate.toFixed(1)}%</span>
             </div>
             <div style="font-size:1.2rem; font-weight:800; color:var(--text-primary); line-height:1.4; word-break:keep-all; margin-right: 20px;">
                 ${name}
@@ -1293,7 +1293,7 @@
                         const value = dataset.data[index];
                         const item = data[index];
                         ctx.fillStyle = item && item.isTotal ? '#10b981' : '#4f46e5';
-                        ctx.fillText(value + '%', bar.x + 8, bar.y);
+                        ctx.fillText(value.toFixed(1) + '%', bar.x + 8, bar.y);
                     });
                 });
                 ctx.restore();
@@ -1347,7 +1347,7 @@
                         cornerRadius: 6,
                         callbacks: {
                             label: function(context) {
-                                return ' 판매율: ' + context.raw + '%';
+                                return ' 판매율: ' + context.raw.toFixed(1) + '%';
                             }
                         }
                     }
