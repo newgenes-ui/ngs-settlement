@@ -1026,7 +1026,8 @@
         const filtered = searchTerm
             ? data.filter(r =>
                 (r.buyer && r.buyer.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                (r.name && r.name.toLowerCase().includes(searchTerm.toLowerCase())))
+                (r.name && r.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                (r.code && r.code.toLowerCase().includes(searchTerm.toLowerCase())))
             : data;
 
         const totalAmount = filtered.reduce((s, r) => s + r.totalAmount, 0);
