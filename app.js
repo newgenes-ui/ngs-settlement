@@ -137,6 +137,31 @@
         return parseInt(cleaned, 10) || 0;
     }
 
+    // ===== ExT 제품 코드 표준화 =====
+    function normalizeExtCode(code) {
+        if (!code) return '';
+        let clean = code.replace(/[\s\r\n]+/g, '').toUpperCase();
+        if (clean === 'EXT-10025K(지역)' || clean === 'EXT-10025K' || clean === 'EXT10025K(할증)' || clean === 'EXT10025K') {
+            return 'EXT10025K';
+        }
+        if (clean === 'EXT-10096K(지역)' || clean === 'EXT-10096K' || clean === 'EXT10096K(할증)' || clean === 'EXT10096K') {
+            return 'EXT10096K';
+        }
+        if (clean === 'EXT-1096K' || clean === 'EXT1096K(할증)' || clean === 'EXT1096K') {
+            return 'EXT1096K';
+        }
+        if (clean === 'EXT-1025K' || clean === 'EXT1025K(할증)' || clean === 'EXT1025K') {
+            return 'EXT1025K';
+        }
+        if (clean === 'EXT1001S' || clean === 'EXT1000S') {
+            return 'EXT1000S';
+        }
+        if (clean === 'DEMO_VERSION' || clean === 'DEMOVERSION' || clean === 'EXT1000S(DEMO)') {
+            return 'EXT1000S(Demo)';
+        }
+        return clean;
+    }
+
     // ===== 데이터 로드 =====
     async function loadData() {
         try {
@@ -282,7 +307,7 @@
                 state.extPurchaseData.push({
                     dateNo: v[0],
                     supplier: v[1],
-                    code: (v[2] || '').replace(/\s+/g, ''),
+                    code: normalizeExtCode(v[2]),
                     name: v[3],
                     qty: parseInt(v[4]) || 0,
                     unitPrice: parseAmount(v[5]),
@@ -345,7 +370,7 @@
                     supplyAmount: parseAmount(v[extSalesSupplyIdx]),
                     taxAmount: parseAmount(v[extSalesTaxIdx]),
                     totalAmount: parseAmount(v[extSalesTotalIdx]),
-                    code: (v[extSalesCodeIdx] || '').replace(/\s+/g, ''),
+                    code: normalizeExtCode(v[extSalesCodeIdx]),
                     name: v[extSalesNameIdx] || ''
                 });
             }
@@ -1147,7 +1172,7 @@
     // ===== ExT 재고 관리 렌더 =====
     // ===== ExT 제품 분류 규칙 =====
     function classifyExtProduct(code, name) {
-        const c = (code || '').toUpperCase();
+        const c = normalizeExtCode(code).toUpperCase();
         const n = (name || '').toLowerCase();
         
         if (c.includes('EXT1000S') || c.includes('EXT1001S') || n.includes('192reaction') || n.includes('192 rxn') || n.includes('19*2')) {
