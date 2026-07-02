@@ -1280,16 +1280,21 @@
             afterDatasetsDraw(chart) {
                 const { ctx } = chart;
                 ctx.save();
-                ctx.font = 'bold 10px sans-serif';
                 
                 chart.data.datasets.forEach((dataset, i) => {
                     chart.getDatasetMeta(i).data.forEach((bar, index) => {
                         const value = dataset.data[index];
                         const item = data[index];
+                        
+                        // x축 스케일 픽셀값 계산 (막대 바 끝단 좌표)
+                        const xPos = chart.scales.x.getPixelForValue(value);
+                        const yPos = bar.y;
+                        
                         ctx.fillStyle = item && item.isTotal ? '#10b981' : '#4f46e5';
+                        ctx.font = 'bold 18px sans-serif'; // 글씨 크기를 2배 확대 (18px)
                         ctx.textAlign = 'left';
                         ctx.textBaseline = 'middle';
-                        ctx.fillText(value.toFixed(1) + '%', bar.x + 8, bar.y);
+                        ctx.fillText(value.toFixed(1) + '%', xPos + 8, yPos);
                     });
                 });
                 ctx.restore();
