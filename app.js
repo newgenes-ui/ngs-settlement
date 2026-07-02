@@ -1236,6 +1236,18 @@
         const ctx = document.getElementById(canvasId);
         if (!ctx) return;
 
+        // Register custom tooltip positioner
+        if (typeof Chart !== 'undefined' && Chart.Tooltip && Chart.Tooltip.positioners && !Chart.Tooltip.positioners.barEnd) {
+            Chart.Tooltip.positioners.barEnd = function(elements) {
+                if (!elements || !elements.length) return false;
+                const el = elements[0].element;
+                return {
+                    x: el.x,
+                    y: el.y
+                };
+            };
+        }
+
         if (state.charts[canvasId]) {
             state.charts[canvasId].destroy();
         }
@@ -1342,6 +1354,7 @@
                         display: false
                     },
                     tooltip: {
+                        position: 'barEnd',
                         backgroundColor: 'rgba(59, 130, 246, 0.95)',
                         titleFont: { size: 11, weight: 'bold' },
                         bodyFont: { size: 11 },
