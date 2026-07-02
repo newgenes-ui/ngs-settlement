@@ -1281,14 +1281,14 @@
                 const { ctx } = chart;
                 ctx.save();
                 ctx.font = 'bold 10px sans-serif';
-                ctx.textAlign = 'left';
-                ctx.textBaseline = 'middle';
                 
                 chart.data.datasets.forEach((dataset, i) => {
                     chart.getDatasetMeta(i).data.forEach((bar, index) => {
                         const value = dataset.data[index];
                         const item = data[index];
                         ctx.fillStyle = item && item.isTotal ? '#10b981' : '#4f46e5';
+                        ctx.textAlign = 'left';
+                        ctx.textBaseline = 'middle';
                         ctx.fillText(value.toFixed(1) + '%', bar.x + 8, bar.y);
                     });
                 });
@@ -1353,7 +1353,6 @@
                     x: {
                         min: 0,
                         max: 100,
-                        grace: '10%',
                         grid: {
                             color: 'rgba(0, 0, 0, 0.05)'
                         },
