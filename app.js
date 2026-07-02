@@ -1238,112 +1238,6 @@
         const ctx = document.getElementById(canvasId);
         if (!ctx) return;
 
-        // Override Chart.js default positioners ('average' & 'nearest') to force end-of-bar positioning
-        const findAndOverridePositioners = function() {
-            if (typeof Chart === 'undefined') return;
-            const visited = new Set();
-            const search = function(obj) {
-                if (!obj || typeof obj !== 'object' || visited.has(obj)) return;
-                visited.add(obj);
-                
-                if (typeof obj.average === 'function' && typeof obj.nearest === 'function') {
-                    const origAvg = obj.average;
-                    obj.average = function(elements) {
-                        if (!elements || !elements.length) return origAvg.apply(this, arguments);
-                        const el = elements[0].element;
-                        if (el && (el.horizontal === true || (typeof el.base === 'number' && typeof el.x === 'number'))) {
-                            return { x: el.x, y: el.y };
-                        }
-                        return origAvg.apply(this, arguments);
-                    };
-                    
-                    const origNear = obj.nearest;
-                    obj.nearest = function(elements) {
-                        if (!elements || !elements.length) return origNear.apply(this, arguments);
-                        const el = elements[0].element;
-                        if (el && (el.horizontal === true || (typeof el.base === 'number' && typeof el.x === 'number'))) {
-                            return { x: el.x, y: el.y };
-                        }
-                        return origNear.apply(this, arguments);
-                    };
-                }
-                
-                if (obj instanceof Map) {
-                    obj.forEach(val => search(val));
-                }
-                
-                for (const key in obj) {
-                    try {
-                        search(obj[key]);
-                    } catch (e) {}
-                }
-            };
-            
-            // Direct registry access override
-            try {
-                if (Chart.registry) {
-                    let tooltip = null;
-                    if (typeof Chart.registry.getPlugin === 'function') {
-                        tooltip = Chart.registry.getPlugin('tooltip');
-                    } else if (Chart.registry.plugins && typeof Chart.registry.plugins.get === 'function') {
-                        tooltip = Chart.registry.plugins.get('tooltip');
-                    }
-                    if (tooltip) {
-                        const registerOn = function(target) {
-                            if (target && typeof target.average === 'function') {
-                                const origAvg = target.average;
-                                target.average = function(elements) {
-                                    if (!elements || !elements.length) return origAvg.apply(this, arguments);
-                                    const el = elements[0].element;
-                                    if (el && (el.horizontal === true || (typeof el.base === 'number' && typeof el.x === 'number'))) {
-                                        return { x: el.x, y: el.y };
-                                    }
-                                    return origAvg.apply(this, arguments);
-                                };
-                                const origNear = target.nearest;
-                                target.nearest = function(elements) {
-                                    if (!elements || !elements.length) return origNear.apply(this, arguments);
-                                    const el = elements[0].element;
-                                    if (el && (el.horizontal === true || (typeof el.base === 'number' && typeof el.x === 'number'))) {
-                                        return { x: el.x, y: el.y };
-                                    }
-                                    return origNear.apply(this, arguments);
-                                };
-                            }
-                        };
-                        registerOn(tooltip.positioners);
-                        if (tooltip.constructor) registerOn(tooltip.constructor.positioners);
-                    }
-                }
-            } catch (e) {}
-            
-            if (Chart.Tooltip && Chart.Tooltip.positioners) {
-                const target = Chart.Tooltip.positioners;
-                const origAvg = target.average;
-                target.average = function(elements) {
-                    if (!elements || !elements.length) return origAvg.apply(this, arguments);
-                    const el = elements[0].element;
-                    if (el && (el.horizontal === true || (typeof el.base === 'number' && typeof el.x === 'number'))) {
-                        return { x: el.x, y: el.y };
-                    }
-                    return origAvg.apply(this, arguments);
-                };
-                const origNear = target.nearest;
-                target.nearest = function(elements) {
-                    if (!elements || !elements.length) return origNear.apply(this, arguments);
-                    const el = elements[0].element;
-                    if (el && (el.horizontal === true || (typeof el.base === 'number' && typeof el.x === 'number'))) {
-                        return { x: el.x, y: el.y };
-                    }
-                    return origNear.apply(this, arguments);
-                };
-            }
-            
-            search(Chart);
-        };
-
-        findAndOverridePositioners();
-
         if (state.charts[canvasId]) {
             state.charts[canvasId].destroy();
         }
@@ -1385,6 +1279,20 @@
 
         const topLabelsPlugin = {
             id: 'topLabelsHorizontal',
+            beforeTooltipDraw(chart, args) {
+                const tooltip = args.tooltip;
+                if (tooltip && tooltip.active && tooltip.dataPoints && tooltip.dataPoints.length) {
+                    const activeEl = tooltip.dataPoints[0];
+                    const meta = chart.getDatasetMeta(activeEl.datasetIndex);
+                    const element = meta.data[activeEl.dataIndex];
+                    if (element) {
+                        tooltip.x = element.x;
+                        tooltip.y = element.y;
+                        tooltip.caretX = element.x;
+                        tooltip.caretY = element.y;
+                    }
+                }
+            },
             afterDatasetsDraw(chart) {
                 const { ctx } = chart;
                 ctx.save();
