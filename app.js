@@ -1360,7 +1360,7 @@
                             color: '#6b7280',
                             font: { size: 10 },
                             callback: function(value) {
-                                return value + '%';
+                                return value.toFixed(1) + '%';
                             }
                         }
                     },
