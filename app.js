@@ -17,6 +17,7 @@
         nujenPurchaseData: [],
         nujenSalesData: [],
         vatCardData: [],
+        isVatAuthorized: sessionStorage.getItem('vat_authorized') === 'true',
         charts: {}
     };
 
@@ -1592,6 +1593,19 @@
 
     // ===== 뷰 전환 =====
     function switchView(viewName) {
+        if (viewName === 'vat' && !state.isVatAuthorized) {
+            const modal = document.getElementById('password-modal');
+            const input = document.getElementById('vat-password-input');
+            const errorMsg = document.getElementById('password-error');
+            if (modal && input) {
+                input.value = '';
+                if (errorMsg) errorMsg.style.display = 'none';
+                modal.classList.add('active');
+                input.focus();
+            }
+            return;
+        }
+
         state.currentView = viewName;
 
         // 네비게이션 활성화
@@ -1829,10 +1843,39 @@
             }
         });
 
+        // 패스워드 모달 이벤트
+        const pwdModal = document.getElementById('password-modal');
+        if (pwdModal) {
+            document.getElementById('password-modal-close').addEventListener('click', () => {
+                pwdModal.classList.remove('active');
+            });
+            pwdModal.addEventListener('click', e => {
+                if (e.target === e.currentTarget) {
+                    pwdModal.classList.remove('active');
+                }
+            });
+            document.getElementById('password-form').addEventListener('submit', e => {
+                e.preventDefault();
+                const pwInput = document.getElementById('vat-password-input');
+                const errorMsg = document.getElementById('password-error');
+                if (pwInput.value === '0610') {
+                    pwdModal.classList.remove('active');
+                    state.isVatAuthorized = true;
+                    sessionStorage.setItem('vat_authorized', 'true');
+                    switchView('vat');
+                } else {
+                    errorMsg.style.display = 'block';
+                    pwInput.value = '';
+                    pwInput.focus();
+                }
+            });
+        }
+
         // ESC로 모달 닫기
         document.addEventListener('keydown', e => {
             if (e.key === 'Escape') {
                 document.getElementById('detail-modal').classList.remove('active');
+                if (pwdModal) pwdModal.classList.remove('active');
             }
         });
     }
