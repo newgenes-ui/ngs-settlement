@@ -1307,7 +1307,8 @@
                     borderWidth: 1,
                     borderRadius: 4,
                     borderSkipped: false,
-                    barThickness: 14
+                    barThickness: 14,
+                    minBarLength: 5
                 }]
             },
             options: {
