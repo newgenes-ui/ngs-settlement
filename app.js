@@ -1919,12 +1919,12 @@
 
             // 상단 요약 카드 데이터
             const outputVat = totalOutputVat;
-            const inputVat = purchaseTaxInvoiceTax + totalDedTax;
+            const inputVat = purchaseTaxInvoiceTax + totalTotTax;
             const netVat = outputVat - inputVat;
 
             cardContainer.innerHTML = `
                 ${createSummaryCard('blue', ICONS.sales, '매출세액 (세금계산서 + 카드매출)', `${formatCurrency(outputVat)}원`, `세금계산서: ${formatCurrency(salesTaxInvoiceTax)}원 · 카드매출: ${formatCurrency(cardSalesTax)}원`)}
-                ${createSummaryCard('rose', ICONS.purchase, '매입세액 (세금계산서 + 카드공제)', `${formatCurrency(inputVat)}원`, `세금계산서: ${formatCurrency(purchaseTaxInvoiceTax)}원 · 신용카드: ${formatCurrency(totalDedTax)}원`)}
+                ${createSummaryCard('rose', ICONS.purchase, '매입세액 (세금계산서 + 카드공제)', `${formatCurrency(inputVat)}원`, `세금계산서: ${formatCurrency(purchaseTaxInvoiceTax)}원 · 신용카드: ${formatCurrency(totalTotTax)}원`)}
                 ${createSummaryCard(netVat <= 0 ? 'emerald' : 'amber', ICONS.tax, '예상 납부(환급)세액', `${formatCurrency(Math.abs(netVat))}원`, netVat <= 0 ? '<span class="positive">환급 예정 (매입세액 초과)</span>' : '<span class="negative">납부 필요 (매출세액 초과)</span>')}
             `;
 
