@@ -958,7 +958,7 @@
     function renderSummaryTable(profitData) {
         const reversed = [...profitData].reverse();
 
-        const rows = reversed.map(d => {
+        let rows = reversed.map(d => {
             const ratio = d.sales !== 0 ? ((d.profit / d.sales) * 100).toFixed(1) : '0.0';
             const profitCls = d.profit >= 0 ? 'profit-positive' : 'profit-negative';
             const ratioCls = parseFloat(ratio) >= 0 ? 'ratio-positive' : 'ratio-negative';
@@ -973,6 +973,23 @@
                 </tr>
             `;
         }).join('');
+
+        const totalSales = profitData.reduce((s, d) => s + d.sales, 0);
+        const totalPurchases = profitData.reduce((s, d) => s + d.purchases, 0);
+        const totalProfit = totalSales - totalPurchases;
+        const totalRatio = totalSales !== 0 ? ((totalProfit / totalSales) * 100).toFixed(1) : '0.0';
+        const totalProfitCls = totalProfit >= 0 ? 'profit-positive' : 'profit-negative';
+        const totalRatioCls = parseFloat(totalRatio) >= 0 ? 'ratio-positive' : 'ratio-negative';
+
+        rows += `
+            <tr class="total-row">
+                <td>전체 합계</td>
+                <td class="text-right">${totalSales.toLocaleString()}원</td>
+                <td class="text-right">${totalPurchases.toLocaleString()}원</td>
+                <td class="text-right ${totalProfitCls}">${totalProfit.toLocaleString()}원</td>
+                <td class="text-right ${totalRatioCls}">${totalRatio}%</td>
+            </tr>
+        `;
 
         document.getElementById('summary-tbody').innerHTML = rows;
     }
@@ -1723,7 +1740,14 @@
         const reportTbody = document.getElementById('ext-report-tbody');
         const trendData = getExtTrendData();
 
-        reportTbody.innerHTML = trendData.map(d => `
+        const totalSales = trendData.reduce((s, d) => s + d.sales, 0);
+        const totalCost = trendData.reduce((s, d) => s + d.cost, 0);
+        const totalProfit = totalSales - totalCost;
+        const totalMargin = totalSales !== 0 ? ((totalProfit / totalSales) * 100).toFixed(1) : '0.0';
+        const totalProfitCls = totalProfit >= 0 ? 'profit-positive' : 'profit-negative';
+        const totalRatioCls = parseFloat(totalMargin) >= 0 ? 'ratio-positive' : 'ratio-negative';
+
+        let extRows = trendData.map(d => `
             <tr>
                 <td style="font-weight: 700;">${d.fullLabel}</td>
                 <td class="text-right">${d.sales.toLocaleString()}원</td>
@@ -1732,6 +1756,18 @@
                 <td class="text-right" style="color: var(--accent-indigo); font-weight: 700;">${d.margin}%</td>
             </tr>
         `).join('');
+
+        extRows += `
+            <tr class="total-row">
+                <td>전체 합계</td>
+                <td class="text-right">${totalSales.toLocaleString()}원</td>
+                <td class="text-right">${totalCost.toLocaleString()}원</td>
+                <td class="text-right ${totalProfitCls}">${totalProfit.toLocaleString()}원</td>
+                <td class="text-right ${totalRatioCls}">${totalMargin}%</td>
+            </tr>
+        `;
+
+        reportTbody.innerHTML = extRows;
 
         // 차트 헤더 정보 동적 조절 (ExT)
         const extChartHeader = document.getElementById('ext-report-header');
@@ -1878,7 +1914,14 @@
         const reportTbody = document.getElementById('nujen-report-tbody');
         const trendData = getNujenTrendData();
 
-        reportTbody.innerHTML = trendData.map(d => `
+        const totalSales = trendData.reduce((s, d) => s + d.sales, 0);
+        const totalCost = trendData.reduce((s, d) => s + d.cost, 0);
+        const totalProfit = totalSales - totalCost;
+        const totalMargin = totalSales !== 0 ? ((totalProfit / totalSales) * 100).toFixed(1) : '0.0';
+        const totalProfitCls = totalProfit >= 0 ? 'profit-positive' : 'profit-negative';
+        const totalRatioCls = parseFloat(totalMargin) >= 0 ? 'ratio-positive' : 'ratio-negative';
+
+        let nujenRows = trendData.map(d => `
             <tr>
                 <td style="font-weight: 700;">${d.fullLabel}</td>
                 <td class="text-right">${d.sales.toLocaleString()}원</td>
@@ -1887,6 +1930,18 @@
                 <td class="text-right" style="color: var(--accent-indigo); font-weight: 700;">${d.margin}%</td>
             </tr>
         `).join('');
+
+        nujenRows += `
+            <tr class="total-row">
+                <td>전체 합계</td>
+                <td class="text-right">${totalSales.toLocaleString()}원</td>
+                <td class="text-right">${totalCost.toLocaleString()}원</td>
+                <td class="text-right ${totalProfitCls}">${totalProfit.toLocaleString()}원</td>
+                <td class="text-right ${totalRatioCls}">${totalMargin}%</td>
+            </tr>
+        `;
+
+        reportTbody.innerHTML = nujenRows;
 
         // 차트 헤더 정보 동적 조절 (NuGen)
         const nujenChartHeader = document.getElementById('nujen-report-header');

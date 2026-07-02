@@ -1179,3 +1179,21 @@ body {
         gap: 6px;
     }
 }
+
+/* ===== Total Row Styles ===== */
+tr.total-row td {
+    font-weight: 800 !important;
+    background-color: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+    border-top: 2px double rgba(0, 0, 0, 0.18) !important;
+    border-bottom: 2px solid rgba(0, 0, 0, 0.18) !important;
+}
+
+tr.total-row td.profit-positive, tr.total-row td.ratio-positive {
+    color: var(--accent-indigo) !important;
+}
+
+tr.total-row td.profit-negative, tr.total-row td.ratio-negative {
+    color: var(--accent-rose) !important;
+}
+
