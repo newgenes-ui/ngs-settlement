@@ -1238,8 +1238,8 @@
         const ctx = document.getElementById(canvasId);
         if (!ctx) return;
 
-        // Register custom tooltip positioner across all possible namespaces
-        const findAndRegisterPositioner = function(name, fn) {
+        // Override Chart.js default positioners ('average' & 'nearest') to force end-of-bar positioning
+        const findAndOverridePositioners = function() {
             if (typeof Chart === 'undefined') return;
             const visited = new Set();
             const search = function(obj) {
@@ -1247,10 +1247,27 @@
                 visited.add(obj);
                 
                 if (typeof obj.average === 'function' && typeof obj.nearest === 'function') {
-                    obj[name] = fn;
+                    const origAvg = obj.average;
+                    obj.average = function(elements) {
+                        if (!elements || !elements.length) return origAvg.apply(this, arguments);
+                        const el = elements[0].element;
+                        if (el && (el.horizontal === true || (typeof el.base === 'number' && typeof el.x === 'number'))) {
+                            return { x: el.x, y: el.y };
+                        }
+                        return origAvg.apply(this, arguments);
+                    };
+                    
+                    const origNear = obj.nearest;
+                    obj.nearest = function(elements) {
+                        if (!elements || !elements.length) return origNear.apply(this, arguments);
+                        const el = elements[0].element;
+                        if (el && (el.horizontal === true || (typeof el.base === 'number' && typeof el.x === 'number'))) {
+                            return { x: el.x, y: el.y };
+                        }
+                        return origNear.apply(this, arguments);
+                    };
                 }
                 
-                // Map 객체 내부 순회 지원 (Chart.js v4 레지스트리 대응)
                 if (obj instanceof Map) {
                     obj.forEach(val => search(val));
                 }
@@ -1262,7 +1279,7 @@
                 }
             };
             
-            // 전역 레지스트리 직접 등록 시도
+            // Direct registry access override
             try {
                 if (Chart.registry) {
                     let tooltip = null;
@@ -1272,27 +1289,60 @@
                         tooltip = Chart.registry.plugins.get('tooltip');
                     }
                     if (tooltip) {
-                        if (tooltip.positioners) tooltip.positioners[name] = fn;
-                        if (tooltip.constructor && tooltip.constructor.positioners) tooltip.constructor.positioners[name] = fn;
+                        const registerOn = function(target) {
+                            if (target && typeof target.average === 'function') {
+                                const origAvg = target.average;
+                                target.average = function(elements) {
+                                    if (!elements || !elements.length) return origAvg.apply(this, arguments);
+                                    const el = elements[0].element;
+                                    if (el && (el.horizontal === true || (typeof el.base === 'number' && typeof el.x === 'number'))) {
+                                        return { x: el.x, y: el.y };
+                                    }
+                                    return origAvg.apply(this, arguments);
+                                };
+                                const origNear = target.nearest;
+                                target.nearest = function(elements) {
+                                    if (!elements || !elements.length) return origNear.apply(this, arguments);
+                                    const el = elements[0].element;
+                                    if (el && (el.horizontal === true || (typeof el.base === 'number' && typeof el.x === 'number'))) {
+                                        return { x: el.x, y: el.y };
+                                    }
+                                    return origNear.apply(this, arguments);
+                                };
+                            }
+                        };
+                        registerOn(tooltip.positioners);
+                        if (tooltip.constructor) registerOn(tooltip.constructor.positioners);
                     }
                 }
             } catch (e) {}
             
             if (Chart.Tooltip && Chart.Tooltip.positioners) {
-                Chart.Tooltip.positioners[name] = fn;
+                const target = Chart.Tooltip.positioners;
+                const origAvg = target.average;
+                target.average = function(elements) {
+                    if (!elements || !elements.length) return origAvg.apply(this, arguments);
+                    const el = elements[0].element;
+                    if (el && (el.horizontal === true || (typeof el.base === 'number' && typeof el.x === 'number'))) {
+                        return { x: el.x, y: el.y };
+                    }
+                    return origAvg.apply(this, arguments);
+                };
+                const origNear = target.nearest;
+                target.nearest = function(elements) {
+                    if (!elements || !elements.length) return origNear.apply(this, arguments);
+                    const el = elements[0].element;
+                    if (el && (el.horizontal === true || (typeof el.base === 'number' && typeof el.x === 'number'))) {
+                        return { x: el.x, y: el.y };
+                    }
+                    return origNear.apply(this, arguments);
+                };
             }
             
             search(Chart);
         };
 
-        findAndRegisterPositioner('barEnd', function(elements) {
-            if (!elements || !elements.length) return false;
-            const el = elements[0].element;
-            return {
-                x: el.x,
-                y: el.y
-            };
-        });
+        findAndOverridePositioners();
 
         if (state.charts[canvasId]) {
             state.charts[canvasId].destroy();
@@ -1407,7 +1457,7 @@
                         display: false
                     },
                     tooltip: {
-                        position: 'barEnd',
+                        position: 'average',
                         xAlign: 'left',
                         yAlign: 'center',
                         backgroundColor: 'rgba(59, 130, 246, 0.95)',
