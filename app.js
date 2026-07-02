@@ -1838,13 +1838,25 @@
 
         if (!tbody || !tfoot || !cardContainer) return;
 
-        // 1. 세금계산서 기반 집계 (기간별 필터링 적용)
+        // 1. 세금계산서 및 카드매출 기반 집계 (기간별 필터링 적용)
         const filteredSales = getFilteredData(state.salesData);
         const filteredPurchases = getFilteredData(state.purchaseData);
+        const filteredCardSales = getFilteredData(state.cardSalesData);
 
+        // 세금계산서 매출
         const salesTaxInvoiceSupply = filteredSales.reduce((sum, d) => sum + (d.supplyAmount || 0), 0);
         const salesTaxInvoiceTax = filteredSales.reduce((sum, d) => sum + (d.taxAmount || 0), 0);
 
+        // 카드 매출 (VAT 포함 금액에서 공급가액과 세액 분리 계산: 공급가액 = 합계 / 1.1, 세액 = 합계 - 공급가액)
+        const totalCardSalesAmount = filteredCardSales.reduce((sum, d) => sum + (d.totalAmount || 0), 0);
+        const cardSalesTax = Math.round(totalCardSalesAmount / 11);
+        const cardSalesSupply = totalCardSalesAmount - cardSalesTax;
+
+        // 최종 매출 합계
+        const totalOutputVat = salesTaxInvoiceTax + cardSalesTax;
+        const totalOutputSupply = salesTaxInvoiceSupply + cardSalesSupply;
+
+        // 세금계산서 매입
         const purchaseTaxInvoiceSupply = filteredPurchases.reduce((sum, d) => sum + (d.supplyAmount || 0), 0);
         const purchaseTaxInvoiceTax = filteredPurchases.reduce((sum, d) => sum + (d.taxAmount || 0), 0);
 
@@ -1899,12 +1911,12 @@
             });
 
             // 상단 요약 카드 데이터
-            const outputVat = salesTaxInvoiceTax;
+            const outputVat = totalOutputVat;
             const inputVat = purchaseTaxInvoiceTax + totalDedTax;
             const netVat = outputVat - inputVat;
 
             cardContainer.innerHTML = `
-                ${createSummaryCard('blue', ICONS.sales, '매출세액 (세금계산서)', `${formatCurrency(outputVat)}원`, `공급가액: ${formatCurrency(salesTaxInvoiceSupply)}원`)}
+                ${createSummaryCard('blue', ICONS.sales, '매출세액 (세금계산서 + 카드매출)', `${formatCurrency(outputVat)}원`, `세금계산서: ${formatCurrency(salesTaxInvoiceTax)}원 · 카드매출: ${formatCurrency(cardSalesTax)}원`)}
                 ${createSummaryCard('rose', ICONS.purchase, '매입세액 (세금계산서 + 카드공제)', `${formatCurrency(inputVat)}원`, `세금계산서: ${formatCurrency(purchaseTaxInvoiceTax)}원 · 신용카드: ${formatCurrency(totalDedTax)}원`)}
                 ${createSummaryCard(netVat <= 0 ? 'emerald' : 'amber', ICONS.tax, '예상 납부(환급)세액', `${formatCurrency(Math.abs(netVat))}원`, netVat <= 0 ? '<span class="positive">환급 예정 (매입세액 초과)</span>' : '<span class="negative">납부 필요 (매출세액 초과)</span>')}
             `;
