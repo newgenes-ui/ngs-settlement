@@ -575,8 +575,8 @@
                 bottom: 30px;
                 left: 50%;
                 transform: translateX(-50%) translateY(20px);
-                background: var(--bg-card);
-                border: 2px solid var(--accent-indigo);
+                background: #eff6ff; /* Soft light-blue background */
+                border: 2px solid var(--accent-blue); /* Blue border */
                 box-shadow: var(--shadow-lg);
                 border-radius: var(--radius-lg);
                 padding: 16px 24px;
@@ -596,7 +596,7 @@
         toast.innerHTML = `
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <span style="font-family:var(--font-mono); font-size:0.85rem; color:var(--text-tertiary); font-weight:600;">${code}</span>
-                <span class="tag normal" style="background:rgba(99,102,241,0.1); color:var(--accent-indigo); font-weight:700; font-size:0.85rem; padding:4px 8px; border-radius:6px; margin: 0;">판매율 ${rate}%</span>
+                <span class="tag normal" style="background:rgba(59,130,246,0.1); color:var(--accent-blue); font-weight:700; font-size:0.85rem; padding:4px 8px; border-radius:6px; margin: 0;">판매율 ${rate}%</span>
             </div>
             <div style="font-size:1.2rem; font-weight:800; color:var(--text-primary); line-height:1.4; word-break:keep-all; margin-right: 20px;">
                 ${name}
@@ -1306,20 +1306,13 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 onClick: (event, elements, chart) => {
-                    // 1. 막대 바 클릭 시
-                    if (elements.length > 0) {
-                        const index = elements[0].index;
-                        const item = data[index];
-                        showLargeLabelPopup(item.code, item.name, item.rate);
-                        return;
-                    }
-                    
-                    // 2. Y축 레이블 클릭 시
                     const scale = chart.scales.y;
-                    if (scale) {
+                    if (scale && chart.chartArea) {
                         const x = event.x;
                         const y = event.y;
-                        if (x < scale.left) {
+                        
+                        // 클릭 좌표가 차트 영역(y축 라벨부터 우측 끝까지) 가로/세로 범위 내인 경우 해당 로우 데이터 처리
+                        if (x >= 0 && x <= chart.chartArea.right && y >= chart.chartArea.top && y <= chart.chartArea.bottom) {
                             const index = scale.getValueForPixel(y);
                             const roundedIndex = Math.round(index);
                             if (roundedIndex >= 0 && roundedIndex < data.length) {
@@ -1334,7 +1327,7 @@
                         display: false
                     },
                     tooltip: {
-                        backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.95)',
                         titleFont: { size: 11, weight: 'bold' },
                         bodyFont: { size: 11 },
                         padding: 8,
