@@ -61,6 +61,32 @@
     ];
 
     // ===== CSV 파싱 =====
+    function parseCSVTextIntoLines(text) {
+        const lines = [];
+        let currentLine = '';
+        let inQuotes = false;
+        for (let i = 0; i < text.length; i++) {
+            const ch = text[i];
+            if (ch === '"') {
+                inQuotes = !inQuotes;
+                currentLine += ch;
+            } else if (ch === '\n' && !inQuotes) {
+                lines.push(currentLine);
+                currentLine = '';
+            } else if (ch === '\r') {
+                if (inQuotes) {
+                    currentLine += ch;
+                }
+            } else {
+                currentLine += ch;
+            }
+        }
+        if (currentLine) {
+            lines.push(currentLine);
+        }
+        return lines.filter(l => l.trim());
+    }
+
     function parseCSVLine(line) {
         const result = [];
         let current = '';
@@ -89,7 +115,7 @@
     }
 
     function parseCSV(text, skipRows = 1) {
-        const lines = text.split('\n').filter(l => l.trim());
+        const lines = parseCSVTextIntoLines(text);
         const headers = parseCSVLine(lines[skipRows - 1]);
         const data = [];
         for (let i = skipRows; i < lines.length; i++) {
@@ -120,7 +146,7 @@
                 fetch(`카드매출전표.csv?v=${t}`),
                 fetch(`매입.csv?v=${t}`),
                 fetch(`ExT구매현항.csv?v=${t}`),
-                fetch(`ExT판매현황.csv?v=${t}`),
+                fetch(`ExT판매현황_수정.csv?v=${t}`),
                 fetch(`뉴진스제품 구매현황.csv?v=${t}`),
                 fetch(`뉴진스제품 판매현황.csv?v=${t}`)
             ]);
@@ -159,7 +185,7 @@
             }));
 
             // 매출 CSV를 다시 제대로 파싱 (원본 라인에서 직접 파싱)
-            const salesLines = salesText.split('\n').filter(l => l.trim());
+            const salesLines = parseCSVTextIntoLines(salesText);
             state.salesData = [];
             for (let i = 2; i < salesLines.length; i++) {
                 const v = parseCSVLine(salesLines[i]);
@@ -195,7 +221,7 @@
             }
 
             // 카드매출 CSV: 1-2행=헤더정보, 3행=헤더
-            const cardLines = cardText.split('\n').filter(l => l.trim());
+            const cardLines = parseCSVTextIntoLines(cardText);
             state.cardSalesData = [];
             for (let i = 3; i < cardLines.length; i++) {
                 const v = parseCSVLine(cardLines[i]);
@@ -212,7 +238,7 @@
             }
 
             // 매입 CSV
-            const purchaseLines = purchaseText.split('\n').filter(l => l.trim());
+            const purchaseLines = parseCSVTextIntoLines(purchaseText);
             state.purchaseData = [];
             for (let i = 2; i < purchaseLines.length; i++) {
                 const v = parseCSVLine(purchaseLines[i]);
@@ -248,7 +274,7 @@
             }
 
             // ExT구매현항 CSV 파싱
-            const extPurchaseLines = extPurchaseText.split('\n').filter(l => l.trim());
+            const extPurchaseLines = parseCSVTextIntoLines(extPurchaseText);
             state.extPurchaseData = [];
             for (let i = 1; i < extPurchaseLines.length; i++) {
                 const v = parseCSVLine(extPurchaseLines[i]);
@@ -256,7 +282,7 @@
                 state.extPurchaseData.push({
                     dateNo: v[0],
                     supplier: v[1],
-                    code: v[2],
+                    code: (v[2] || '').replace(/\s+/g, ''),
                     name: v[3],
                     qty: parseInt(v[4]) || 0,
                     unitPrice: parseAmount(v[5]),
@@ -267,27 +293,65 @@
             }
 
             // ExT판매현황 CSV 파싱
-            const extSalesLines = extSalesText.split('\n').filter(l => l.trim());
+            const extSalesLines = parseCSVTextIntoLines(extSalesText);
             state.extSalesData = [];
+            
+            // 헤더 정보 파악
+            let extSalesDateIdx = 0;
+            let extSalesBuyerIdx = 1;
+            let extSalesQtyIdx = 2;
+            let extSalesPriceIdx = 3;
+            let extSalesSupplyIdx = 4;
+            let extSalesTaxIdx = 5;
+            let extSalesTotalIdx = 6;
+            let extSalesCodeIdx = 7;
+            let extSalesNameIdx = 8;
+            let extSalesCollectionIdx = -1;
+            
+            if (extSalesLines.length > 1) {
+                const headers = parseCSVLine(extSalesLines[1]);
+                extSalesDateIdx = headers.indexOf('일자-No.');
+                extSalesBuyerIdx = headers.indexOf('거래처명');
+                extSalesCollectionIdx = headers.indexOf('수금일');
+                extSalesQtyIdx = headers.indexOf('수량');
+                extSalesPriceIdx = headers.indexOf('단가');
+                extSalesSupplyIdx = headers.indexOf('공급가액');
+                extSalesTaxIdx = headers.indexOf('부가세');
+                extSalesTotalIdx = headers.indexOf('합계');
+                extSalesCodeIdx = headers.indexOf('품목코드');
+                extSalesNameIdx = headers.indexOf('품목명(규격)');
+                
+                // Fallbacks if header is not matched (for safety)
+                if (extSalesDateIdx === -1) extSalesDateIdx = 0;
+                if (extSalesBuyerIdx === -1) extSalesBuyerIdx = 1;
+                if (extSalesQtyIdx === -1) extSalesQtyIdx = extSalesCollectionIdx !== -1 ? 3 : 2;
+                if (extSalesPriceIdx === -1) extSalesPriceIdx = extSalesCollectionIdx !== -1 ? 4 : 3;
+                if (extSalesSupplyIdx === -1) extSalesSupplyIdx = extSalesCollectionIdx !== -1 ? 5 : 4;
+                if (extSalesTaxIdx === -1) extSalesTaxIdx = extSalesCollectionIdx !== -1 ? 6 : 5;
+                if (extSalesTotalIdx === -1) extSalesTotalIdx = extSalesCollectionIdx !== -1 ? 7 : 6;
+                if (extSalesCodeIdx === -1) extSalesCodeIdx = extSalesCollectionIdx !== -1 ? 8 : 7;
+                if (extSalesNameIdx === -1) extSalesNameIdx = extSalesCollectionIdx !== -1 ? 9 : 8;
+            }
+            
             for (let i = 2; i < extSalesLines.length; i++) {
                 const v = parseCSVLine(extSalesLines[i]);
                 if (!v[0] || v[0].startsWith('총합계')) continue;
                 state.extSalesData.push({
-                    dateNo: v[0],
-                    buyer: v[1],
-                    collectionDate: v[2],
-                    qty: parseInt(v[3]) || 0,
-                    unitPrice: parseAmount(v[4]),
-                    supplyAmount: parseAmount(v[5]),
-                    taxAmount: parseAmount(v[6]),
-                    totalAmount: parseAmount(v[7]),
-                    code: v[8],
-                    name: v[9]
+                    dateNo: v[extSalesDateIdx] || '',
+                    buyer: v[extSalesBuyerIdx] || '',
+                    collectionDate: extSalesCollectionIdx !== -1 ? (v[extSalesCollectionIdx] || '') : '',
+                    qty: parseInt(v[extSalesQtyIdx]) || 0,
+                    unitPrice: parseAmount(v[extSalesPriceIdx]),
+                    supplyAmount: parseAmount(v[extSalesSupplyIdx]),
+                    taxAmount: parseAmount(v[extSalesTaxIdx]),
+                    totalAmount: parseAmount(v[extSalesTotalIdx]),
+                    code: (v[extSalesCodeIdx] || '').replace(/\s+/g, ''),
+                    name: v[extSalesNameIdx] || ''
                 });
             }
 
             // 뉴진스제품 구매현황 CSV 파싱
-            const nujenPurchaseLines = nujenPurchaseText.split('\n').filter(l => l.trim());
+            const nujenPurchaseLines = parseCSVTextIntoLines(nujenPurchaseText);
             state.nujenPurchaseData = [];
             for (let i = 2; i < nujenPurchaseLines.length; i++) {
                 const v = parseCSVLine(nujenPurchaseLines[i]);
@@ -306,7 +370,7 @@
             }
 
             // 뉴진스제품 판매현황 CSV 파싱
-            const nujenSalesLines = nujenSalesText.split('\n').filter(l => l.trim());
+            const nujenSalesLines = parseCSVTextIntoLines(nujenSalesText);
             state.nujenSalesData = [];
             for (let i = 1; i < nujenSalesLines.length; i++) {
                 const v = parseCSVLine(nujenSalesLines[i]);

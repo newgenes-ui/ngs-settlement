@@ -5,7 +5,7 @@ echo  NGS 결산 - 깃허브 자동 배포 스크립트
 echo ==========================================
 echo.
 echo [1/3] 변경된 데이터 및 소스코드 감지 중...
-git add app.js index.html index.css 매입.csv *매입.csv *매출.csv *매출.xls *매입.xls
+git add app.js index.html index.css *.csv *.xlsx
 
 echo.
 echo [2/3] 변경 사항 기록 중...
