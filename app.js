@@ -1236,17 +1236,35 @@
         const ctx = document.getElementById(canvasId);
         if (!ctx) return;
 
-        // Register custom tooltip positioner
-        if (typeof Chart !== 'undefined' && Chart.Tooltip && Chart.Tooltip.positioners && !Chart.Tooltip.positioners.barEnd) {
-            Chart.Tooltip.positioners.barEnd = function(elements) {
-                if (!elements || !elements.length) return false;
-                const el = elements[0].element;
-                return {
-                    x: el.x,
-                    y: el.y
-                };
+        // Register custom tooltip positioner across all possible namespaces
+        const registerPositioner = function(name, fn) {
+            if (typeof Chart !== 'undefined') {
+                if (Chart.Tooltip && Chart.Tooltip.positioners) {
+                    Chart.Tooltip.positioners[name] = fn;
+                }
+                try {
+                    const tooltipPlugin = Chart.registry.getPlugin('tooltip');
+                    if (tooltipPlugin && tooltipPlugin.positioners) {
+                        tooltipPlugin.positioners[name] = fn;
+                    }
+                } catch (e) {}
+                if (Chart.defaults && Chart.defaults.plugins && Chart.defaults.plugins.tooltip) {
+                    if (!Chart.defaults.plugins.tooltip.positioners) {
+                        Chart.defaults.plugins.tooltip.positioners = {};
+                    }
+                    Chart.defaults.plugins.tooltip.positioners[name] = fn;
+                }
+            }
+        };
+
+        registerPositioner('barEnd', function(elements) {
+            if (!elements || !elements.length) return false;
+            const el = elements[0].element;
+            return {
+                x: el.x,
+                y: el.y
             };
-        }
+        });
 
         if (state.charts[canvasId]) {
             state.charts[canvasId].destroy();
