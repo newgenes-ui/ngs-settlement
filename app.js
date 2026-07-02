@@ -1262,6 +1262,18 @@
             return b.rate - a.rate;
         });
 
+        // 전체 판매율을 계산하여 최상단에 배치
+        const totalInitQty = categories.reduce((s, c) => s + c.initQty, 0);
+        const totalSoldQty = categories.reduce((s, c) => s + (soldCounts[c.id] || 0), 0);
+        const overallRate = totalInitQty !== 0 ? parseFloat(((totalSoldQty / totalInitQty) * 100).toFixed(1)) : 0.0;
+        
+        data.unshift({
+            name: '전체 품목 평균 판매율',
+            code: '전체 평균 판매율',
+            rate: overallRate,
+            isTotal: true
+        });
+
         const dCtx = ctx.getContext('2d');
         let grad = dCtx.createLinearGradient(0, 0, 400, 0);
         grad.addColorStop(0, 'rgba(99, 102, 241, 0.25)'); // Indigo light
@@ -1273,13 +1285,14 @@
                 const { ctx } = chart;
                 ctx.save();
                 ctx.font = 'bold 10px sans-serif';
-                ctx.fillStyle = '#4f46e5';
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'middle';
                 
                 chart.data.datasets.forEach((dataset, i) => {
                     chart.getDatasetMeta(i).data.forEach((bar, index) => {
                         const value = dataset.data[index];
+                        const item = data[index];
+                        ctx.fillStyle = item && item.isTotal ? '#10b981' : '#4f46e5';
                         ctx.fillText(value + '%', bar.x + 8, bar.y);
                     });
                 });
@@ -1290,11 +1303,11 @@
         state.charts[canvasId] = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: data.map(d => `${d.code} (${d.name.length > 25 ? d.name.substring(0, 25) + '...' : d.name})`),
+                labels: data.map(d => d.isTotal ? `${d.code}` : `${d.code} (${d.name.length > 25 ? d.name.substring(0, 25) + '...' : d.name})`),
                 datasets: [{
                     data: data.map(d => d.rate),
-                    backgroundColor: grad,
-                    borderColor: '#6366f1',
+                    backgroundColor: data.map(d => d.isTotal ? 'rgba(16, 185, 129, 0.85)' : grad),
+                    borderColor: data.map(d => d.isTotal ? '#10b981' : '#6366f1'),
                     borderWidth: 1,
                     borderRadius: 4,
                     borderSkipped: false,
