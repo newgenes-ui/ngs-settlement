@@ -41,8 +41,6 @@
     ];
 
     const NUJEN_CATEGORIES = [
-        { id: 'sep_10', code: 'SEP-10', name: 'Xcent Serological pipette, 10ml', spec: '200pcs/Box', initQty: 0, initAmount: 0, unitPrice: 30000 },
-        { id: 'stag_1250_b', code: 'STAG-1250-B', name: 'EXCELL AG Tip, 1250ul, Nature', spec: '1000 Tips/Pack, 5 packs/carton', initQty: 0, initAmount: 0, unitPrice: 11200 },
         { id: 'ngs_sep_10', code: 'NGS-SEP-10', name: 'NuGen Serological pipette, Stretching, 10ml', spec: '200 PCS/BOX, 6 BOXES/CASE', initQty: 0, initAmount: 0, unitPrice: 30000 },
         { id: 'ngs_sep_100', code: 'NGS-SEP-100', name: 'NuGen Serological pipette, Welding, 100ml', spec: '40 PCS/BOX, 6 BOXES/CASE', initQty: 0, initAmount: 0, unitPrice: 59500 },
         { id: 'ngs_sep_50', code: 'NGS-SEP-50', name: 'NuGen Serological pipette, Welding, 50ml', spec: '75 PCS/BOX, 6 BOXES/CASE', initQty: 0, initAmount: 0, unitPrice: 49000 },
@@ -390,8 +388,6 @@
         const n = (name || '').toLowerCase();
 
         // 1대1 코드 매치
-        if (c === 'SEP-10') return 'sep_10';
-        if (c === 'STAG-1250-B') return 'stag_1250_b';
         if (c === 'NGS-SEP-10' || c === 'NG-SEP-10') return 'ngs_sep_10';
         if (c === 'NGS-SEP-100' || c === 'NG-SEP-100') return 'ngs_sep_100';
         if (c === 'NGS-SEP-50' || c === 'NG-SEP-50') return 'ngs_sep_50';
@@ -1670,8 +1666,6 @@
 
     function renderNujenView() {
         const categories = [
-            { id: 'sep_10', code: 'SEP-10', name: 'Xcent Serological pipette, 10ml', spec: '200pcs/Box', initQty: 0, initAmount: 0, unitPrice: 30000 },
-            { id: 'stag_1250_b', code: 'STAG-1250-B', name: 'EXCELL AG Tip, 1250ul, Nature', spec: '1000 Tips/Pack, 5 packs/carton', initQty: 0, initAmount: 0, unitPrice: 11200 },
             { id: 'ngs_sep_10', code: 'NGS-SEP-10', name: 'NuGen Serological pipette, Stretching, 10ml', spec: '200 PCS/BOX, 6 BOXES/CASE', initQty: 0, initAmount: 0, unitPrice: 30000 },
             { id: 'ngs_sep_100', code: 'NGS-SEP-100', name: 'NuGen Serological pipette, Welding, 100ml', spec: '40 PCS/BOX, 6 BOXES/CASE', initQty: 0, initAmount: 0, unitPrice: 59500 },
             { id: 'ngs_sep_50', code: 'NGS-SEP-50', name: 'NuGen Serological pipette, Welding, 50ml', spec: '75 PCS/BOX, 6 BOXES/CASE', initQty: 0, initAmount: 0, unitPrice: 49000 },
