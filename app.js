@@ -1250,6 +1250,11 @@
                     obj[name] = fn;
                 }
                 
+                // Map 객체 내부 순회 지원 (Chart.js v4 레지스트리 대응)
+                if (obj instanceof Map) {
+                    obj.forEach(val => search(val));
+                }
+                
                 for (const key in obj) {
                     try {
                         search(obj[key]);
@@ -1257,15 +1262,25 @@
                 }
             };
             
+            // 전역 레지스트리 직접 등록 시도
+            try {
+                if (Chart.registry) {
+                    let tooltip = null;
+                    if (typeof Chart.registry.getPlugin === 'function') {
+                        tooltip = Chart.registry.getPlugin('tooltip');
+                    } else if (Chart.registry.plugins && typeof Chart.registry.plugins.get === 'function') {
+                        tooltip = Chart.registry.plugins.get('tooltip');
+                    }
+                    if (tooltip) {
+                        if (tooltip.positioners) tooltip.positioners[name] = fn;
+                        if (tooltip.constructor && tooltip.constructor.positioners) tooltip.constructor.positioners[name] = fn;
+                    }
+                }
+            } catch (e) {}
+            
             if (Chart.Tooltip && Chart.Tooltip.positioners) {
                 Chart.Tooltip.positioners[name] = fn;
             }
-            try {
-                const tooltipPlugin = Chart.registry.getPlugin('tooltip');
-                if (tooltipPlugin && tooltipPlugin.positioners) {
-                    tooltipPlugin.positioners[name] = fn;
-                }
-            } catch (e) {}
             
             search(Chart);
         };
