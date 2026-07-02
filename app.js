@@ -1332,6 +1332,11 @@
                 indexAxis: 'y',
                 responsive: true,
                 maintainAspectRatio: false,
+                layout: {
+                    padding: {
+                        right: 120
+                    }
+                },
                 onClick: (event, elements, chart) => {
                     const scale = chart.scales.y;
                     if (scale && chart.chartArea) {
@@ -1371,7 +1376,7 @@
                 scales: {
                     x: {
                         min: 0,
-                        max: 120,
+                        max: 100,
                         grid: {
                             color: 'rgba(0, 0, 0, 0.05)'
                         },
