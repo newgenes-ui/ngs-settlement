@@ -1514,7 +1514,7 @@
         `).join('');
 
         // 차트 헤더 정보 동적 조절 (ExT)
-        const extChartHeader = document.querySelector('#view-inventory .table-card .table-header h3');
+        const extChartHeader = document.getElementById('ext-report-header');
         if (extChartHeader) {
             extChartHeader.innerHTML = `
                 <div style="display:flex; flex-direction:column; gap:4px;">
@@ -1671,7 +1671,7 @@
         `).join('');
 
         // 차트 헤더 정보 동적 조절 (NuGen)
-        const nujenChartHeader = document.querySelector('#view-nujen .table-card .table-header h3');
+        const nujenChartHeader = document.getElementById('nujen-report-header');
         if (nujenChartHeader) {
             nujenChartHeader.innerHTML = `
                 <div style="display:flex; flex-direction:column; gap:4px;">
