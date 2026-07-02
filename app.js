@@ -1379,10 +1379,12 @@
         const stockTax = Math.round(totalStockAmount / 11);
         const stockSupply = totalStockAmount - stockTax;
 
+        const extSalesRate = totalInitQty !== 0 ? ((totalSoldQty / totalInitQty) * 100).toFixed(1) : '0.0';
+
         // 상단 재고 현황 카드 렌더
         document.getElementById('inventory-summary-cards').innerHTML = [
             createSummaryCard('indigo', ICONS.purchase, '기초 입고 현황', formatCurrency(totalInitAmount), `공급가액: ${formatCurrency(initSupply)} · 세액: ${formatCurrency(initTax)} · 수량: ${totalInitQty}개`),
-            createSummaryCard('blue', ICONS.sales, '당기 매출 현황', formatCurrency(totalSoldAmount), `공급가액: ${formatCurrency(soldSupply)} · 세액: ${formatCurrency(soldTax)} · 수량: ${totalSoldQty}개`),
+            createSummaryCard('blue', ICONS.sales, '당기 매출 현황', formatCurrency(totalSoldAmount), `공급가액: ${formatCurrency(soldSupply)} · 세액: ${formatCurrency(soldTax)} · 수량: ${totalSoldQty}개 (판매율: ${extSalesRate}%)`),
             createSummaryCard('emerald', ICONS.profit, '현재 재고 현황', formatCurrency(totalStockAmount), `공급가액: ${formatCurrency(stockSupply)} · 세액: ${formatCurrency(stockTax)} · 수량: ${totalStockQty}개`)
         ].join('');
 
@@ -1439,7 +1441,7 @@
                     <td style="font-size:0.82rem;color:var(--text-secondary);">${c.spec}</td>
                     <td class="text-center" style="font-weight:600;">${c.initQty}개</td>
                     <td class="text-right" style="font-feature-settings:'tnum';font-variant-numeric:tabular-nums;">${c.initAmount.toLocaleString()}원</td>
-                    <td class="text-center" style="font-weight:600;color:var(--accent-indigo);">${soldQty}개</td>
+                    <td class="text-center" style="font-weight:600;color:var(--accent-indigo);">${soldQty}개<br><span style="font-size:0.75rem;color:var(--text-tertiary);">(${c.initQty !== 0 ? ((soldQty / c.initQty) * 100).toFixed(1) : '0.0'}%)</span></td>
                     <td class="text-right" style="font-feature-settings:'tnum';font-variant-numeric:tabular-nums;color:var(--accent-indigo);">${soldAmt.toLocaleString()}원</td>
                     <td class="text-center" style="font-weight:700;color:${stockQty <= 5 ? 'var(--accent-rose)' : 'var(--text-primary)'}">${stockQty}개</td>
                     <td class="text-right" style="font-feature-settings:'tnum';font-variant-numeric:tabular-nums;font-weight:600;">${stockAmt.toLocaleString()}원</td>
@@ -1533,10 +1535,12 @@
         const stockTax = Math.round(totalStockAmount / 11);
         const stockSupply = totalStockAmount - stockTax;
 
+        const nujenSalesRate = totalInitQty !== 0 ? ((totalSoldQty / totalInitQty) * 100).toFixed(1) : '0.0';
+
         // 상단 재고 현황 카드 렌더
         document.getElementById('nujen-summary-cards').innerHTML = [
             createSummaryCard('indigo', ICONS.purchase, '기초 입고 현황', formatCurrency(totalInitAmount), `공급가액: ${formatCurrency(initSupply)} · 세액: ${formatCurrency(initTax)} · 수량: ${totalInitQty}개`),
-            createSummaryCard('blue', ICONS.sales, '당기 매출 현황', formatCurrency(totalSoldAmount), `공급가액: ${formatCurrency(soldSupply)} · 세액: ${formatCurrency(soldTax)} · 수량: ${totalSoldQty}개`),
+            createSummaryCard('blue', ICONS.sales, '당기 매출 현황', formatCurrency(totalSoldAmount), `공급가액: ${formatCurrency(soldSupply)} · 세액: ${formatCurrency(soldTax)} · 수량: ${totalSoldQty}개 (판매율: ${nujenSalesRate}%)`),
             createSummaryCard('emerald', ICONS.profit, '현재 재고 현황', formatCurrency(totalStockAmount), `공급가액: ${formatCurrency(stockSupply)} · 세액: ${formatCurrency(stockTax)} · 수량: ${totalStockQty}개`)
         ].join('');
 
@@ -1593,7 +1597,7 @@
                     <td style="font-size:0.82rem;color:var(--text-secondary);">${c.spec}</td>
                     <td class="text-center" style="font-weight:600;">${c.initQty}개</td>
                     <td class="text-right" style="font-feature-settings:'tnum';font-variant-numeric:tabular-nums;">${c.initAmount.toLocaleString()}원</td>
-                    <td class="text-center" style="font-weight:600;color:var(--accent-indigo);">${soldQty}개</td>
+                    <td class="text-center" style="font-weight:600;color:var(--accent-indigo);">${soldQty}개<br><span style="font-size:0.75rem;color:var(--text-tertiary);">(${c.initQty !== 0 ? ((soldQty / c.initQty) * 100).toFixed(1) : '0.0'}%)</span></td>
                     <td class="text-right" style="font-feature-settings:'tnum';font-variant-numeric:tabular-nums;color:var(--accent-indigo);">${soldAmt.toLocaleString()}원</td>
                     <td class="text-center" style="font-weight:700;color:${stockQty <= 5 ? 'var(--accent-rose)' : 'var(--text-primary)'}">${stockQty}개</td>
                     <td class="text-right" style="font-feature-settings:'tnum';font-variant-numeric:tabular-nums;font-weight:600;">${stockAmt.toLocaleString()}원</td>
