@@ -1371,7 +1371,7 @@
                 scales: {
                     x: {
                         min: 0,
-                        max: 100,
+                        max: 120,
                         grid: {
                             color: 'rgba(0, 0, 0, 0.05)'
                         },
