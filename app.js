@@ -1189,6 +1189,13 @@
             };
         });
 
+        // 0% 판매율 품목은 하단으로 배치하고, 판매율이 있는 품목은 내림차순 정렬
+        data.sort((a, b) => {
+            if (a.rate === 0 && b.rate > 0) return 1;
+            if (a.rate > 0 && b.rate === 0) return -1;
+            return b.rate - a.rate;
+        });
+
         const dCtx = ctx.getContext('2d');
         let grad = dCtx.createLinearGradient(0, 0, 400, 0);
         grad.addColorStop(0, 'rgba(99, 102, 241, 0.25)'); // Indigo light
