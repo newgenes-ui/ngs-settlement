@@ -1878,38 +1878,9 @@
             const netVat = outputVat - inputVat;
 
             cardContainer.innerHTML = `
-                <div class="summary-card blue">
-                    <div class="summary-card-header">
-                        <span class="summary-card-title">매출세액 (세금계산서)</span>
-                        <div class="summary-card-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-                        </div>
-                    </div>
-                    <div class="summary-card-value">${formatCurrency(outputVat)}원</div>
-                    <div class="summary-card-desc">공급가액 합계: ${formatCurrency(salesTaxInvoiceSupply)}원</div>
-                </div>
-                <div class="summary-card rose">
-                    <div class="summary-card-header">
-                        <span class="summary-card-title">매입세액 (세금계산서 + 카드공제)</span>
-                        <div class="summary-card-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>
-                        </div>
-                    </div>
-                    <div class="summary-card-value">${formatCurrency(inputVat)}원</div>
-                    <div class="summary-card-desc">세금계산서: ${formatCurrency(purchaseTaxInvoiceTax)}원 | 신용카드 공제: ${formatCurrency(totalDedTax)}원</div>
-                </div>
-                <div class="summary-card ${netVat <= 0 ? 'emerald' : 'amber'}">
-                    <div class="summary-card-header">
-                        <span class="summary-card-title">예상 납부(환급)세액</span>
-                        <div class="summary-card-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-                        </div>
-                    </div>
-                    <div class="summary-card-value">${formatCurrency(Math.abs(netVat))}원</div>
-                    <div class="summary-card-desc" style="color: ${netVat <= 0 ? 'var(--accent-emerald-light)' : 'var(--accent-amber)'}; font-weight: 600;">
-                        ${netVat <= 0 ? '환급 예정 (매입세액 초과)' : '납부 필요 (매출세액 초과)'}
-                    </div>
-                </div>
+                ${createSummaryCard('blue', ICONS.sales, '매출세액 (세금계산서)', `${formatCurrency(outputVat)}원`, `공급가액: ${formatCurrency(salesTaxInvoiceSupply)}원`)}
+                ${createSummaryCard('rose', ICONS.purchase, '매입세액 (세금계산서 + 카드공제)', `${formatCurrency(inputVat)}원`, `세금계산서: ${formatCurrency(purchaseTaxInvoiceTax)}원 · 신용카드: ${formatCurrency(totalDedTax)}원`)}
+                ${createSummaryCard(netVat <= 0 ? 'emerald' : 'amber', ICONS.tax, '예상 납부(환급)세액', `${formatCurrency(Math.abs(netVat))}원`, netVat <= 0 ? '<span class="positive">환급 예정 (매입세액 초과)</span>' : '<span class="negative">납부 필요 (매출세액 초과)</span>')}
             `;
 
             tfoot.innerHTML = `
