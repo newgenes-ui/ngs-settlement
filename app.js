@@ -1355,6 +1355,7 @@
                     },
                     tooltip: {
                         position: 'barEnd',
+                        xAlign: 'left',
                         backgroundColor: 'rgba(59, 130, 246, 0.95)',
                         titleFont: { size: 11, weight: 'bold' },
                         bodyFont: { size: 11 },
