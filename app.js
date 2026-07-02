@@ -651,6 +651,9 @@
         const totalSalesTax = sales.reduce((s, r) => s + r.taxAmount, 0);
         
         const totalCardSales = cards.reduce((s, r) => s + r.totalAmount, 0);
+        const cardSalesTax = Math.round(totalCardSales / 11);
+        const cardSalesSupply = totalCardSales - cardSalesTax;
+        const totalCardCount = cards.reduce((s, r) => s + r.totalCount, 0);
         
         const totalPurchases = purchases.reduce((s, r) => s + r.totalAmount, 0);
         const totalPurchaseSupply = purchases.reduce((s, r) => s + r.supplyAmount, 0);
@@ -665,7 +668,7 @@
                 `공급가액: ${formatCurrency(totalSupply)} · 부가세: ${formatCurrency(totalSalesTax)} · ${sales.length}건`),
             createSummaryCard('blue', ICONS.card, '카드매출 합계',
                 formatCurrency(totalCardSales),
-                `${cards.length}건의 카드거래`),
+                `공급가액: ${formatCurrency(cardSalesSupply)} · 부가세: ${formatCurrency(cardSalesTax)} · ${totalCardCount}건`),
             createSummaryCard('rose', ICONS.purchase, '매입 합계',
                 formatCurrency(totalPurchases),
                 `공급가액: ${formatCurrency(totalPurchaseSupply)} · 부가세: ${formatCurrency(totalPurchaseTax)} · ${purchases.length}건`),
@@ -937,8 +940,12 @@
         const totalCancelled = data.reduce((s, r) => s + r.cancelledAmount, 0);
         const totalCount = data.reduce((s, r) => s + r.totalCount, 0);
 
+        const cardSalesTax = Math.round(totalAmount / 11);
+        const cardSalesSupply = totalAmount - cardSalesTax;
+
         document.getElementById('card-sales-summary-cards').innerHTML = [
-            createSummaryCard('blue', ICONS.card, '카드매출 합계', formatCurrency(totalAmount), `${data.length}일 거래`),
+            createSummaryCard('blue', ICONS.card, '카드매출 합계', formatCurrency(totalAmount), 
+                `공급가액: ${formatCurrency(cardSalesSupply)} · 부가세: ${formatCurrency(cardSalesTax)} · ${data.length}일`),
             createSummaryCard('emerald', ICONS.sales, '승인 합계', formatCurrency(totalApproved),
                 `${data.reduce((s, r) => s + r.approvedCount, 0)}건`),
             createSummaryCard('rose', ICONS.purchase, '취소 합계', formatCurrency(Math.abs(totalCancelled)),
