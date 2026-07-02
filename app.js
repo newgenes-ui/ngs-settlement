@@ -564,6 +564,72 @@
         return sign + Math.abs(amount).toLocaleString() + '원';
     }
 
+    // ===== 품목명/코드 크게 보기 팝업 띄우기 (차트 인터랙션) =====
+    function showLargeLabelPopup(code, name, rate) {
+        let toast = document.getElementById('chart-large-toast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'chart-large-toast';
+            toast.style.cssText = `
+                position: fixed;
+                bottom: 30px;
+                left: 50%;
+                transform: translateX(-50%) translateY(20px);
+                background: var(--bg-card);
+                border: 2px solid var(--accent-indigo);
+                box-shadow: var(--shadow-lg);
+                border-radius: var(--radius-lg);
+                padding: 16px 24px;
+                z-index: 9999;
+                max-width: 90%;
+                width: 480px;
+                opacity: 0;
+                visibility: hidden;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            `;
+            document.body.appendChild(toast);
+        }
+
+        toast.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-family:var(--font-mono); font-size:0.85rem; color:var(--text-tertiary); font-weight:600;">${code}</span>
+                <span class="tag normal" style="background:rgba(99,102,241,0.1); color:var(--accent-indigo); font-weight:700; font-size:0.85rem; padding:4px 8px; border-radius:6px; margin: 0;">판매율 ${rate}%</span>
+            </div>
+            <div style="font-size:1.2rem; font-weight:800; color:var(--text-primary); line-height:1.4; word-break:keep-all; margin-right: 20px;">
+                ${name}
+            </div>
+            <button id="btn-close-toast"
+                    style="position:absolute; top:8px; right:8px; background:none; border:none; color:var(--text-tertiary); cursor:pointer; padding:4px; display: flex; align-items: center; justify-content: center;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px; height:16px;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        `;
+
+        toast.querySelector('#btn-close-toast').onclick = (e) => {
+            e.stopPropagation();
+            toast.style.opacity = '0';
+            toast.style.visibility = 'hidden';
+            toast.style.transform = 'translateX(-50%) translateY(20px)';
+        };
+
+        // Trigger show animation
+        setTimeout(() => {
+            toast.style.opacity = '1';
+            toast.style.visibility = 'visible';
+            toast.style.transform = 'translateX(-50%) translateY(0)';
+        }, 50);
+
+        // Auto hide after 8 seconds
+        if (toast.timeoutId) clearTimeout(toast.timeoutId);
+        toast.timeoutId = setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.visibility = 'hidden';
+            toast.style.transform = 'translateX(-50%) translateY(20px)';
+        }, 8000);
+    }
+
     function getMonth(dateStr) {
         if (!dateStr) return null;
         return dateStr.substring(0, 7); // YYYY-MM
@@ -1239,6 +1305,30 @@
                 indexAxis: 'y',
                 responsive: true,
                 maintainAspectRatio: false,
+                onClick: (event, elements, chart) => {
+                    // 1. 막대 바 클릭 시
+                    if (elements.length > 0) {
+                        const index = elements[0].index;
+                        const item = data[index];
+                        showLargeLabelPopup(item.code, item.name, item.rate);
+                        return;
+                    }
+                    
+                    // 2. Y축 레이블 클릭 시
+                    const scale = chart.scales.y;
+                    if (scale) {
+                        const x = event.x;
+                        const y = event.y;
+                        if (x < scale.left) {
+                            const index = scale.getValueForPixel(y);
+                            const roundedIndex = Math.round(index);
+                            if (roundedIndex >= 0 && roundedIndex < data.length) {
+                                const item = data[roundedIndex];
+                                showLargeLabelPopup(item.code, item.name, item.rate);
+                            }
+                        }
+                    }
+                },
                 plugins: {
                     legend: {
                         display: false
