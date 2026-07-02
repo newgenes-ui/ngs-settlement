@@ -1372,11 +1372,18 @@
             return s + (stock * c.unitPrice * 1.1);
         }, 0);
 
+        const initTax = Math.round(totalInitAmount / 11);
+        const initSupply = totalInitAmount - initTax;
+        const soldTax = Math.round(totalSoldAmount / 11);
+        const soldSupply = totalSoldAmount - soldTax;
+        const stockTax = Math.round(totalStockAmount / 11);
+        const stockSupply = totalStockAmount - stockTax;
+
         // 상단 재고 현황 카드 렌더
         document.getElementById('inventory-summary-cards').innerHTML = [
-            createSummaryCard('indigo', ICONS.purchase, '기초 입고 현황', formatCurrency(totalInitAmount), `수량: ${totalInitQty}개`),
-            createSummaryCard('blue', ICONS.sales, '당기 매출 현황', formatCurrency(totalSoldAmount), `수량: ${totalSoldQty}개`),
-            createSummaryCard('emerald', ICONS.profit, '현재 재고 현황', formatCurrency(totalStockAmount), `수량: ${totalStockQty}개`)
+            createSummaryCard('indigo', ICONS.purchase, '기초 입고 현황', formatCurrency(totalInitAmount), `공급가액: ${formatCurrency(initSupply)} · 세액: ${formatCurrency(initTax)} · 수량: ${totalInitQty}개`),
+            createSummaryCard('blue', ICONS.sales, '당기 매출 현황', formatCurrency(totalSoldAmount), `공급가액: ${formatCurrency(soldSupply)} · 세액: ${formatCurrency(soldTax)} · 수량: ${totalSoldQty}개`),
+            createSummaryCard('emerald', ICONS.profit, '현재 재고 현황', formatCurrency(totalStockAmount), `공급가액: ${formatCurrency(stockSupply)} · 세액: ${formatCurrency(stockTax)} · 수량: ${totalStockQty}개`)
         ].join('');
 
         // 3. ExT 결산 보고서 동적 집계 (트랜드 뷰)
@@ -1519,11 +1526,18 @@
             return s + (stock * c.unitPrice * 1.1);
         }, 0);
 
+        const initTax = Math.round(totalInitAmount / 11);
+        const initSupply = totalInitAmount - initTax;
+        const soldTax = Math.round(totalSoldAmount / 11);
+        const soldSupply = totalSoldAmount - soldTax;
+        const stockTax = Math.round(totalStockAmount / 11);
+        const stockSupply = totalStockAmount - stockTax;
+
         // 상단 재고 현황 카드 렌더
         document.getElementById('nujen-summary-cards').innerHTML = [
-            createSummaryCard('indigo', ICONS.purchase, '기초 입고 현황', formatCurrency(totalInitAmount), `수량: ${totalInitQty}개`),
-            createSummaryCard('blue', ICONS.sales, '당기 매출 현황', formatCurrency(totalSoldAmount), `수량: ${totalSoldQty}개`),
-            createSummaryCard('emerald', ICONS.profit, '현재 재고 현황', formatCurrency(totalStockAmount), `수량: ${totalStockQty}개`)
+            createSummaryCard('indigo', ICONS.purchase, '기초 입고 현황', formatCurrency(totalInitAmount), `공급가액: ${formatCurrency(initSupply)} · 세액: ${formatCurrency(initTax)} · 수량: ${totalInitQty}개`),
+            createSummaryCard('blue', ICONS.sales, '당기 매출 현황', formatCurrency(totalSoldAmount), `공급가액: ${formatCurrency(soldSupply)} · 세액: ${formatCurrency(soldTax)} · 수량: ${totalSoldQty}개`),
+            createSummaryCard('emerald', ICONS.profit, '현재 재고 현황', formatCurrency(totalStockAmount), `공급가액: ${formatCurrency(stockSupply)} · 세액: ${formatCurrency(stockTax)} · 수량: ${totalStockQty}개`)
         ].join('');
 
         // 3. NuGen 결산 보고서 동적 집계 (트랜드 뷰)
