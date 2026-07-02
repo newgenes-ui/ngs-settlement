@@ -1838,14 +1838,36 @@
 
         if (!tbody || !tfoot || !cardContainer) return;
 
-        // 1. 세금계산서 기반 집계
-        const salesTaxInvoiceSupply = state.salesData.reduce((sum, d) => sum + (d.supplyAmount || 0), 0);
-        const salesTaxInvoiceTax = state.salesData.reduce((sum, d) => sum + (d.taxAmount || 0), 0);
+        // 1. 세금계산서 기반 집계 (기간별 필터링 적용)
+        const filteredSales = getFilteredData(state.salesData);
+        const filteredPurchases = getFilteredData(state.purchaseData);
 
-        const purchaseTaxInvoiceSupply = state.purchaseData.reduce((sum, d) => sum + (d.supplyAmount || 0), 0);
-        const purchaseTaxInvoiceTax = state.purchaseData.reduce((sum, d) => sum + (d.taxAmount || 0), 0);
+        const salesTaxInvoiceSupply = filteredSales.reduce((sum, d) => sum + (d.supplyAmount || 0), 0);
+        const salesTaxInvoiceTax = filteredSales.reduce((sum, d) => sum + (d.taxAmount || 0), 0);
 
-        // 2. 신용카드 매입 집계 및 렌더링 함수
+        const purchaseTaxInvoiceSupply = filteredPurchases.reduce((sum, d) => sum + (d.supplyAmount || 0), 0);
+        const purchaseTaxInvoiceTax = filteredPurchases.reduce((sum, d) => sum + (d.taxAmount || 0), 0);
+
+        // 2. 신용카드 매입 기간별 필터링 기능
+        function getFilteredVatCardData() {
+            if (state.currentPeriod === 'all') return state.vatCardData;
+            
+            return state.vatCardData.filter(row => {
+                if (state.currentPeriod === 'monthly') {
+                    return row.month === state.selectedSubPeriod;
+                } else if (state.currentPeriod === 'quarterly') {
+                    const monthNum = parseInt(row.month.substring(5, 7), 10);
+                    const q = Math.ceil(monthNum / 3);
+                    const qStr = `${row.month.substring(0, 4)}-Q${q}`;
+                    return qStr === state.selectedSubPeriod;
+                }
+                return true;
+            });
+        }
+
+        const activeVatCardData = getFilteredVatCardData();
+
+        // 3. 신용카드 매입 집계 및 렌더링 함수
         function updateVatCalculations() {
             let totalDedCount = 0;
             let totalDedSupply = 0;
@@ -1857,10 +1879,14 @@
             let totalTotTax = 0;
             let totalTotTotal = 0;
 
+            // 모든 카드 데이터의 행별 합계 계산 (화면에 보이지 않는 행들도 데이터를 최신으로 유지)
             state.vatCardData.forEach(row => {
                 row.dedTotal = (row.dedSupply || 0) + (row.dedTax || 0);
                 row.totTotal = (row.totSupply || 0) + (row.totTax || 0);
+            });
 
+            // 현재 선택된 기간의 행들만 합산하여 요약 및 합계 렌더링
+            activeVatCardData.forEach(row => {
                 totalDedCount += (row.dedCount || 0);
                 totalDedSupply += (row.dedSupply || 0);
                 totalDedTax += (row.dedTax || 0);
@@ -1898,35 +1924,36 @@
             `;
         }
 
+        // 4. 테이블 바디 그리기
         tbody.innerHTML = '';
-        state.vatCardData.forEach((row, idx) => {
+        activeVatCardData.forEach((row) => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td class="text-center" style="text-align:center; border-right:1px solid var(--border-subtle); font-weight:500;">${row.month}</td>
                 
                 <td class="text-right" style="text-align:right; padding: 2px 4px;">
-                    <input type="number" class="vat-input" data-idx="${idx}" data-field="dedCount" value="${row.dedCount || 0}">
+                    <input type="number" class="vat-input" data-month="${row.month}" data-field="dedCount" value="${row.dedCount || 0}">
                 </td>
                 <td class="text-right" style="text-align:right; padding: 2px 4px;">
-                    <input type="number" class="vat-input" data-idx="${idx}" data-field="dedSupply" value="${row.dedSupply || 0}">
+                    <input type="number" class="vat-input" data-month="${row.month}" data-field="dedSupply" value="${row.dedSupply || 0}">
                 </td>
                 <td class="text-right" style="text-align:right; padding: 2px 4px;">
-                    <input type="number" class="vat-input" data-idx="${idx}" data-field="dedTax" value="${row.dedTax || 0}">
+                    <input type="number" class="vat-input" data-month="${row.month}" data-field="dedTax" value="${row.dedTax || 0}">
                 </td>
-                <td class="text-right" id="dedTotal-${idx}" style="text-align:right; border-right:1px solid var(--border-subtle); font-weight:500; padding-right:12px;">
+                <td class="text-right" id="dedTotal-${row.month}" style="text-align:right; border-right:1px solid var(--border-subtle); font-weight:500; padding-right:12px;">
                     ${formatCurrency(row.dedTotal || 0)}
                 </td>
                 
                 <td class="text-right" style="text-align:right; padding: 2px 4px;">
-                    <input type="number" class="vat-input" data-idx="${idx}" data-field="totCount" value="${row.totCount || 0}">
+                    <input type="number" class="vat-input" data-month="${row.month}" data-field="totCount" value="${row.totCount || 0}">
                 </td>
                 <td class="text-right" style="text-align:right; padding: 2px 4px;">
-                    <input type="number" class="vat-input" data-idx="${idx}" data-field="totSupply" value="${row.totSupply || 0}">
+                    <input type="number" class="vat-input" data-month="${row.month}" data-field="totSupply" value="${row.totSupply || 0}">
                 </td>
                 <td class="text-right" style="text-align:right; padding: 2px 4px;">
-                    <input type="number" class="vat-input" data-idx="${idx}" data-field="totTax" value="${row.totTax || 0}">
+                    <input type="number" class="vat-input" data-month="${row.month}" data-field="totTax" value="${row.totTax || 0}">
                 </td>
-                <td class="text-right" id="totTotal-${idx}" style="text-align:right; font-weight:500; padding-right:12px;">
+                <td class="text-right" id="totTotal-${row.month}" style="text-align:right; font-weight:500; padding-right:12px;">
                     ${formatCurrency(row.totTotal || 0)}
                 </td>
             `;
@@ -1935,28 +1962,29 @@
 
         updateVatCalculations();
 
-        // 실시간 입력 이벤트 바인딩
+        // 5. 실시간 입력 이벤트 바인딩
         tbody.querySelectorAll('.vat-input').forEach(input => {
             input.addEventListener('input', e => {
-                const idx = parseInt(e.target.dataset.idx, 10);
+                const month = e.target.dataset.month;
                 const field = e.target.dataset.field;
                 const value = parseInt(e.target.value, 10) || 0;
 
-                state.vatCardData[idx][field] = value;
+                const row = state.vatCardData.find(r => r.month === month);
+                if (row) {
+                    row[field] = value;
+                    row.dedTotal = (row.dedSupply || 0) + (row.dedTax || 0);
+                    row.totTotal = (row.totSupply || 0) + (row.totTax || 0);
 
-                const row = state.vatCardData[idx];
-                row.dedTotal = (row.dedSupply || 0) + (row.dedTax || 0);
-                row.totTotal = (row.totSupply || 0) + (row.totTax || 0);
+                    document.getElementById(`dedTotal-${month}`).textContent = formatCurrency(row.dedTotal);
+                    document.getElementById(`totTotal-${month}`).textContent = formatCurrency(row.totTotal);
 
-                document.getElementById(`dedTotal-${idx}`).textContent = formatCurrency(row.dedTotal);
-                document.getElementById(`totTotal-${idx}`).textContent = formatCurrency(row.totTotal);
-
-                updateVatCalculations();
-                localStorage.setItem('vat_card_data', JSON.stringify(state.vatCardData));
+                    updateVatCalculations();
+                    localStorage.setItem('vat_card_data', JSON.stringify(state.vatCardData));
+                }
             });
         });
 
-        // 초기화 버튼 이벤트 바인딩
+        // 6. 초기화 버튼 이벤트 바인딩
         const resetBtn = document.getElementById('btn-reset-vat');
         if (resetBtn) {
             resetBtn.onclick = () => {
