@@ -105,14 +105,15 @@
     // ===== 데이터 로드 =====
     async function loadData() {
         try {
+            const t = Date.now();
             const [salesRes, cardRes, purchaseRes, extPurchaseRes, extSalesRes, nujenPurchaseRes, nujenSalesRes] = await Promise.all([
-                fetch('매출.csv'),
-                fetch('카드매출전표.csv'),
-                fetch('매입.csv'),
-                fetch('ExT구매현항.csv'),
-                fetch('ExT판매현황.csv'),
-                fetch('뉴진스제품 구매현황.csv'),
-                fetch('뉴진스제품 판매현황.csv')
+                fetch(`매출.csv?v=${t}`),
+                fetch(`카드매출전표.csv?v=${t}`),
+                fetch(`매입.csv?v=${t}`),
+                fetch(`ExT구매현항.csv?v=${t}`),
+                fetch(`ExT판매현황.csv?v=${t}`),
+                fetch(`뉴진스제품 구매현황.csv?v=${t}`),
+                fetch(`뉴진스제품 판매현황.csv?v=${t}`)
             ]);
 
             const salesText = await salesRes.text();
