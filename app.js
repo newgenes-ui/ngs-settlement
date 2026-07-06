@@ -1639,7 +1639,7 @@
                     const m = r.dateNo.match(/^(\d{4})[/-](\d{2})/);
                     return m && m[1] === year && m[2] === month;
                 });
-                label = `${parseInt(month, 10)}월`;
+                label = `${year.substring(2)}년 ${parseInt(month, 10)}월`;
                 fullLabel = `${year}년 ${parseInt(month, 10)}월`;
             } else {
                 const [year, qNum] = pStr.split('-Q');
@@ -1650,7 +1650,7 @@
                     const rQ = Math.ceil(parseInt(m[2], 10) / 3);
                     return m[1] === year && rQ === q;
                 });
-                label = `${qNum}분기`;
+                label = `${year.substring(2)}년 ${qNum}분기`;
                 fullLabel = `${year}년 ${qNum}분기`;
             }
 
@@ -1709,7 +1709,7 @@
                     const m = r.dateNo.match(/^(\d{4})[/-](\d{2})/);
                     return m && m[1] === year && m[2] === month;
                 });
-                label = `${parseInt(month, 10)}월`;
+                label = `${year.substring(2)}년 ${parseInt(month, 10)}월`;
                 fullLabel = `${year}년 ${parseInt(month, 10)}월`;
             } else {
                 const [year, qNum] = pStr.split('-Q');
@@ -1720,7 +1720,7 @@
                     const rQ = Math.ceil(parseInt(m[2], 10) / 3);
                     return m[1] === year && rQ === q;
                 });
-                label = `${qNum}분기`;
+                label = `${year.substring(2)}년 ${qNum}분기`;
                 fullLabel = `${year}년 ${qNum}분기`;
             }
 
