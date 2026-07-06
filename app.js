@@ -249,254 +249,26 @@
     async function loadData() {
         try {
             const t = Date.now();
-            const [salesRes, cardRes, purchaseRes, extPurchaseRes, extSalesRes, nujenPurchaseRes, nujenSalesRes] = await Promise.all([
-                fetch(`매출.csv?v=${t}`),
-                fetch(`카드매출전표.csv?v=${t}`),
-                fetch(`매입.csv?v=${t}`),
-                fetch(`ExT구매현항.csv?v=${t}`),
-                fetch(`ExT판매현황_수정.csv?v=${t}`),
-                fetch(`뉴진스제품 구매현황.csv?v=${t}`),
-                fetch(`뉴진스제품 판매현황.csv?v=${t}`)
-            ]);
+            const savedSales = localStorage.getItem('custom_sales_data');
+            const savedCard = localStorage.getItem('custom_card_sales_data');
+            const savedPurchase = localStorage.getItem('custom_purchase_data');
+            const savedExtPurchase = localStorage.getItem('custom_ext_purchase_data');
+            const savedExtSales = localStorage.getItem('custom_ext_sales_data');
+            const savedNujenPurchase = localStorage.getItem('custom_nujen_purchase_data');
+            const savedNujenSales = localStorage.getItem('custom_nujen_sales_data');
 
-            const salesText = await salesRes.text();
-            const cardText = await cardRes.text();
-            const purchaseText = await purchaseRes.text();
-            const extPurchaseText = await extPurchaseRes.text();
-            const extSalesText = await extSalesRes.text();
-            const nujenPurchaseText = await nujenPurchaseRes.text();
-            const nujenSalesText = await nujenSalesRes.text();
+            const fetches = [
+                !savedSales ? fetch(`매출.csv?v=${t}`).then(r => r.text()) : Promise.resolve(null),
+                !savedCard ? fetch(`카드매출전표.csv?v=${t}`).then(r => r.text()) : Promise.resolve(null),
+                !savedPurchase ? fetch(`매입.csv?v=${t}`).then(r => r.text()) : Promise.resolve(null),
+                !savedExtPurchase ? fetch(`ExT구매현항.csv?v=${t}`).then(r => r.text()) : Promise.resolve(null),
+                !savedExtSales ? fetch(`ExT판매현황_수정.csv?v=${t}`).then(r => r.text()) : Promise.resolve(null),
+                !savedNujenPurchase ? fetch(`뉴진스제품 구매현황.csv?v=${t}`).then(r => r.text()) : Promise.resolve(null),
+                !savedNujenSales ? fetch(`뉴진스제품 판매현황.csv?v=${t}`).then(r => r.text()) : Promise.resolve(null)
+            ];
 
-            // 매출 CSV: 1행=제목, 2행=헤더
-            state.salesData = parseCSV(salesText, 2).map(row => ({
-                date: row['작성일자'] || '',
-                approvalNo: row['승인번호'] || '',
-                issueDate: row['발급일자'] || '',
-                supplierBizNo: row['공급자사업자등록번호'] || '',
-                supplierName: row['상호'] || '',
-                buyerBizNo: row['공급받는자사업자등록번호'] || '',
-                buyerName: (function() {
-                    // 공급받는자 상호 is at index 11
-                    const values = parseCSVLine(Object.values(row).join(','));
-                    return row['대표자명'] || '';
-                })(),
-                totalAmount: parseAmount(row['합계금액']),
-                supplyAmount: parseAmount(row['공급가액']),
-                taxAmount: parseAmount(row['세액']),
-                classification: row['전자세금계산서분류'] || '',
-                type: row['전자세금계산서종류'] || '',
-                itemName: row['품목명'] || '',
-                itemSpec: row['품목규격'] || '',
-                itemQty: row['품목수량'] || '',
-                itemUnitPrice: row['품목단가'] || '',
-                raw: row
-            }));
+            const [salesText, cardText, purchaseText, extPurchaseText, extSalesText, nujenPurchaseText, nujenSalesText] = await Promise.all(fetches);
 
-            // 매출 CSV를 다시 제대로 파싱 (원본 라인에서 직접 파싱)
-            const salesLines = parseCSVTextIntoLines(salesText);
-            state.salesData = [];
-            for (let i = 2; i < salesLines.length; i++) {
-                const v = parseCSVLine(salesLines[i]);
-                if (v.length < 15 || !v[0]) continue;
-                state.salesData.push({
-                    date: v[0],
-                    approvalNo: v[1],
-                    issueDate: v[2],
-                    sendDate: v[3],
-                    supplierBizNo: v[4],
-                    supplierName: v[6],
-                    supplierCeo: v[7],
-                    buyerBizNo: v[9],
-                    buyerName: v[11],
-                    buyerCeo: v[12],
-                    buyerAddr: v[13],
-                    totalAmount: parseAmount(v[14]),
-                    supplyAmount: parseAmount(v[15]),
-                    taxAmount: parseAmount(v[16]),
-                    classification: v[17],
-                    type: v[18],
-                    issueType: v[19],
-                    note: v[20],
-                    receiptType: v[21],
-                    itemDate: v[25],
-                    itemName: v[26],
-                    itemSpec: v[27],
-                    itemQty: v[28],
-                    itemUnitPrice: v[29],
-                    itemSupply: v[30],
-                    itemTax: v[31]
-                });
-            }
-
-            // 카드매출 CSV: 1-2행=헤더정보, 3행=헤더
-            const cardLines = parseCSVTextIntoLines(cardText);
-            state.cardSalesData = [];
-            for (let i = 3; i < cardLines.length; i++) {
-                const v = parseCSVLine(cardLines[i]);
-                if (!v[0] || v[0] === '총계') continue;
-                state.cardSalesData.push({
-                    date: v[0],
-                    totalAmount: parseAmount(v[1]),
-                    totalCount: parseInt(v[2]) || 0,
-                    approvedAmount: parseAmount(v[3]),
-                    approvedCount: parseInt(v[4]) || 0,
-                    cancelledAmount: parseAmount(v[5]),
-                    cancelledCount: parseInt(v[6]) || 0
-                });
-            }
-
-            // 매입 CSV
-            const purchaseLines = parseCSVTextIntoLines(purchaseText);
-            state.purchaseData = [];
-            for (let i = 2; i < purchaseLines.length; i++) {
-                const v = parseCSVLine(purchaseLines[i]);
-                if (v.length < 15 || !v[0]) continue;
-                state.purchaseData.push({
-                    date: v[0],
-                    approvalNo: v[1],
-                    issueDate: v[2],
-                    sendDate: v[3],
-                    supplierBizNo: v[4],
-                    supplierName: v[6],
-                    supplierCeo: v[7],
-                    supplierAddr: v[8],
-                    buyerBizNo: v[9],
-                    buyerName: v[11],
-                    buyerCeo: v[12],
-                    totalAmount: parseAmount(v[14]),
-                    supplyAmount: parseAmount(v[15]),
-                    taxAmount: parseAmount(v[16]),
-                    classification: v[17],
-                    type: v[18],
-                    issueType: v[19],
-                    note: v[20],
-                    receiptType: v[21],
-                    itemDate: v[25],
-                    itemName: v[26],
-                    itemSpec: v[27],
-                    itemQty: v[28],
-                    itemUnitPrice: v[29],
-                    itemSupply: v[30],
-                    itemTax: v[31]
-                });
-            }
-
-            // ExT구매현항 CSV 파싱
-            const extPurchaseLines = parseCSVTextIntoLines(extPurchaseText);
-            state.extPurchaseData = [];
-            for (let i = 1; i < extPurchaseLines.length; i++) {
-                const v = parseCSVLine(extPurchaseLines[i]);
-                if (!v[0] || v[0].startsWith('총합계')) continue;
-                state.extPurchaseData.push({
-                    dateNo: v[0],
-                    supplier: v[1],
-                    code: normalizeExtCode(v[2]),
-                    name: v[3],
-                    qty: parseInt(v[4]) || 0,
-                    unitPrice: parseAmount(v[5]),
-                    supplyAmount: parseAmount(v[6]),
-                    taxAmount: parseAmount(v[7]),
-                    totalAmount: parseAmount(v[6]) + parseAmount(v[7])
-                });
-            }
-
-            // ExT판매현황 CSV 파싱
-            const extSalesLines = parseCSVTextIntoLines(extSalesText);
-            state.extSalesData = [];
-            
-            // 헤더 정보 파악
-            let extSalesDateIdx = 0;
-            let extSalesBuyerIdx = 1;
-            let extSalesQtyIdx = 2;
-            let extSalesPriceIdx = 3;
-            let extSalesSupplyIdx = 4;
-            let extSalesTaxIdx = 5;
-            let extSalesTotalIdx = 6;
-            let extSalesCodeIdx = 7;
-            let extSalesNameIdx = 8;
-            let extSalesCollectionIdx = -1;
-            
-            if (extSalesLines.length > 1) {
-                const headers = parseCSVLine(extSalesLines[1]);
-                extSalesDateIdx = headers.indexOf('일자-No.');
-                extSalesBuyerIdx = headers.indexOf('거래처명');
-                extSalesCollectionIdx = headers.indexOf('수금일');
-                extSalesQtyIdx = headers.indexOf('수량');
-                extSalesPriceIdx = headers.indexOf('단가');
-                extSalesSupplyIdx = headers.indexOf('공급가액');
-                extSalesTaxIdx = headers.indexOf('부가세');
-                extSalesTotalIdx = headers.indexOf('합계');
-                extSalesCodeIdx = headers.indexOf('품목코드');
-                extSalesNameIdx = headers.indexOf('품목명(규격)');
-                
-                // Fallbacks if header is not matched (for safety)
-                if (extSalesDateIdx === -1) extSalesDateIdx = 0;
-                if (extSalesBuyerIdx === -1) extSalesBuyerIdx = 1;
-                if (extSalesQtyIdx === -1) extSalesQtyIdx = extSalesCollectionIdx !== -1 ? 3 : 2;
-                if (extSalesPriceIdx === -1) extSalesPriceIdx = extSalesCollectionIdx !== -1 ? 4 : 3;
-                if (extSalesSupplyIdx === -1) extSalesSupplyIdx = extSalesCollectionIdx !== -1 ? 5 : 4;
-                if (extSalesTaxIdx === -1) extSalesTaxIdx = extSalesCollectionIdx !== -1 ? 6 : 5;
-                if (extSalesTotalIdx === -1) extSalesTotalIdx = extSalesCollectionIdx !== -1 ? 7 : 6;
-                if (extSalesCodeIdx === -1) extSalesCodeIdx = extSalesCollectionIdx !== -1 ? 8 : 7;
-                if (extSalesNameIdx === -1) extSalesNameIdx = extSalesCollectionIdx !== -1 ? 9 : 8;
-            }
-            
-            for (let i = 2; i < extSalesLines.length; i++) {
-                const v = parseCSVLine(extSalesLines[i]);
-                if (!v[0] || v[0].startsWith('총합계')) continue;
-                state.extSalesData.push({
-                    dateNo: v[extSalesDateIdx] || '',
-                    buyer: v[extSalesBuyerIdx] || '',
-                    collectionDate: extSalesCollectionIdx !== -1 ? (v[extSalesCollectionIdx] || '') : '',
-                    qty: parseInt(v[extSalesQtyIdx]) || 0,
-                    unitPrice: parseAmount(v[extSalesPriceIdx]),
-                    supplyAmount: parseAmount(v[extSalesSupplyIdx]),
-                    taxAmount: parseAmount(v[extSalesTaxIdx]),
-                    totalAmount: parseAmount(v[extSalesTotalIdx]),
-                    code: normalizeExtCode(v[extSalesCodeIdx]),
-                    name: v[extSalesNameIdx] || ''
-                });
-            }
-
-            // 뉴진스제품 구매현황 CSV 파싱
-            const nujenPurchaseLines = parseCSVTextIntoLines(nujenPurchaseText);
-            state.nujenPurchaseData = [];
-            for (let i = 2; i < nujenPurchaseLines.length; i++) {
-                const v = parseCSVLine(nujenPurchaseLines[i]);
-                if (!v[0] || v[0].startsWith('총합계') || v[0].startsWith('총계') || v[0].includes('오후')) continue;
-                state.nujenPurchaseData.push({
-                    dateNo: v[0],
-                    supplier: v[1],
-                    code: v[3],
-                    name: v[4],
-                    qty: parseInt(v[5]) || 0,
-                    unitPrice: parseAmount(v[6]),
-                    supplyAmount: parseAmount(v[7]),
-                    taxAmount: parseAmount(v[8]),
-                    totalAmount: parseAmount(v[9])
-                });
-            }
-
-            // 뉴진스제품 판매현황 CSV 파싱
-            const nujenSalesLines = parseCSVTextIntoLines(nujenSalesText);
-            state.nujenSalesData = [];
-            for (let i = 1; i < nujenSalesLines.length; i++) {
-                const v = parseCSVLine(nujenSalesLines[i]);
-                if (!v[0] || v[0].startsWith('총합계') || v[0].startsWith('총계') || v[0].includes('오후')) continue;
-                state.nujenSalesData.push({
-                    dateNo: v[0],
-                    buyer: v[1],
-                    qty: parseInt(v[2]) || 0,
-                    unitPrice: parseAmount(v[3]),
-                    supplyAmount: parseAmount(v[4]),
-                    taxAmount: parseAmount(v[5]),
-                    totalAmount: parseAmount(v[6]),
-                    code: v[7],
-                    name: v[8]
-                });
-            }
-
-            // 3분기 제외 필터링 (2026년 2분기인 2026/06/30 까지만 반영)
             const cutoffDate = "2026/06/30";
             function filterCutoff(d, dateField) {
                 if (!d[dateField]) return true;
@@ -504,13 +276,238 @@
                 return clean <= cutoffDate;
             }
 
-            state.salesData = state.salesData.filter(d => filterCutoff(d, 'date'));
-            state.cardSalesData = state.cardSalesData.filter(d => filterCutoff(d, 'date'));
-            state.purchaseData = state.purchaseData.filter(d => filterCutoff(d, 'date'));
-            state.extSalesData = state.extSalesData.filter(d => filterCutoff(d, 'dateNo'));
-            state.extPurchaseData = state.extPurchaseData.filter(d => filterCutoff(d, 'dateNo'));
-            state.nujenSalesData = state.nujenSalesData.filter(d => filterCutoff(d, 'dateNo'));
-            state.nujenPurchaseData = state.nujenPurchaseData.filter(d => filterCutoff(d, 'dateNo'));
+            // 1. 매출
+            if (savedSales) {
+                state.salesData = JSON.parse(savedSales);
+            } else if (salesText) {
+                const salesLines = parseCSVTextIntoLines(salesText);
+                state.salesData = [];
+                for (let i = 2; i < salesLines.length; i++) {
+                    const v = parseCSVLine(salesLines[i]);
+                    if (v.length < 15 || !v[0]) continue;
+                    state.salesData.push({
+                        date: v[0],
+                        approvalNo: v[1],
+                        issueDate: v[2],
+                        sendDate: v[3],
+                        supplierBizNo: v[4],
+                        supplierName: v[6],
+                        supplierCeo: v[7],
+                        buyerBizNo: v[9],
+                        buyerName: v[11],
+                        buyerCeo: v[12],
+                        buyerAddr: v[13],
+                        totalAmount: parseAmount(v[14]),
+                        supplyAmount: parseAmount(v[15]),
+                        taxAmount: parseAmount(v[16]),
+                        classification: v[17],
+                        type: v[18],
+                        issueType: v[19],
+                        note: v[20],
+                        receiptType: v[21],
+                        itemDate: v[25],
+                        itemName: v[26],
+                        itemSpec: v[27],
+                        itemQty: v[28],
+                        itemUnitPrice: v[29],
+                        itemSupply: v[30],
+                        itemTax: v[31]
+                    });
+                }
+                state.salesData = state.salesData.filter(d => filterCutoff(d, 'date'));
+            }
+
+            // 2. 카드매출
+            if (savedCard) {
+                state.cardSalesData = JSON.parse(savedCard);
+            } else if (cardText) {
+                const cardLines = parseCSVTextIntoLines(cardText);
+                state.cardSalesData = [];
+                for (let i = 3; i < cardLines.length; i++) {
+                    const v = parseCSVLine(cardLines[i]);
+                    if (!v[0] || v[0] === '총계') continue;
+                    state.cardSalesData.push({
+                        date: v[0],
+                        totalAmount: parseAmount(v[1]),
+                        totalCount: parseInt(v[2]) || 0,
+                        approvedAmount: parseAmount(v[3]),
+                        approvedCount: parseInt(v[4]) || 0,
+                        cancelledAmount: parseAmount(v[5]),
+                        cancelledCount: parseInt(v[6]) || 0
+                    });
+                }
+                state.cardSalesData = state.cardSalesData.filter(d => filterCutoff(d, 'date'));
+            }
+
+            // 3. 매입
+            if (savedPurchase) {
+                state.purchaseData = JSON.parse(savedPurchase);
+            } else if (purchaseText) {
+                const purchaseLines = parseCSVTextIntoLines(purchaseText);
+                state.purchaseData = [];
+                for (let i = 2; i < purchaseLines.length; i++) {
+                    const v = parseCSVLine(purchaseLines[i]);
+                    if (v.length < 15 || !v[0]) continue;
+                    state.purchaseData.push({
+                        date: v[0],
+                        approvalNo: v[1],
+                        issueDate: v[2],
+                        sendDate: v[3],
+                        supplierBizNo: v[4],
+                        supplierName: v[6],
+                        supplierCeo: v[7],
+                        supplierAddr: v[8],
+                        buyerBizNo: v[9],
+                        buyerName: v[11],
+                        buyerCeo: v[12],
+                        totalAmount: parseAmount(v[14]),
+                        supplyAmount: parseAmount(v[15]),
+                        taxAmount: parseAmount(v[16]),
+                        classification: v[17],
+                        type: v[18],
+                        issueType: v[19],
+                        note: v[20],
+                        receiptType: v[21],
+                        itemDate: v[25],
+                        itemName: v[26],
+                        itemSpec: v[27],
+                        itemQty: v[28],
+                        itemUnitPrice: v[29],
+                        itemSupply: v[30],
+                        itemTax: v[31]
+                    });
+                }
+                state.purchaseData = state.purchaseData.filter(d => filterCutoff(d, 'date'));
+            }
+
+            // 4. ExT 구매현황
+            if (savedExtPurchase) {
+                state.extPurchaseData = JSON.parse(savedExtPurchase);
+            } else if (extPurchaseText) {
+                const extPurchaseLines = parseCSVTextIntoLines(extPurchaseText);
+                state.extPurchaseData = [];
+                for (let i = 1; i < extPurchaseLines.length; i++) {
+                    const v = parseCSVLine(extPurchaseLines[i]);
+                    if (!v[0] || v[0].startsWith('총합계')) continue;
+                    state.extPurchaseData.push({
+                        dateNo: v[0],
+                        supplier: v[1],
+                        code: normalizeExtCode(v[2]),
+                        name: v[3],
+                        qty: parseInt(v[4]) || 0,
+                        unitPrice: parseAmount(v[5]),
+                        supplyAmount: parseAmount(v[6]),
+                        taxAmount: parseAmount(v[7]),
+                        totalAmount: parseAmount(v[6]) + parseAmount(v[7])
+                    });
+                }
+                state.extPurchaseData = state.extPurchaseData.filter(d => filterCutoff(d, 'dateNo'));
+            }
+
+            // 5. ExT 판매현황
+            if (savedExtSales) {
+                state.extSalesData = JSON.parse(savedExtSales);
+            } else if (extSalesText) {
+                const extSalesLines = parseCSVTextIntoLines(extSalesText);
+                state.extSalesData = [];
+                let extSalesDateIdx = 0;
+                let extSalesBuyerIdx = 1;
+                let extSalesQtyIdx = 2;
+                let extSalesPriceIdx = 3;
+                let extSalesSupplyIdx = 4;
+                let extSalesTaxIdx = 5;
+                let extSalesTotalIdx = 6;
+                let extSalesCodeIdx = 7;
+                let extSalesNameIdx = 8;
+                let extSalesCollectionIdx = -1;
+                if (extSalesLines.length > 1) {
+                    const headers = parseCSVLine(extSalesLines[1]);
+                    extSalesDateIdx = headers.indexOf('일자-No.');
+                    extSalesBuyerIdx = headers.indexOf('거래처명');
+                    extSalesCollectionIdx = headers.indexOf('수금일');
+                    extSalesQtyIdx = headers.indexOf('수량');
+                    extSalesPriceIdx = headers.indexOf('단가');
+                    extSalesSupplyIdx = headers.indexOf('공급가액');
+                    extSalesTaxIdx = headers.indexOf('부가세');
+                    extSalesTotalIdx = headers.indexOf('합계');
+                    extSalesCodeIdx = headers.indexOf('품목코드');
+                    extSalesNameIdx = headers.indexOf('품목명(규격)');
+                    if (extSalesDateIdx === -1) extSalesDateIdx = 0;
+                    if (extSalesBuyerIdx === -1) extSalesBuyerIdx = 1;
+                    if (extSalesQtyIdx === -1) extSalesQtyIdx = extSalesCollectionIdx !== -1 ? 3 : 2;
+                    if (extSalesPriceIdx === -1) extSalesPriceIdx = extSalesCollectionIdx !== -1 ? 4 : 3;
+                    if (extSalesSupplyIdx === -1) extSalesSupplyIdx = extSalesCollectionIdx !== -1 ? 5 : 4;
+                    if (extSalesTaxIdx === -1) extSalesTaxIdx = extSalesCollectionIdx !== -1 ? 6 : 5;
+                    if (extSalesTotalIdx === -1) extSalesTotalIdx = extSalesCollectionIdx !== -1 ? 7 : 6;
+                    if (extSalesCodeIdx === -1) extSalesCodeIdx = extSalesCollectionIdx !== -1 ? 8 : 7;
+                    if (extSalesNameIdx === -1) extSalesNameIdx = extSalesCollectionIdx !== -1 ? 9 : 8;
+                }
+                for (let i = 2; i < extSalesLines.length; i++) {
+                    const v = parseCSVLine(extSalesLines[i]);
+                    if (!v[0] || v[0].startsWith('총합계')) continue;
+                    state.extSalesData.push({
+                        dateNo: v[extSalesDateIdx] || '',
+                        buyer: v[extSalesBuyerIdx] || '',
+                        collectionDate: extSalesCollectionIdx !== -1 ? (v[extSalesCollectionIdx] || '') : '',
+                        qty: parseInt(v[extSalesQtyIdx]) || 0,
+                        unitPrice: parseAmount(v[extSalesPriceIdx]),
+                        supplyAmount: parseAmount(v[extSalesSupplyIdx]),
+                        taxAmount: parseAmount(v[extSalesTaxIdx]),
+                        totalAmount: parseAmount(v[extSalesTotalIdx]),
+                        code: normalizeExtCode(v[extSalesCodeIdx]),
+                        name: v[extSalesNameIdx] || ''
+                    });
+                }
+                state.extSalesData = state.extSalesData.filter(d => filterCutoff(d, 'dateNo'));
+            }
+
+            // 6. 뉴진스 제품 구매현황
+            if (savedNujenPurchase) {
+                state.nujenPurchaseData = JSON.parse(savedNujenPurchase);
+            } else if (nujenPurchaseText) {
+                const nujenPurchaseLines = parseCSVTextIntoLines(nujenPurchaseText);
+                state.nujenPurchaseData = [];
+                for (let i = 2; i < nujenPurchaseLines.length; i++) {
+                    const v = parseCSVLine(nujenPurchaseLines[i]);
+                    if (!v[0] || v[0].startsWith('총합계') || v[0].startsWith('총계') || v[0].includes('오후')) continue;
+                    state.nujenPurchaseData.push({
+                        dateNo: v[0],
+                        supplier: v[1],
+                        code: v[3],
+                        name: v[4],
+                        qty: parseInt(v[5]) || 0,
+                        unitPrice: parseAmount(v[6]),
+                        supplyAmount: parseAmount(v[7]),
+                        taxAmount: parseAmount(v[8]),
+                        totalAmount: parseAmount(v[9])
+                    });
+                }
+                state.nujenPurchaseData = state.nujenPurchaseData.filter(d => filterCutoff(d, 'dateNo'));
+            }
+
+            // 7. 뉴진스 제품 판매현황
+            if (savedNujenSales) {
+                state.nujenSalesData = JSON.parse(savedNujenSales);
+            } else if (nujenSalesText) {
+                const nujenSalesLines = parseCSVTextIntoLines(nujenSalesText);
+                state.nujenSalesData = [];
+                for (let i = 1; i < nujenSalesLines.length; i++) {
+                    const v = parseCSVLine(nujenSalesLines[i]);
+                    if (!v[0] || v[0].startsWith('총합계') || v[0].startsWith('총계') || v[0].includes('오후')) continue;
+                    state.nujenSalesData.push({
+                        dateNo: v[0],
+                        buyer: v[1],
+                        qty: parseInt(v[2]) || 0,
+                        unitPrice: parseAmount(v[3]),
+                        supplyAmount: parseAmount(v[4]),
+                        taxAmount: parseAmount(v[5]),
+                        totalAmount: parseAmount(v[6]),
+                        code: v[7],
+                        name: v[8]
+                    });
+                }
+                state.nujenSalesData = state.nujenSalesData.filter(d => filterCutoff(d, 'dateNo'));
+            }
 
             // 부가세 카드 데이터 로드
             const savedVatData = localStorage.getItem('vat_card_data');
@@ -2917,6 +2914,7 @@
         }
 
         state.currentView = viewName;
+        sessionStorage.setItem('current_view', viewName);
 
         // 네비게이션 활성화
         document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
@@ -3192,11 +3190,16 @@
                 if (pwdModal) pwdModal.classList.remove('active');
                 const fixedModal = document.getElementById('fixed-register-modal');
                 if (fixedModal) fixedModal.classList.remove('active');
+                const csvModal = document.getElementById('csv-upload-modal');
+                if (csvModal) csvModal.classList.remove('active');
             }
         });
 
         // 고정지출 이벤트 바인딩
         bindFixedExpenseEvents();
+        
+        // CSV 업로드 이벤트 바인딩
+        bindCsvUploadEvents();
     }
 
     // ===== 부가세 신고 렌더 =====
@@ -3378,6 +3381,427 @@
         }
     }
 
+    // ===== CSV 업로드 관련 함수 =====
+    window.openCsvUploadModal = function(type) {
+        const modal = document.getElementById('csv-upload-modal');
+        const typeSelect = document.getElementById('csv-upload-type');
+        const fileInput = document.getElementById('csv-file-input');
+        const textInput = document.getElementById('csv-text-input');
+        const errorEl = document.getElementById('csv-upload-error');
+        
+        if (modal) {
+            if (typeSelect) {
+                if (type === 'inventory') {
+                    typeSelect.value = 'ext-purchase';
+                } else if (type === 'nujen') {
+                    typeSelect.value = 'nujen-purchase';
+                } else {
+                    typeSelect.value = type;
+                }
+            }
+            if (fileInput) fileInput.value = '';
+            if (textInput) textInput.value = '';
+            if (errorEl) errorEl.style.display = 'none';
+            modal.classList.add('active');
+        }
+    };
+
+    function bindCsvUploadEvents() {
+        const modal = document.getElementById('csv-upload-modal');
+        const closeBtn = document.getElementById('csv-upload-modal-close');
+        const fileInput = document.getElementById('csv-file-input');
+        const textInput = document.getElementById('csv-text-input');
+        const saveBtn = document.getElementById('btn-csv-upload-save');
+        const errorEl = document.getElementById('csv-upload-error');
+        const typeSelect = document.getElementById('csv-upload-type');
+        const encodingSelect = document.getElementById('csv-upload-encoding');
+
+        if (closeBtn && modal) {
+            closeBtn.addEventListener('click', () => {
+                modal.classList.remove('active');
+            });
+            modal.addEventListener('click', e => {
+                if (e.target === e.currentTarget) {
+                    modal.classList.remove('active');
+                }
+            });
+        }
+
+        if (saveBtn) {
+            saveBtn.addEventListener('click', async () => {
+                errorEl.style.display = 'none';
+                const type = typeSelect.value;
+                const encoding = encodingSelect.value || 'EUC-KR';
+
+                let csvText = '';
+                if (fileInput && fileInput.files && fileInput.files.length > 0) {
+                    const file = fileInput.files[0];
+                    try {
+                        csvText = await readUploadedFileAsText(file, encoding);
+                    } catch (err) {
+                        errorEl.textContent = '파일을 읽는 도중 오류가 발생했습니다: ' + err.message;
+                        errorEl.style.display = 'block';
+                        return;
+                    }
+                } else if (textInput && textInput.value.trim()) {
+                    csvText = textInput.value;
+                } else {
+                    errorEl.textContent = 'CSV 파일을 선택하거나 텍스트를 입력해 주세요.';
+                    errorEl.style.display = 'block';
+                    return;
+                }
+
+                if (!csvText) {
+                    errorEl.textContent = 'CSV 내용이 비어있습니다.';
+                    errorEl.style.display = 'block';
+                    return;
+                }
+
+                try {
+                    processCsvTextAndMerge(type, csvText);
+                    modal.classList.remove('active');
+                    alert('성공적으로 등록 및 중복 데이터 덮어쓰기가 완료되었습니다.');
+                    
+                    // Re-render
+                    await loadData();
+                    const activeNav = document.querySelector('.nav-item.active');
+                    if (activeNav) {
+                        const view = activeNav.getAttribute('data-view');
+                        switchView(view);
+                    } else {
+                        location.reload();
+                    }
+                } catch (err) {
+                    errorEl.textContent = 'CSV 파싱 및 등록 오류: ' + err.message;
+                    errorEl.style.display = 'block';
+                }
+            });
+        }
+    }
+
+    function readUploadedFileAsText(file, encoding) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = e => resolve(e.target.result);
+            reader.onerror = err => reject(err);
+            reader.readAsText(file, encoding);
+        });
+    }
+
+    function processCsvTextAndMerge(type, csvText) {
+        const lines = parseCSVTextIntoLines(csvText);
+        if (lines.length === 0) return;
+
+        if (type === 'sales') {
+            const newItems = [];
+            let startRow = 2;
+            for (let r = 0; r < Math.min(lines.length, 5); r++) {
+                const headerLine = parseCSVLine(lines[r]);
+                if (headerLine.includes('작성일자') || headerLine.includes('승인번호')) {
+                    startRow = r + 1;
+                    break;
+                }
+            }
+
+            for (let i = startRow; i < lines.length; i++) {
+                const v = parseCSVLine(lines[i]);
+                if (v.length < 15 || !v[0]) continue;
+                newItems.push({
+                    date: v[0],
+                    approvalNo: v[1],
+                    issueDate: v[2],
+                    sendDate: v[3],
+                    supplierBizNo: v[4],
+                    supplierName: v[6],
+                    supplierCeo: v[7],
+                    buyerBizNo: v[9],
+                    buyerName: v[11],
+                    buyerCeo: v[12],
+                    buyerAddr: v[13],
+                    totalAmount: parseAmount(v[14]),
+                    supplyAmount: parseAmount(v[15]),
+                    taxAmount: parseAmount(v[16]),
+                    classification: v[17],
+                    type: v[18],
+                    issueType: v[19],
+                    note: v[20],
+                    receiptType: v[21],
+                    itemDate: v[25] || v[0],
+                    itemName: v[26] || '',
+                    itemSpec: v[27] || '',
+                    itemQty: v[28] || '',
+                    itemUnitPrice: v[29] || '',
+                    itemSupply: v[30] || '',
+                    itemTax: v[31] || ''
+                });
+            }
+
+            if (newItems.length === 0) throw new Error('등록할 수 있는 매출 행이 없습니다. 형식에 맞춰 업로드해 주세요.');
+
+            const approvalNos = new Set(newItems.map(item => item.approvalNo).filter(no => no));
+            if (approvalNos.size > 0) {
+                state.salesData = state.salesData.filter(item => !approvalNos.has(item.approvalNo));
+            }
+            state.salesData = state.salesData.concat(newItems);
+            state.salesData.sort((a, b) => b.date.localeCompare(a.date));
+            localStorage.setItem('custom_sales_data', JSON.stringify(state.salesData));
+
+        } else if (type === 'purchases') {
+            const newItems = [];
+            let startRow = 2;
+            for (let r = 0; r < Math.min(lines.length, 5); r++) {
+                const headerLine = parseCSVLine(lines[r]);
+                if (headerLine.includes('작성일자') || headerLine.includes('승인번호')) {
+                    startRow = r + 1;
+                    break;
+                }
+            }
+
+            for (let i = startRow; i < lines.length; i++) {
+                const v = parseCSVLine(lines[i]);
+                if (v.length < 15 || !v[0]) continue;
+                newItems.push({
+                    date: v[0],
+                    approvalNo: v[1],
+                    issueDate: v[2],
+                    sendDate: v[3],
+                    supplierBizNo: v[4],
+                    supplierName: v[6],
+                    supplierCeo: v[7],
+                    supplierAddr: v[8],
+                    buyerBizNo: v[9],
+                    buyerName: v[11],
+                    buyerCeo: v[12],
+                    totalAmount: parseAmount(v[14]),
+                    supplyAmount: parseAmount(v[15]),
+                    taxAmount: parseAmount(v[16]),
+                    classification: v[17],
+                    type: v[18],
+                    issueType: v[19],
+                    note: v[20],
+                    receiptType: v[21],
+                    itemDate: v[25] || v[0],
+                    itemName: v[26] || '',
+                    itemSpec: v[27] || '',
+                    itemQty: v[28] || '',
+                    itemUnitPrice: v[29] || '',
+                    itemSupply: v[30] || '',
+                    itemTax: v[31] || ''
+                });
+            }
+
+            if (newItems.length === 0) throw new Error('등록할 수 있는 매입 행이 없습니다. 형식에 맞춰 업로드해 주세요.');
+
+            const approvalNos = new Set(newItems.map(item => item.approvalNo).filter(no => no));
+            if (approvalNos.size > 0) {
+                state.purchaseData = state.purchaseData.filter(item => !approvalNos.has(item.approvalNo));
+            }
+            state.purchaseData = state.purchaseData.concat(newItems);
+            state.purchaseData.sort((a, b) => b.date.localeCompare(a.date));
+            localStorage.setItem('custom_purchase_data', JSON.stringify(state.purchaseData));
+
+        } else if (type === 'card') {
+            const newItems = [];
+            let startRow = 3;
+            for (let r = 0; r < Math.min(lines.length, 5); r++) {
+                const headerLine = parseCSVLine(lines[r]);
+                if (headerLine.includes('거래일자') || headerLine.includes('거래합계')) {
+                    startRow = r + 1;
+                    break;
+                }
+            }
+
+            for (let i = startRow; i < lines.length; i++) {
+                const v = parseCSVLine(lines[i]);
+                if (!v[0] || v[0] === '총계') continue;
+                newItems.push({
+                    date: v[0],
+                    totalAmount: parseAmount(v[1]),
+                    totalCount: parseInt(v[2]) || 0,
+                    approvedAmount: parseAmount(v[3]),
+                    approvedCount: parseInt(v[4]) || 0,
+                    cancelledAmount: parseAmount(v[5]),
+                    cancelledCount: parseInt(v[6]) || 0
+                });
+            }
+
+            if (newItems.length === 0) throw new Error('등록할 수 있는 카드매출 행이 없습니다.');
+
+            const dates = new Set(newItems.map(item => item.date));
+            state.cardSalesData = state.cardSalesData.filter(item => !dates.has(item.date));
+            state.cardSalesData = state.cardSalesData.concat(newItems);
+            state.cardSalesData.sort((a, b) => b.date.localeCompare(a.date));
+            localStorage.setItem('custom_card_sales_data', JSON.stringify(state.cardSalesData));
+
+        } else if (type === 'ext-purchase') {
+            const newItems = [];
+            let startRow = 1;
+            for (let r = 0; r < Math.min(lines.length, 5); r++) {
+                const headerLine = parseCSVLine(lines[r]);
+                if (headerLine.includes('일자-No.') || headerLine.includes('공급처')) {
+                    startRow = r + 1;
+                    break;
+                }
+            }
+
+            for (let i = startRow; i < lines.length; i++) {
+                const v = parseCSVLine(lines[i]);
+                if (!v[0] || v[0].startsWith('총합계')) continue;
+                newItems.push({
+                    dateNo: v[0],
+                    supplier: v[1],
+                    code: normalizeExtCode(v[2]),
+                    name: v[3],
+                    qty: parseInt(v[4]) || 0,
+                    unitPrice: parseAmount(v[5]),
+                    supplyAmount: parseAmount(v[6]),
+                    taxAmount: parseAmount(v[7]),
+                    totalAmount: parseAmount(v[6]) + parseAmount(v[7])
+                });
+            }
+
+            if (newItems.length === 0) throw new Error('등록할 수 있는 ExT 구매현황 행이 없습니다.');
+
+            newItems.forEach(newItem => {
+                state.extPurchaseData = state.extPurchaseData.filter(item => !(item.dateNo === newItem.dateNo && item.code === newItem.code));
+            });
+            state.extPurchaseData = state.extPurchaseData.concat(newItems);
+            state.extPurchaseData.sort((a, b) => b.dateNo.localeCompare(a.dateNo));
+            localStorage.setItem('custom_ext_purchase_data', JSON.stringify(state.extPurchaseData));
+
+        } else if (type === 'ext-sales') {
+            const newItems = [];
+            let extSalesDateIdx = 0, extSalesBuyerIdx = 1, extSalesQtyIdx = 2, extSalesPriceIdx = 3, extSalesSupplyIdx = 4, extSalesTaxIdx = 5, extSalesTotalIdx = 6, extSalesCodeIdx = 7, extSalesNameIdx = 8, extSalesCollectionIdx = -1;
+            let startRow = 2;
+
+            for (let r = 0; r < Math.min(lines.length, 5); r++) {
+                const headers = parseCSVLine(lines[r]);
+                if (headers.includes('일자-No.') || headers.includes('거래처명')) {
+                    startRow = r + 1;
+                    extSalesDateIdx = headers.indexOf('일자-No.');
+                    extSalesBuyerIdx = headers.indexOf('거래처명');
+                    extSalesCollectionIdx = headers.indexOf('수금일');
+                    extSalesQtyIdx = headers.indexOf('수량');
+                    extSalesPriceIdx = headers.indexOf('단가');
+                    extSalesSupplyIdx = headers.indexOf('공급가액');
+                    extSalesTaxIdx = headers.indexOf('부가세');
+                    extSalesTotalIdx = headers.indexOf('합계');
+                    extSalesCodeIdx = headers.indexOf('품목코드');
+                    extSalesNameIdx = headers.indexOf('품목명(규격)');
+                    break;
+                }
+            }
+
+            if (extSalesDateIdx === -1) extSalesDateIdx = 0;
+            if (extSalesBuyerIdx === -1) extSalesBuyerIdx = 1;
+            if (extSalesQtyIdx === -1) extSalesQtyIdx = extSalesCollectionIdx !== -1 ? 3 : 2;
+            if (extSalesPriceIdx === -1) extSalesPriceIdx = extSalesCollectionIdx !== -1 ? 4 : 3;
+            if (extSalesSupplyIdx === -1) extSalesSupplyIdx = extSalesCollectionIdx !== -1 ? 5 : 4;
+            if (extSalesTaxIdx === -1) extSalesTaxIdx = extSalesCollectionIdx !== -1 ? 6 : 5;
+            if (extSalesTotalIdx === -1) extSalesTotalIdx = extSalesCollectionIdx !== -1 ? 7 : 6;
+            if (extSalesCodeIdx === -1) extSalesCodeIdx = extSalesCollectionIdx !== -1 ? 8 : 7;
+            if (extSalesNameIdx === -1) extSalesNameIdx = extSalesCollectionIdx !== -1 ? 9 : 8;
+
+            for (let i = startRow; i < lines.length; i++) {
+                const v = parseCSVLine(lines[i]);
+                if (!v[0] || v[0].startsWith('총합계')) continue;
+                newItems.push({
+                    dateNo: v[extSalesDateIdx] || '',
+                    buyer: v[extSalesBuyerIdx] || '',
+                    collectionDate: extSalesCollectionIdx !== -1 ? (v[extSalesCollectionIdx] || '') : '',
+                    qty: parseInt(v[extSalesQtyIdx]) || 0,
+                    unitPrice: parseAmount(v[extSalesPriceIdx]),
+                    supplyAmount: parseAmount(v[extSalesSupplyIdx]),
+                    taxAmount: parseAmount(v[extSalesTaxIdx]),
+                    totalAmount: parseAmount(v[extSalesTotalIdx]),
+                    code: normalizeExtCode(v[extSalesCodeIdx]),
+                    name: v[extSalesNameIdx] || ''
+                });
+            }
+
+            if (newItems.length === 0) throw new Error('등록할 수 있는 ExT 판매현황 행이 없습니다.');
+
+            newItems.forEach(newItem => {
+                state.extSalesData = state.extSalesData.filter(item => !(item.dateNo === newItem.dateNo && item.code === newItem.code));
+            });
+            state.extSalesData = state.extSalesData.concat(newItems);
+            state.extSalesData.sort((a, b) => b.dateNo.localeCompare(a.dateNo));
+            localStorage.setItem('custom_ext_sales_data', JSON.stringify(state.extSalesData));
+
+        } else if (type === 'nujen-purchase') {
+            const newItems = [];
+            let startRow = 2;
+            for (let r = 0; r < Math.min(lines.length, 5); r++) {
+                const headerLine = parseCSVLine(lines[r]);
+                if (headerLine.includes('일자-No.') || headerLine.includes('공급처')) {
+                    startRow = r + 1;
+                    break;
+                }
+            }
+
+            for (let i = startRow; i < lines.length; i++) {
+                const v = parseCSVLine(lines[i]);
+                if (!v[0] || v[0].startsWith('총합계') || v[0].startsWith('총계') || v[0].includes('오후')) continue;
+                newItems.push({
+                    dateNo: v[0],
+                    supplier: v[1],
+                    code: v[3],
+                    name: v[4],
+                    qty: parseInt(v[5]) || 0,
+                    unitPrice: parseAmount(v[6]),
+                    supplyAmount: parseAmount(v[7]),
+                    taxAmount: parseAmount(v[8]),
+                    totalAmount: parseAmount(v[9])
+                });
+            }
+
+            if (newItems.length === 0) throw new Error('등록할 수 있는 뉴진스 제품 구매현황 행이 없습니다.');
+
+            newItems.forEach(newItem => {
+                state.nujenPurchaseData = state.nujenPurchaseData.filter(item => !(item.dateNo === newItem.dateNo && item.code === newItem.code));
+            });
+            state.nujenPurchaseData = state.nujenPurchaseData.concat(newItems);
+            state.nujenPurchaseData.sort((a, b) => b.dateNo.localeCompare(a.dateNo));
+            localStorage.setItem('custom_nujen_purchase_data', JSON.stringify(state.nujenPurchaseData));
+
+        } else if (type === 'nujen-sales') {
+            const newItems = [];
+            let startRow = 1;
+            for (let r = 0; r < Math.min(lines.length, 5); r++) {
+                const headerLine = parseCSVLine(lines[r]);
+                if (headerLine.includes('일자-No.') || headerLine.includes('거래처')) {
+                    startRow = r + 1;
+                    break;
+                }
+            }
+
+            for (let i = startRow; i < lines.length; i++) {
+                const v = parseCSVLine(lines[i]);
+                if (!v[0] || v[0].startsWith('총합계') || v[0].startsWith('총계') || v[0].includes('오후')) continue;
+                newItems.push({
+                    dateNo: v[0],
+                    buyer: v[1],
+                    qty: parseInt(v[2]) || 0,
+                    unitPrice: parseAmount(v[3]),
+                    supplyAmount: parseAmount(v[4]),
+                    taxAmount: parseAmount(v[5]),
+                    totalAmount: parseAmount(v[6]),
+                    code: v[7],
+                    name: v[8]
+                });
+            }
+
+            if (newItems.length === 0) throw new Error('등록할 수 있는 뉴진스 제품 판매현황 행이 없습니다.');
+
+            newItems.forEach(newItem => {
+                state.nujenSalesData = state.nujenSalesData.filter(item => !(item.dateNo === newItem.dateNo && item.code === newItem.code));
+            });
+            state.nujenSalesData = state.nujenSalesData.concat(newItems);
+            state.nujenSalesData.sort((a, b) => b.dateNo.localeCompare(a.dateNo));
+            localStorage.setItem('custom_nujen_sales_data', JSON.stringify(state.nujenSalesData));
+        }
+    }
+
     // ===== 초기화 =====
     async function init() {
         // 로딩 화면
@@ -3388,7 +3812,14 @@
 
         await loadData();
         bindEvents();
-        renderDashboard();
+
+        // Save and restore active view across refreshes/saves
+        const savedView = sessionStorage.getItem('current_view') || 'dashboard';
+        if (savedView === 'dashboard') {
+            renderDashboard();
+        } else {
+            switchView(savedView);
+        }
 
         // 로딩 완료
         setTimeout(() => {

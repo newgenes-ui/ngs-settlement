@@ -155,6 +155,7 @@
                         <div class="table-header">
                             <h3>매출 세부내역</h3>
                             <div class="table-actions">
+                                <button class="btn-csv-upload" onclick="window.openCsvUploadModal('sales')" style="font-size:0.85rem; padding:8px 16px; border-radius:6px; background:var(--accent-indigo); color:white; border:none; cursor:pointer; font-weight:600; box-shadow:var(--shadow-sm); margin-right:10px;">월별 CSV 등록하기</button>
                                 <div class="search-box">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
                                     <input type="text" id="sales-search" placeholder="거래처명, 품목 검색...">
@@ -212,6 +213,9 @@
                     <div class="table-card" style="margin-bottom: 24px;">
                         <div class="table-header">
                             <h3>ExT 제품 재고 및 금액 현황 (기초입고: 2025/12/30)</h3>
+                            <div class="table-actions">
+                                <button class="btn-csv-upload" onclick="window.openCsvUploadModal('inventory')" style="font-size:0.85rem; padding:8px 16px; border-radius:6px; background:var(--accent-indigo); color:white; border:none; cursor:pointer; font-weight:600; box-shadow:var(--shadow-sm);">월별 CSV 등록하기</button>
+                            </div>
                         </div>
                         <div class="table-wrapper">
                             <table class="data-table" id="inventory-table">
@@ -325,6 +329,9 @@
                     <div class="table-card" style="margin-bottom: 24px;">
                         <div class="table-header">
                             <h3>뉴진스 제품 재고 및 금액 현황 (기초입고: 2025/06/24)</h3>
+                            <div class="table-actions">
+                                <button class="btn-csv-upload" onclick="window.openCsvUploadModal('nujen')" style="font-size:0.85rem; padding:8px 16px; border-radius:6px; background:var(--accent-indigo); color:white; border:none; cursor:pointer; font-weight:600; box-shadow:var(--shadow-sm);">월별 CSV 등록하기</button>
+                            </div>
                         </div>
                         <div class="table-wrapper">
                             <table class="data-table" id="nujen-table">
@@ -413,6 +420,9 @@
                     <div class="table-card">
                         <div class="table-header">
                             <h3>카드매출 세부내역</h3>
+                            <div class="table-actions">
+                                <button class="btn-csv-upload" onclick="window.openCsvUploadModal('card')" style="font-size:0.85rem; padding:8px 16px; border-radius:6px; background:var(--accent-indigo); color:white; border:none; cursor:pointer; font-weight:600; box-shadow:var(--shadow-sm);">월별 CSV 등록하기</button>
+                            </div>
                         </div>
                         <div class="table-wrapper">
                             <table class="data-table" id="card-sales-table">
@@ -441,6 +451,7 @@
                         <div class="table-header">
                             <h3>매입 세부내역</h3>
                             <div class="table-actions">
+                                <button class="btn-csv-upload" onclick="window.openCsvUploadModal('purchases')" style="font-size:0.85rem; padding:8px 16px; border-radius:6px; background:var(--accent-indigo); color:white; border:none; cursor:pointer; font-weight:600; box-shadow:var(--shadow-sm); margin-right:10px;">월별 CSV 등록하기</button>
                                 <div class="search-box">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
                                     <input type="text" id="purchases-search" placeholder="거래처명, 품목 검색...">
@@ -621,7 +632,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-    <script src="app.js?v=1.7.0"></script>
+    <script src="app.js?v=1.8.0"></script>
     <script>
         function toggleExtChart(type) {
             const title = document.getElementById('ext-chart-title');
@@ -767,6 +778,59 @@
                 <div id="fixed-new-item-error" style="color:var(--accent-rose); font-size:0.85rem; text-align:center; display:none; margin-bottom:12px; font-weight:600;"></div>
                 <button id="btn-fixed-new-item-save" style="width:100%; padding:12px; background:var(--accent-indigo); color:white; border:none; border-radius:var(--radius-md); font-size:0.95rem; font-weight:700; cursor:pointer; box-shadow:var(--shadow-sm);">
                     등록하기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CSV 등록 모달 -->
+    <div class="modal-overlay" id="csv-upload-modal">
+        <div class="modal" style="max-width: 480px; border-radius: var(--radius-lg);">
+            <div class="modal-header" style="padding: 16px 20px;">
+                <h3 style="font-weight: 700; font-size: 1.1rem;">📂 월별 CSV 데이터 등록</h3>
+                <button class="modal-close" id="csv-upload-modal-close">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="modal-body" style="padding: 24px;">
+                <div style="margin-bottom: 16px;">
+                    <label style="font-size:0.85rem; font-weight:600; color:var(--text-secondary); margin-bottom:6px; display:block;">등록 구분</label>
+                    <select id="csv-upload-type" style="width:100%; padding:10px 12px; border:1px solid var(--border-light); border-radius:var(--radius-md); font-size:0.95rem; box-sizing:border-box; background:var(--bg-secondary); color:var(--text-primary);">
+                        <option value="sales">매출 내역 CSV</option>
+                        <option value="card">카드매출 내역 CSV</option>
+                        <option value="purchases">매입 내역 CSV</option>
+                        <option value="ext-purchase">ExT 재고관리 - 기초/매입 CSV</option>
+                        <option value="ext-sales">ExT 재고관리 - 당기/매출 CSV</option>
+                        <option value="nujen-purchase">뉴진스 재고관리 - 기초/매입 CSV</option>
+                        <option value="nujen-sales">뉴진스 재고관리 - 당기/매출 CSV</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label style="font-size:0.85rem; font-weight:600; color:var(--text-secondary); margin-bottom:6px; display:block;">인코딩 설정</label>
+                    <select id="csv-upload-encoding" style="width:100%; padding:10px 12px; border:1px solid var(--border-light); border-radius:var(--radius-md); font-size:0.95rem; box-sizing:border-box; background:var(--bg-secondary); color:var(--text-primary);">
+                        <option value="EUC-KR">EUC-KR (대부분의 국세청/카드사 다운로드 파일)</option>
+                        <option value="UTF-8">UTF-8 (유니코드 파일)</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label style="font-size:0.85rem; font-weight:600; color:var(--text-secondary); margin-bottom:6px; display:block;">CSV 파일 선택</label>
+                    <input type="file" id="csv-file-input" accept=".csv" style="width:100%; padding:8px 10px; border:1px solid var(--border-light); border-radius:var(--radius-md); font-size:0.9rem; box-sizing:border-box; background:var(--bg-secondary); color:var(--text-primary);">
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="font-size:0.85rem; font-weight:600; color:var(--text-secondary); margin-bottom:6px; display:block;">또는 CSV 텍스트 붙여넣기</label>
+                    <textarea id="csv-text-input" placeholder="여기에 CSV 데이터를 복사-붙여넣기 할 수도 있습니다..." style="width:100%; height:120px; padding:10px; border:1px solid var(--border-light); border-radius:var(--radius-md); font-family:monospace; font-size:0.8rem; box-sizing:border-box; background:var(--bg-secondary); color:var(--text-primary); resize:vertical;"></textarea>
+                </div>
+
+                <div style="font-size:0.78rem; color:var(--text-secondary); line-height:1.4; margin-bottom:16px; padding:10px; background:rgba(99,102,241,0.05); border:1px solid rgba(99,102,241,0.15); border-radius:var(--radius-md);">
+                    💡 <strong>데이터 중복 처리 안내:</strong> 동일한 승인번호, 날짜 또는 일자-No.를 가진 데이터가 감지되면 기존 내용을 자동으로 <strong>덮어씁니다(Overwrite)</strong>. 그 외의 데이터는 누적하여 추가됩니다.
+                </div>
+
+                <div id="csv-upload-error" style="color:var(--accent-rose); font-size:0.85rem; text-align:center; display:none; margin-bottom:12px; font-weight:600;"></div>
+                <button id="btn-csv-upload-save" style="width:100%; padding:12px; background:var(--accent-indigo); color:white; border:none; border-radius:var(--radius-md); font-size:0.95rem; font-weight:700; cursor:pointer; box-shadow:var(--shadow-sm);">
+                    등록 및 덮어쓰기
                 </button>
             </div>
         </div>
