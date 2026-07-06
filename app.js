@@ -21,6 +21,7 @@
         fixedOfficeData: [],
         fixedVendorData: [],
         isVatAuthorized: sessionStorage.getItem('vat_authorized') === 'true',
+        pendingView: null,
         charts: {}
     };
 
@@ -2695,10 +2696,19 @@
 
     // ===== 뷰 전환 =====
     function switchView(viewName) {
-        if (viewName === 'vat' && !state.isVatAuthorized) {
+        if ((viewName === 'vat' || viewName === 'fixed-expenses') && !state.isVatAuthorized) {
+            state.pendingView = viewName;
             const modal = document.getElementById('password-modal');
             const input = document.getElementById('vat-password-input');
             const errorMsg = document.getElementById('password-error');
+            const descEl = modal ? modal.querySelector('.modal-body p') : null;
+            if (descEl) {
+                if (viewName === 'fixed-expenses') {
+                    descEl.innerHTML = '고정지출 내역을 조회하려면<br>관리자 비밀번호를 입력해 주세요.';
+                } else {
+                    descEl.innerHTML = '부가세 신고 내역을 조회하려면<br>관리자 비밀번호를 입력해 주세요.';
+                }
+            }
             if (modal && input) {
                 input.value = '';
                 if (errorMsg) errorMsg.style.display = 'none';
@@ -2966,7 +2976,9 @@
                     pwdModal.classList.remove('active');
                     state.isVatAuthorized = true;
                     sessionStorage.setItem('vat_authorized', 'true');
-                    switchView('vat');
+                    const targetView = state.pendingView || 'vat';
+                    state.pendingView = null;
+                    switchView(targetView);
                 } else {
                     errorMsg.style.display = 'block';
                     pwInput.value = '';
