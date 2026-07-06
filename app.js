@@ -900,6 +900,12 @@
             const rowCount = monthData.items.length;
             let monthTotal = monthData.items.reduce((s, i) => s + i.salary + i.ins + i.card, 0);
             
+            let monthVal = '';
+            const m = monthData.month.match(/(\d+)년\s+(\d+)월/);
+            if (m) {
+                monthVal = `${m[1]}-${String(m[2]).padStart(2, '0')}`;
+            }
+
             monthData.items.forEach((item, idx) => {
                 const itemTotal = item.salary + item.ins + item.card;
                 totalSalary += item.salary;
@@ -923,8 +929,8 @@
                     html += `<td rowspan="${rowCount}" class="text-center" style="vertical-align:middle; color:var(--accent-indigo); font-weight:700;">${formatCurrency(monthTotal)}</td>`;
                     html += `<td rowspan="${rowCount}" class="text-center" style="vertical-align:middle;">
                         <div style="display:flex; flex-direction:column; gap:4px; align-items:center;">
-                            <button style="padding:4px 8px; font-size:0.75rem; border:1px solid var(--border); background:white; cursor:pointer; border-radius:4px;" onclick="alert('준비 중입니다.')">수정</button>
-                            <button style="padding:4px 8px; font-size:0.75rem; border:1px solid #fecaca; background:#fef2f2; color:#ef4444; cursor:pointer; border-radius:4px;" onclick="alert('준비 중입니다.')">삭제</button>
+                            <button style="padding:4px 8px; font-size:0.75rem; border:1px solid var(--border); background:white; cursor:pointer; border-radius:4px;" onclick="window.editFixedExpense('labor', '${monthVal}')">수정</button>
+                            <button style="padding:4px 8px; font-size:0.75rem; border:1px solid #fecaca; background:#fef2f2; color:#ef4444; cursor:pointer; border-radius:4px;" onclick="window.deleteFixedExpense('labor', '${monthVal}')">삭제</button>
                         </div>
                     </td>`;
                 }
@@ -972,8 +978,8 @@
                 <td class="text-right" style="color:#d97706;">${formatCurrency(row.credit)}</td>
                 <td class="text-right" style="color:var(--accent-indigo); font-weight:700;">${formatCurrency(mTotal)}</td>
                 <td class="text-center">
-                    <button style="padding:4px 8px; font-size:0.75rem; border:1px solid var(--border); background:white; cursor:pointer; border-radius:4px;" onclick="alert('준비 중입니다.')">수정</button>
-                    <button style="padding:4px 8px; font-size:0.75rem; border:1px solid #fecaca; background:#fef2f2; color:#ef4444; cursor:pointer; border-radius:4px;" onclick="alert('준비 중입니다.')">삭제</button>
+                    <button style="padding:4px 8px; font-size:0.75rem; border:1px solid var(--border); background:white; cursor:pointer; border-radius:4px;" onclick="window.editFixedExpense('office', '${row.month}')">수정</button>
+                    <button style="padding:4px 8px; font-size:0.75rem; border:1px solid #fecaca; background:#fef2f2; color:#ef4444; cursor:pointer; border-radius:4px;" onclick="window.deleteFixedExpense('office', '${row.month}')">삭제</button>
                 </td>
             </tr>`;
         });
@@ -1021,8 +1027,8 @@
                 <td class="text-right">${formatCurrency(row.skt)}</td>
                 <td class="text-right" style="color:var(--accent-indigo); font-weight:700;">${formatCurrency(mTotal)}</td>
                 <td class="text-center">
-                    <button style="padding:4px 8px; font-size:0.75rem; border:1px solid var(--border); background:white; cursor:pointer; border-radius:4px;" onclick="alert('준비 중입니다.')">수정</button>
-                    <button style="padding:4px 8px; font-size:0.75rem; border:1px solid #fecaca; background:#fef2f2; color:#ef4444; cursor:pointer; border-radius:4px;" onclick="alert('준비 중입니다.')">삭제</button>
+                    <button style="padding:4px 8px; font-size:0.75rem; border:1px solid var(--border); background:white; cursor:pointer; border-radius:4px;" onclick="window.editFixedExpense('vendor', '${row.month}')">수정</button>
+                    <button style="padding:4px 8px; font-size:0.75rem; border:1px solid #fecaca; background:#fef2f2; color:#ef4444; cursor:pointer; border-radius:4px;" onclick="window.deleteFixedExpense('vendor', '${row.month}')">삭제</button>
                 </td>
             </tr>`;
         });
@@ -1232,29 +1238,84 @@
         renderFixedExpensesView();
     }
 
-    function openFixedRegisterModal() {
+    function openFixedRegisterModal(type = null, month = null, isEdit = false) {
         const modal = document.getElementById('fixed-register-modal');
         const monthInput = document.getElementById('fixed-reg-month');
         const typeSelect = document.getElementById('fixed-reg-type');
         const errorEl = document.getElementById('fixed-reg-error');
+        const titleEl = modal.querySelector('.modal-header h3') || modal.querySelector('h3');
 
-        // 현재 활성 탭에 맞춰 기본 구분 설정
-        const activeBtn = document.querySelector('#btn-fixed-labor.active, #btn-fixed-office.active, #btn-fixed-vendor.active');
-        if (activeBtn) {
-            if (activeBtn.id === 'btn-fixed-labor') typeSelect.value = 'labor';
-            else if (activeBtn.id === 'btn-fixed-office') typeSelect.value = 'office';
-            else if (activeBtn.id === 'btn-fixed-vendor') typeSelect.value = 'vendor';
+        if (isEdit) {
+            if (titleEl) titleEl.textContent = '✏️ 고정지출 수정';
+            monthInput.disabled = true;
+            typeSelect.disabled = true;
+            monthInput.value = month;
+            typeSelect.value = type;
+
+            // Get the specific data for prefilling
+            let rowData = null;
+            if (type === 'labor') {
+                const label = month.split('-');
+                const monthLabel = `${label[0]}년 ${parseInt(label[1], 10)}월`;
+                rowData = state.fixedLaborData.find(d => d.month === monthLabel);
+            } else if (type === 'office') {
+                rowData = state.fixedOfficeData.find(d => d.month === month);
+            } else if (type === 'vendor') {
+                rowData = state.fixedVendorData.find(d => d.month === month);
+            }
+            buildFixedRegFields(type, rowData);
+        } else {
+            if (titleEl) titleEl.textContent = '📋 새로운 월별 고정지출 등록';
+            monthInput.disabled = false;
+            typeSelect.disabled = false;
+
+            if (type) {
+                typeSelect.value = type;
+            } else {
+                const activeBtn = document.querySelector('#btn-fixed-labor.active, #btn-fixed-office.active, #btn-fixed-vendor.active');
+                if (activeBtn) {
+                    if (activeBtn.id === 'btn-fixed-labor') typeSelect.value = 'labor';
+                    else if (activeBtn.id === 'btn-fixed-office') typeSelect.value = 'office';
+                    else if (activeBtn.id === 'btn-fixed-vendor') typeSelect.value = 'vendor';
+                }
+            }
+
+            if (month) {
+                monthInput.value = month;
+            } else {
+                const now = new Date();
+                monthInput.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            }
+
+            refreshFixedRegFields();
         }
 
-        // 기본값: 이번 달
-        const now = new Date();
-        monthInput.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
         errorEl.style.display = 'none';
-
-        // 지난달 데이터로 프리필
-        refreshFixedRegFields();
         modal.classList.add('active');
     }
+
+    window.editFixedExpense = function(type, month) {
+        openFixedRegisterModal(type, month, true);
+    };
+
+    window.deleteFixedExpense = function(type, month) {
+        const parts = month.split('-');
+        const monthLabel = type === 'labor' ? `${parts[0]}년 ${parseInt(parts[1], 10)}월` : month;
+
+        if (confirm(`${monthLabel} 데이터를 삭제하시겠습니까?`)) {
+            if (type === 'labor') {
+                state.fixedLaborData = state.fixedLaborData.filter(d => d.month !== monthLabel);
+                localStorage.setItem('fixed_labor_data', JSON.stringify(state.fixedLaborData));
+            } else if (type === 'office') {
+                state.fixedOfficeData = state.fixedOfficeData.filter(d => d.month !== month);
+                localStorage.setItem('fixed_office_data', JSON.stringify(state.fixedOfficeData));
+            } else if (type === 'vendor') {
+                state.fixedVendorData = state.fixedVendorData.filter(d => d.month !== month);
+                localStorage.setItem('fixed_vendor_data', JSON.stringify(state.fixedVendorData));
+            }
+            renderFixedExpensesView();
+        }
+    };
 
     function bindFixedExpenseEvents() {
         // 등록 버튼
