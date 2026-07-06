@@ -27,28 +27,28 @@
     const DEFAULT_FIXED_LABOR_DATA = [
         { month: '2026년 5월', items: [
             { name: '김기환', role: '대표이사', salary: 3351500, ins: 351500, card: 2154320 },
-            { name: '나혜원', role: '팀원 (디자인)', salary: 2296810, ins: 296810, card: 1763730 },
-            { name: '양유지', role: '팀원 (경영지원)', salary: 2833340, ins: 155760, card: 339640 }
+            { name: '나혜원', role: '부장', salary: 2296810, ins: 296810, card: 1763730 },
+            { name: '양유지', role: '매니저', salary: 2833340, ins: 155760, card: 339640 }
         ]},
         { month: '2026년 4월', items: [
             { name: '김기환', role: '대표이사', salary: 3341560, ins: 349600, card: 1122250 },
-            { name: '나혜원', role: '팀원 (디자인)', salary: 2255700, ins: 451520, card: 1002360 },
-            { name: '양유지', role: '팀원 (경영지원)', salary: 2833340, ins: 57760, card: 419800 }
+            { name: '나혜원', role: '부장', salary: 2255700, ins: 451520, card: 1002360 },
+            { name: '양유지', role: '매니저', salary: 2833340, ins: 57760, card: 419800 }
         ]},
         { month: '2026년 3월', items: [
             { name: '김기환', role: '대표이사', salary: 3341560, ins: 246190, card: 1591770 },
-            { name: '나혜원', role: '팀원 (디자인)', salary: 2255700, ins: 220400, card: 1058950 },
-            { name: '양유지', role: '팀원 (경영지원)', salary: 2833340, ins: 125640, card: 234420 }
+            { name: '나혜원', role: '부장', salary: 2255700, ins: 220400, card: 1058950 },
+            { name: '양유지', role: '매니저', salary: 2833340, ins: 125640, card: 234420 }
         ]},
         { month: '2026년 2월', items: [
             { name: '김기환', role: '대표이사', salary: 3341560, ins: 246190, card: 1783050 },
-            { name: '나혜원', role: '팀원 (디자인)', salary: 2255700, ins: 220400, card: 1692600 },
-            { name: '양유지', role: '팀원 (경영지원)', salary: 2833340, ins: 125640, card: 307300 }
+            { name: '나혜원', role: '부장', salary: 2255700, ins: 220400, card: 1692600 },
+            { name: '양유지', role: '매니저', salary: 2833340, ins: 125640, card: 307300 }
         ]},
         { month: '2026년 1월', items: [
             { name: '김기환', role: '대표이사', salary: 3341560, ins: 246190, card: 2245720 },
-            { name: '나혜원', role: '팀원 (디자인)', salary: 2255700, ins: 220400, card: 487300 },
-            { name: '양유지', role: '팀원 (경영지원)', salary: 2833340, ins: 125640, card: 346300 }
+            { name: '나혜원', role: '부장', salary: 2255700, ins: 220400, card: 487300 },
+            { name: '양유지', role: '매니저', salary: 2833340, ins: 125640, card: 346300 }
         ]}
     ];
 
@@ -498,6 +498,16 @@
             } else {
                 state.fixedLaborData = JSON.parse(JSON.stringify(DEFAULT_FIXED_LABOR_DATA));
             }
+
+            // 기저장된 데이터 직급 업데이트 마이그레이션
+            state.fixedLaborData.forEach(d => {
+                if (d.items) {
+                    d.items.forEach(item => {
+                        if (item.name === '나혜원') item.role = '부장';
+                        if (item.name === '양유지') item.role = '매니저';
+                    });
+                }
+            });
 
             // 고정지출 데이터 로드 (사무실비용)
             const savedOfficeData = localStorage.getItem('fixed_office_data');
@@ -1082,8 +1092,8 @@
         if (type === 'labor') {
             const people = [
                 { name: '김기환', role: '대표이사' },
-                { name: '나혜원', role: '팀원 (디자인)' },
-                { name: '양유지', role: '팀원 (경영지원)' }
+                { name: '나혜원', role: '부장' },
+                { name: '양유지', role: '매니저' }
             ];
             let h = '';
             if (prefillData) {
@@ -1185,8 +1195,8 @@
                 month: monthLabel,
                 items: [
                     { name: '김기환', role: '대표이사', salary: getNumVal('labor-salary-0'), ins: getNumVal('labor-ins-0'), card: getNumVal('labor-card-0') },
-                    { name: '나혜원', role: '팀원 (디자인)', salary: getNumVal('labor-salary-1'), ins: getNumVal('labor-ins-1'), card: getNumVal('labor-card-1') },
-                    { name: '양유지', role: '팀원 (경영지원)', salary: getNumVal('labor-salary-2'), ins: getNumVal('labor-ins-2'), card: getNumVal('labor-card-2') }
+                    { name: '나혜원', role: '부장', salary: getNumVal('labor-salary-1'), ins: getNumVal('labor-ins-1'), card: getNumVal('labor-card-1') },
+                    { name: '양유지', role: '매니저', salary: getNumVal('labor-salary-2'), ins: getNumVal('labor-ins-2'), card: getNumVal('labor-card-2') }
                 ]
             };
             if (exists >= 0) {
