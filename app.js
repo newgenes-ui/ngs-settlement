@@ -17,9 +17,58 @@
         nujenPurchaseData: [],
         nujenSalesData: [],
         vatCardData: [],
+        fixedLaborData: [],
+        fixedOfficeData: [],
+        fixedVendorData: [],
         isVatAuthorized: sessionStorage.getItem('vat_authorized') === 'true',
         charts: {}
     };
+
+    const DEFAULT_FIXED_LABOR_DATA = [
+        { month: '2026년 5월', items: [
+            { name: '김기환', role: '대표이사', salary: 3351500, ins: 351500, card: 2154320 },
+            { name: '나혜원', role: '팀원 (디자인)', salary: 2296810, ins: 296810, card: 1763730 },
+            { name: '양유지', role: '팀원 (경영지원)', salary: 2833340, ins: 155760, card: 339640 }
+        ]},
+        { month: '2026년 4월', items: [
+            { name: '김기환', role: '대표이사', salary: 3341560, ins: 349600, card: 1122250 },
+            { name: '나혜원', role: '팀원 (디자인)', salary: 2255700, ins: 451520, card: 1002360 },
+            { name: '양유지', role: '팀원 (경영지원)', salary: 2833340, ins: 57760, card: 419800 }
+        ]},
+        { month: '2026년 3월', items: [
+            { name: '김기환', role: '대표이사', salary: 3341560, ins: 246190, card: 1591770 },
+            { name: '나혜원', role: '팀원 (디자인)', salary: 2255700, ins: 220400, card: 1058950 },
+            { name: '양유지', role: '팀원 (경영지원)', salary: 2833340, ins: 125640, card: 234420 }
+        ]},
+        { month: '2026년 2월', items: [
+            { name: '김기환', role: '대표이사', salary: 3341560, ins: 246190, card: 1783050 },
+            { name: '나혜원', role: '팀원 (디자인)', salary: 2255700, ins: 220400, card: 1692600 },
+            { name: '양유지', role: '팀원 (경영지원)', salary: 2833340, ins: 125640, card: 307300 }
+        ]},
+        { month: '2026년 1월', items: [
+            { name: '김기환', role: '대표이사', salary: 3341560, ins: 246190, card: 2245720 },
+            { name: '나혜원', role: '팀원 (디자인)', salary: 2255700, ins: 220400, card: 487300 },
+            { name: '양유지', role: '팀원 (경영지원)', salary: 2833340, ins: 125640, card: 346300 }
+        ]}
+    ];
+
+    const DEFAULT_FIXED_OFFICE_DATA = [
+        { month: '2026-06', tax: 0, phone: 0, avante: 0, ray: 0, sosang: 0, ibk: 0, kibo: 0, credit: 0 },
+        { month: '2026-05', tax: 136640, phone: 111420, avante: 337000, ray: 267139, sosang: 206202, ibk: 352370, kibo: 320460, credit: 177174 },
+        { month: '2026-04', tax: 4913250, phone: 111420, avante: 337000, ray: 267139, sosang: 206202, ibk: 352370, kibo: 320460, credit: 177174 },
+        { month: '2026-03', tax: 136540, phone: 111420, avante: 337000, ray: 267139, sosang: 0, ibk: 352370, kibo: 320460, credit: 177174 },
+        { month: '2026-02', tax: 16320, phone: 111420, avante: 337000, ray: 267139, sosang: 0, ibk: 354795, kibo: 324394, credit: 196157 },
+        { month: '2026-01', tax: 146760, phone: 111420, avante: 337000, ray: 267139, sosang: 0, ibk: 354795, kibo: 324394, credit: 1152000 }
+    ];
+
+    const DEFAULT_FIXED_VENDOR_DATA = [
+        { month: '2026-06', samsung: 0, sungjin: 0, gwangmyung: 0, semukyoung: 0, semu: 0, ecount: 0, bstech: 0, chungho: 0, kt: 0, skt: 0 },
+        { month: '2026-05', samsung: 110000, sungjin: 15730, gwangmyung: 281210, semukyoung: 0, semu: 0, ecount: 44000, bstech: 1100000, chungho: 45900, kt: 43936, skt: 0 },
+        { month: '2026-04', samsung: 110000, sungjin: 15730, gwangmyung: 333020, semukyoung: 0, semu: 165000, ecount: 44000, bstech: 1100000, chungho: 45900, kt: 42768, skt: 22000 },
+        { month: '2026-03', samsung: 110000, sungjin: 15730, gwangmyung: 377860, semukyoung: 2200000, semu: 132000, ecount: 44000, bstech: 1100000, chungho: 45900, kt: 43599, skt: 22000 },
+        { month: '2026-02', samsung: 110000, sungjin: 15730, gwangmyung: 430680, semukyoung: 0, semu: 132000, ecount: 44000, bstech: 1100000, chungho: 45900, kt: 43953, skt: 22000 },
+        { month: '2026-01', samsung: 110000, sungjin: 15730, gwangmyung: 393990, semukyoung: 0, semu: 132000, ecount: 44000, bstech: 1100000, chungho: 45900, kt: 44785, skt: 22000 }
+    ];
 
     const DEFAULT_VAT_CARD_DATA = [
         { month: '2026-01', dedCount: 21, dedSupply: 244097, dedTax: 24403, dedTotal: 268500, totCount: 116, totSupply: 3689117, totTax: 341133, totTotal: 4030250 },
@@ -441,6 +490,33 @@
                 state.vatCardData = JSON.parse(JSON.stringify(DEFAULT_VAT_CARD_DATA));
             }
 
+            // 고정지출 데이터 로드 (인건비)
+            const savedLaborData = localStorage.getItem('fixed_labor_data');
+            if (savedLaborData) {
+                try { state.fixedLaborData = JSON.parse(savedLaborData); }
+                catch(e) { state.fixedLaborData = JSON.parse(JSON.stringify(DEFAULT_FIXED_LABOR_DATA)); }
+            } else {
+                state.fixedLaborData = JSON.parse(JSON.stringify(DEFAULT_FIXED_LABOR_DATA));
+            }
+
+            // 고정지출 데이터 로드 (사무실비용)
+            const savedOfficeData = localStorage.getItem('fixed_office_data');
+            if (savedOfficeData) {
+                try { state.fixedOfficeData = JSON.parse(savedOfficeData); }
+                catch(e) { state.fixedOfficeData = JSON.parse(JSON.stringify(DEFAULT_FIXED_OFFICE_DATA)); }
+            } else {
+                state.fixedOfficeData = JSON.parse(JSON.stringify(DEFAULT_FIXED_OFFICE_DATA));
+            }
+
+            // 고정지출 데이터 로드 (거래처 지출)
+            const savedVendorData = localStorage.getItem('fixed_vendor_data');
+            if (savedVendorData) {
+                try { state.fixedVendorData = JSON.parse(savedVendorData); }
+                catch(e) { state.fixedVendorData = JSON.parse(JSON.stringify(DEFAULT_FIXED_VENDOR_DATA)); }
+            } else {
+                state.fixedVendorData = JSON.parse(JSON.stringify(DEFAULT_FIXED_VENDOR_DATA));
+            }
+
             // 배지 업데이트
             document.getElementById('badge-sales').textContent = state.salesData.length;
             document.getElementById('badge-inventory').textContent = '7'; // ExT 제품군 수
@@ -769,6 +845,170 @@
 
         return [...periods].sort().reverse();
     }
+
+    // ===== 고정지출 렌더 =====
+    function renderFixedExpensesView() {
+        renderFixedLaborTable();
+        renderFixedOfficeTable();
+        renderFixedVendorTable();
+    }
+
+    function renderFixedLaborTable() {
+        const tbody = document.getElementById('fixed-labor-tbody');
+        const tfoot = document.getElementById('fixed-labor-tfoot');
+        if (!tbody || !tfoot) return;
+
+        let html = '';
+        let totalSalary = 0, totalIns = 0, totalCard = 0, grandTotal = 0;
+
+        state.fixedLaborData.forEach(monthData => {
+            const rowCount = monthData.items.length;
+            let monthTotal = monthData.items.reduce((s, i) => s + i.salary + i.ins + i.card, 0);
+            
+            monthData.items.forEach((item, idx) => {
+                const itemTotal = item.salary + item.ins + item.card;
+                totalSalary += item.salary;
+                totalIns += item.ins;
+                totalCard += item.card;
+                grandTotal += itemTotal;
+                
+                html += `<tr>`;
+                if (idx === 0) {
+                    html += `<td rowspan="${rowCount}" class="text-center" style="vertical-align:middle; font-weight:600;">${monthData.month}</td>`;
+                }
+                html += `
+                    <td>${item.name}</td>
+                    <td>${item.role}</td>
+                    <td class="text-right">${formatCurrency(item.salary)}</td>
+                    <td class="text-right" style="color:var(--text-secondary);">${formatCurrency(item.ins)}</td>
+                    <td class="text-right" style="color:var(--accent-rose); font-weight:600;">${formatCurrency(item.card)}</td>
+                    <td class="text-right">${formatCurrency(itemTotal)}</td>
+                `;
+                if (idx === 0) {
+                    html += `<td rowspan="${rowCount}" class="text-center" style="vertical-align:middle; color:var(--accent-indigo); font-weight:700;">${formatCurrency(monthTotal)}</td>`;
+                    html += `<td rowspan="${rowCount}" class="text-center" style="vertical-align:middle;">
+                        <div style="display:flex; flex-direction:column; gap:4px; align-items:center;">
+                            <button style="padding:4px 8px; font-size:0.75rem; border:1px solid var(--border); background:white; cursor:pointer; border-radius:4px;" onclick="alert('준비 중입니다.')">수정</button>
+                            <button style="padding:4px 8px; font-size:0.75rem; border:1px solid #fecaca; background:#fef2f2; color:#ef4444; cursor:pointer; border-radius:4px;" onclick="alert('준비 중입니다.')">삭제</button>
+                        </div>
+                    </td>`;
+                }
+                html += `</tr>`;
+            });
+        });
+
+        tbody.innerHTML = html;
+        tfoot.innerHTML = `
+            <tr>
+                <td colspan="3" class="text-center">총합계</td>
+                <td class="text-right">${formatCurrency(totalSalary)}</td>
+                <td class="text-right">${formatCurrency(totalIns)}</td>
+                <td class="text-right" style="color:var(--accent-rose);">${formatCurrency(totalCard)}</td>
+                <td class="text-right">${formatCurrency(grandTotal)}</td>
+                <td class="text-center" style="color:var(--accent-indigo);">${formatCurrency(grandTotal)}</td>
+                <td></td>
+            </tr>
+        `;
+    }
+
+    function renderFixedOfficeTable() {
+        const tbody = document.getElementById('fixed-office-tbody');
+        const tfoot = document.getElementById('fixed-office-tfoot');
+        if (!tbody || !tfoot) return;
+
+        let html = '';
+        const totals = { tax: 0, phone: 0, avante: 0, ray: 0, sosang: 0, ibk: 0, kibo: 0, credit: 0, monthTotal: 0 };
+
+        state.fixedOfficeData.forEach(row => {
+            const mTotal = row.tax + row.phone + row.avante + row.ray + row.sosang + row.ibk + row.kibo + row.credit;
+            totals.tax += row.tax; totals.phone += row.phone; totals.avante += row.avante; totals.ray += row.ray;
+            totals.sosang += row.sosang; totals.ibk += row.ibk; totals.kibo += row.kibo; totals.credit += row.credit;
+            totals.monthTotal += mTotal;
+
+            html += `<tr>
+                <td class="text-center" style="font-weight:600;">${row.month}</td>
+                <td class="text-right">${formatCurrency(row.tax)}</td>
+                <td class="text-right">${formatCurrency(row.phone)}</td>
+                <td class="text-right">${formatCurrency(row.avante)}</td>
+                <td class="text-right">${formatCurrency(row.ray)}</td>
+                <td class="text-right" style="color:#d97706;">${formatCurrency(row.sosang)}</td>
+                <td class="text-right" style="color:#d97706;">${formatCurrency(row.ibk)}</td>
+                <td class="text-right" style="color:#d97706;">${formatCurrency(row.kibo)}</td>
+                <td class="text-right" style="color:#d97706;">${formatCurrency(row.credit)}</td>
+                <td class="text-right" style="color:var(--accent-indigo); font-weight:700;">${formatCurrency(mTotal)}</td>
+                <td class="text-center">
+                    <button style="padding:4px 8px; font-size:0.75rem; border:1px solid var(--border); background:white; cursor:pointer; border-radius:4px;" onclick="alert('준비 중입니다.')">수정</button>
+                    <button style="padding:4px 8px; font-size:0.75rem; border:1px solid #fecaca; background:#fef2f2; color:#ef4444; cursor:pointer; border-radius:4px;" onclick="alert('준비 중입니다.')">삭제</button>
+                </td>
+            </tr>`;
+        });
+        tbody.innerHTML = html;
+        tfoot.innerHTML = `<tr>
+            <td class="text-center">총합계</td>
+            <td class="text-right">${formatCurrency(totals.tax)}</td>
+            <td class="text-right">${formatCurrency(totals.phone)}</td>
+            <td class="text-right">${formatCurrency(totals.avante)}</td>
+            <td class="text-right">${formatCurrency(totals.ray)}</td>
+            <td class="text-right" style="color:#d97706;">${formatCurrency(totals.sosang)}</td>
+            <td class="text-right" style="color:#d97706;">${formatCurrency(totals.ibk)}</td>
+            <td class="text-right" style="color:#d97706;">${formatCurrency(totals.kibo)}</td>
+            <td class="text-right" style="color:#d97706;">${formatCurrency(totals.credit)}</td>
+            <td class="text-right" style="color:var(--accent-indigo);">${formatCurrency(totals.monthTotal)}</td>
+            <td></td>
+        </tr>`;
+    }
+
+    function renderFixedVendorTable() {
+        const tbody = document.getElementById('fixed-vendor-tbody');
+        const tfoot = document.getElementById('fixed-vendor-tfoot');
+        if (!tbody || !tfoot) return;
+
+        let html = '';
+        const t = { samsung: 0, sungjin: 0, gwangmyung: 0, semukyoung: 0, semu: 0, ecount: 0, bstech: 0, chungho: 0, kt: 0, skt: 0, total: 0 };
+
+        state.fixedVendorData.forEach(row => {
+            const mTotal = row.samsung + row.sungjin + row.gwangmyung + row.semukyoung + row.semu + row.ecount + row.bstech + row.chungho + row.kt + row.skt;
+            t.samsung += row.samsung; t.sungjin += row.sungjin; t.gwangmyung += row.gwangmyung; t.semukyoung += row.semukyoung;
+            t.semu += row.semu; t.ecount += row.ecount; t.bstech += row.bstech; t.chungho += row.chungho; t.kt += row.kt; t.skt += row.skt;
+            t.total += mTotal;
+
+            html += `<tr>
+                <td class="text-center" style="font-weight:600;">${row.month}</td>
+                <td class="text-right">${formatCurrency(row.samsung)}</td>
+                <td class="text-right">${formatCurrency(row.sungjin)}</td>
+                <td class="text-right">${formatCurrency(row.gwangmyung)}</td>
+                <td class="text-right">${formatCurrency(row.semukyoung)}</td>
+                <td class="text-right">${formatCurrency(row.semu)}</td>
+                <td class="text-right">${formatCurrency(row.ecount)}</td>
+                <td class="text-right">${formatCurrency(row.bstech)}</td>
+                <td class="text-right">${formatCurrency(row.chungho)}</td>
+                <td class="text-right">${formatCurrency(row.kt)}</td>
+                <td class="text-right">${formatCurrency(row.skt)}</td>
+                <td class="text-right" style="color:var(--accent-indigo); font-weight:700;">${formatCurrency(mTotal)}</td>
+                <td class="text-center">
+                    <button style="padding:4px 8px; font-size:0.75rem; border:1px solid var(--border); background:white; cursor:pointer; border-radius:4px;" onclick="alert('준비 중입니다.')">수정</button>
+                    <button style="padding:4px 8px; font-size:0.75rem; border:1px solid #fecaca; background:#fef2f2; color:#ef4444; cursor:pointer; border-radius:4px;" onclick="alert('준비 중입니다.')">삭제</button>
+                </td>
+            </tr>`;
+        });
+        tbody.innerHTML = html;
+        tfoot.innerHTML = `<tr>
+            <td class="text-center">총합계</td>
+            <td class="text-right">${formatCurrency(t.samsung)}</td>
+            <td class="text-right">${formatCurrency(t.sungjin)}</td>
+            <td class="text-right">${formatCurrency(t.gwangmyung)}</td>
+            <td class="text-right">${formatCurrency(t.semukyoung)}</td>
+            <td class="text-right">${formatCurrency(t.semu)}</td>
+            <td class="text-right">${formatCurrency(t.ecount)}</td>
+            <td class="text-right">${formatCurrency(t.bstech)}</td>
+            <td class="text-right">${formatCurrency(t.chungho)}</td>
+            <td class="text-right">${formatCurrency(t.kt)}</td>
+            <td class="text-right">${formatCurrency(t.skt)}</td>
+            <td class="text-right" style="color:var(--accent-indigo);">${formatCurrency(t.total)}</td>
+            <td></td>
+        </tr>`;
+    }
+
 
     // ===== 서머리 카드 생성 =====
     function createSummaryCard(color, icon, label, value, sub) {
@@ -2111,7 +2351,8 @@
             'nujen': ['뉴진스 재고관리', 'NuGen 제품군별 기초 입고 및 판매 대비 재고 현황입니다.'],
             'card-sales': ['카드매출 내역', '카드매출전표 세부내역을 확인합니다.'],
             'purchases': ['매입 내역', '세금계산서 기반 매입 세부내역을 확인합니다.'],
-            'vat': ['부가세 신고', '2026년 상반기 부가가치세 신고를 위한 세금계산서 및 신용카드 매입 집계 현황입니다.']
+            'vat': ['부가세 신고', '2026년 상반기 부가가치세 신고를 위한 세금계산서 및 신용카드 매입 집계 현황입니다.'],
+            'fixed-expenses': ['고정지출 관리', '인건비, 사무실비용, 고정 거래처 지출 내역입니다.']
         };
         const [title, desc] = titles[viewName] || ['', ''];
         document.getElementById('page-title').textContent = title;
@@ -2132,6 +2373,7 @@
             case 'card-sales': renderCardSalesView(); break;
             case 'purchases': renderPurchasesView(); break;
             case 'vat': renderVatView(); break;
+            case 'fixed-expenses': renderFixedExpensesView(); break;
         }
     }
 
