@@ -20,10 +20,43 @@
         fixedLaborData: [],
         fixedOfficeData: [],
         fixedVendorData: [],
+        fixedLaborPeople: [],
+        fixedOfficeColumns: [],
+        fixedVendorColumns: [],
         isVatAuthorized: sessionStorage.getItem('vat_authorized') === 'true',
         pendingView: null,
         charts: {}
     };
+
+    const DEFAULT_FIXED_LABOR_PEOPLE = [
+        { name: '김기환', role: '대표이사' },
+        { name: '나혜원', role: '부장' },
+        { name: '양유지', role: '매니저' }
+    ];
+
+    const DEFAULT_FIXED_OFFICE_COLUMNS = [
+        { id: 'tax', label: '세금' },
+        { id: 'phone', label: '법인핸드폰' },
+        { id: 'avante', label: '아반테 렌탈' },
+        { id: 'ray', label: '레이 할부' },
+        { id: 'sosang', label: '소상공인 이자' },
+        { id: 'ibk', label: '기업은행 이자' },
+        { id: 'kibo', label: '기술보증 이자' },
+        { id: 'credit', label: '신용대출 이자' }
+    ];
+
+    const DEFAULT_FIXED_VENDOR_COLUMNS = [
+        { id: 'samsung', label: '삼성오에이프라자' },
+        { id: 'sungjin', label: '성진정보텍' },
+        { id: 'gwangmyung', label: '광명G타워' },
+        { id: 'semukyoung', label: '기업세무회계경영' },
+        { id: 'semu', label: '기업세무회계' },
+        { id: 'ecount', label: '이카운트' },
+        { id: 'bstech', label: '비에스테크광명(임대료)' },
+        { id: 'chungho', label: '청호나이스' },
+        { id: 'kt', label: '케이티' },
+        { id: 'skt', label: '에스케이텔레콤' }
+    ];
 
     const DEFAULT_FIXED_LABOR_DATA = [
         { month: '2026년 5월', items: [
@@ -528,6 +561,31 @@
                 state.fixedVendorData = JSON.parse(JSON.stringify(DEFAULT_FIXED_VENDOR_DATA));
             }
 
+            // 고정지출 항목/직원 구조 로드
+            const savedLaborPeople = localStorage.getItem('fixed_labor_people');
+            if (savedLaborPeople) {
+                try { state.fixedLaborPeople = JSON.parse(savedLaborPeople); }
+                catch(e) { state.fixedLaborPeople = JSON.parse(JSON.stringify(DEFAULT_FIXED_LABOR_PEOPLE)); }
+            } else {
+                state.fixedLaborPeople = JSON.parse(JSON.stringify(DEFAULT_FIXED_LABOR_PEOPLE));
+            }
+
+            const savedOfficeColumns = localStorage.getItem('fixed_office_columns');
+            if (savedOfficeColumns) {
+                try { state.fixedOfficeColumns = JSON.parse(savedOfficeColumns); }
+                catch(e) { state.fixedOfficeColumns = JSON.parse(JSON.stringify(DEFAULT_FIXED_OFFICE_COLUMNS)); }
+            } else {
+                state.fixedOfficeColumns = JSON.parse(JSON.stringify(DEFAULT_FIXED_OFFICE_COLUMNS));
+            }
+
+            const savedVendorColumns = localStorage.getItem('fixed_vendor_columns');
+            if (savedVendorColumns) {
+                try { state.fixedVendorColumns = JSON.parse(savedVendorColumns); }
+                catch(e) { state.fixedVendorColumns = JSON.parse(JSON.stringify(DEFAULT_FIXED_VENDOR_COLUMNS)); }
+            } else {
+                state.fixedVendorColumns = JSON.parse(JSON.stringify(DEFAULT_FIXED_VENDOR_COLUMNS));
+            }
+
             // 배지 업데이트
             document.getElementById('badge-sales').textContent = state.salesData.length;
             document.getElementById('badge-inventory').textContent = '7'; // ExT 제품군 수
@@ -872,20 +930,30 @@
         // 인건비 합산
         let laborTotal = 0;
         state.fixedLaborData.forEach(m => {
-            m.items.forEach(i => { laborTotal += i.salary + i.ins + i.card; });
+            if (m.items) {
+                m.items.forEach(i => { laborTotal += i.salary + i.ins + i.card; });
+            }
         });
 
         // 사무실비용 합산 (세금+폰+렌탈+할부 = 사무실고정, 이자 = 금융이자)
         let officeFixed = 0, interestTotal = 0;
         state.fixedOfficeData.forEach(r => {
-            officeFixed += r.tax + r.phone + r.avante + r.ray;
-            interestTotal += r.sosang + r.ibk + r.kibo + r.credit;
+            state.fixedOfficeColumns.forEach(col => {
+                const val = r[col.id] || 0;
+                if (col.label.includes('이자')) {
+                    interestTotal += val;
+                } else {
+                    officeFixed += val;
+                }
+            });
         });
 
         // 거래처 합산
         let vendorTotal = 0;
         state.fixedVendorData.forEach(r => {
-            vendorTotal += r.samsung + r.sungjin + r.gwangmyung + r.semukyoung + r.semu + r.ecount + r.bstech + r.chungho + r.kt + r.skt;
+            state.fixedVendorColumns.forEach(col => {
+                vendorTotal += r[col.id] || 0;
+            });
         });
 
         const grandTotal = laborTotal + officeFixed + interestTotal + vendorTotal;
@@ -964,120 +1032,152 @@
     }
 
     function renderFixedOfficeTable() {
+        const thead = document.getElementById('fixed-office-thead');
         const tbody = document.getElementById('fixed-office-tbody');
         const tfoot = document.getElementById('fixed-office-tfoot');
-        if (!tbody || !tfoot) return;
+        if (!thead || !tbody || !tfoot) return;
 
+        // Render thead
+        let theadHtml = `<tr>
+            <th>년월</th>`;
+        state.fixedOfficeColumns.forEach(col => {
+            theadHtml += `<th class="text-right">${col.label}</th>`;
+        });
+        theadHtml += `
+            <th class="text-right">월 합계</th>
+            <th class="text-center">작업</th>
+        </tr>`;
+        thead.innerHTML = theadHtml;
+
+        // Initialize column totals
+        const colTotals = {};
+        state.fixedOfficeColumns.forEach(col => { colTotals[col.id] = 0; });
+        let grandTotal = 0;
+
+        // Render tbody
         let html = '';
-        const totals = { tax: 0, phone: 0, avante: 0, ray: 0, sosang: 0, ibk: 0, kibo: 0, credit: 0, monthTotal: 0 };
-
         state.fixedOfficeData.forEach(row => {
-            const mTotal = row.tax + row.phone + row.avante + row.ray + row.sosang + row.ibk + row.kibo + row.credit;
-            totals.tax += row.tax; totals.phone += row.phone; totals.avante += row.avante; totals.ray += row.ray;
-            totals.sosang += row.sosang; totals.ibk += row.ibk; totals.kibo += row.kibo; totals.credit += row.credit;
-            totals.monthTotal += mTotal;
+            let rowTotal = 0;
+            let rowHtml = `<tr>
+                <td class="text-center" style="font-weight:600;">${row.month}</td>`;
+            
+            state.fixedOfficeColumns.forEach(col => {
+                const val = row[col.id] || 0;
+                rowTotal += val;
+                colTotals[col.id] += val;
 
-            html += `<tr>
-                <td class="text-center" style="font-weight:600;">${row.month}</td>
-                <td class="text-right">${formatCurrency(row.tax)}</td>
-                <td class="text-right">${formatCurrency(row.phone)}</td>
-                <td class="text-right">${formatCurrency(row.avante)}</td>
-                <td class="text-right">${formatCurrency(row.ray)}</td>
-                <td class="text-right" style="color:#d97706;">${formatCurrency(row.sosang)}</td>
-                <td class="text-right" style="color:#d97706;">${formatCurrency(row.ibk)}</td>
-                <td class="text-right" style="color:#d97706;">${formatCurrency(row.kibo)}</td>
-                <td class="text-right" style="color:#d97706;">${formatCurrency(row.credit)}</td>
-                <td class="text-right" style="color:var(--accent-indigo); font-weight:700;">${formatCurrency(mTotal)}</td>
+                const isInterest = col.label.includes('이자');
+                const style = isInterest ? ' style="color:#d97706;"' : '';
+                rowHtml += `<td class="text-right"${style}>${formatCurrency(val)}</td>`;
+            });
+
+            grandTotal += rowTotal;
+            rowHtml += `
+                <td class="text-right" style="color:var(--accent-indigo); font-weight:700;">${formatCurrency(rowTotal)}</td>
                 <td class="text-center">
                     <button style="padding:4px 8px; font-size:0.75rem; border:1px solid var(--border); background:white; cursor:pointer; border-radius:4px;" onclick="window.editFixedExpense('office', '${row.month}')">수정</button>
                     <button style="padding:4px 8px; font-size:0.75rem; border:1px solid #fecaca; background:#fef2f2; color:#ef4444; cursor:pointer; border-radius:4px;" onclick="window.deleteFixedExpense('office', '${row.month}')">삭제</button>
                 </td>
             </tr>`;
+            html += rowHtml;
         });
         tbody.innerHTML = html;
-        tfoot.innerHTML = `<tr>
-            <td class="text-center">총합계</td>
-            <td class="text-right">${formatCurrency(totals.tax)}</td>
-            <td class="text-right">${formatCurrency(totals.phone)}</td>
-            <td class="text-right">${formatCurrency(totals.avante)}</td>
-            <td class="text-right">${formatCurrency(totals.ray)}</td>
-            <td class="text-right" style="color:#d97706;">${formatCurrency(totals.sosang)}</td>
-            <td class="text-right" style="color:#d97706;">${formatCurrency(totals.ibk)}</td>
-            <td class="text-right" style="color:#d97706;">${formatCurrency(totals.kibo)}</td>
-            <td class="text-right" style="color:#d97706;">${formatCurrency(totals.credit)}</td>
-            <td class="text-right" style="color:var(--accent-indigo);">${formatCurrency(totals.monthTotal)}</td>
+
+        // Render tfoot
+        let tfootHtml = `<tr>
+            <td class="text-center">총합계</td>`;
+        state.fixedOfficeColumns.forEach(col => {
+            const isInterest = col.label.includes('이자');
+            const style = isInterest ? ' style="color:#d97706;"' : '';
+            tfootHtml += `<td class="text-right"${style}>${formatCurrency(colTotals[col.id])}</td>`;
+        });
+        tfootHtml += `
+            <td class="text-right" style="color:var(--accent-indigo);">${formatCurrency(grandTotal)}</td>
             <td></td>
         </tr>`;
+        tfoot.innerHTML = tfootHtml;
     }
 
     function renderFixedVendorTable() {
+        const thead = document.getElementById('fixed-vendor-thead');
         const tbody = document.getElementById('fixed-vendor-tbody');
         const tfoot = document.getElementById('fixed-vendor-tfoot');
-        if (!tbody || !tfoot) return;
+        if (!thead || !tbody || !tfoot) return;
 
+        // Render thead
+        let theadHtml = `<tr>
+            <th>년월</th>`;
+        state.fixedVendorColumns.forEach(col => {
+            theadHtml += `<th class="text-right">${col.label}</th>`;
+        });
+        theadHtml += `
+            <th class="text-right">월 합계</th>
+            <th class="text-center">작업</th>
+        </tr>`;
+        thead.innerHTML = theadHtml;
+
+        // Initialize column totals
+        const colTotals = {};
+        state.fixedVendorColumns.forEach(col => { colTotals[col.id] = 0; });
+        let grandTotal = 0;
+
+        // Render tbody
         let html = '';
-        const t = { samsung: 0, sungjin: 0, gwangmyung: 0, semukyoung: 0, semu: 0, ecount: 0, bstech: 0, chungho: 0, kt: 0, skt: 0, total: 0 };
-
         state.fixedVendorData.forEach(row => {
-            const mTotal = row.samsung + row.sungjin + row.gwangmyung + row.semukyoung + row.semu + row.ecount + row.bstech + row.chungho + row.kt + row.skt;
-            t.samsung += row.samsung; t.sungjin += row.sungjin; t.gwangmyung += row.gwangmyung; t.semukyoung += row.semukyoung;
-            t.semu += row.semu; t.ecount += row.ecount; t.bstech += row.bstech; t.chungho += row.chungho; t.kt += row.kt; t.skt += row.skt;
-            t.total += mTotal;
+            let rowTotal = 0;
+            let rowHtml = `<tr>
+                <td class="text-center" style="font-weight:600;">${row.month}</td>`;
+            
+            state.fixedVendorColumns.forEach(col => {
+                const val = row[col.id] || 0;
+                rowTotal += val;
+                colTotals[col.id] += val;
+                rowHtml += `<td class="text-right">${formatCurrency(val)}</td>`;
+            });
 
-            html += `<tr>
-                <td class="text-center" style="font-weight:600;">${row.month}</td>
-                <td class="text-right">${formatCurrency(row.samsung)}</td>
-                <td class="text-right">${formatCurrency(row.sungjin)}</td>
-                <td class="text-right">${formatCurrency(row.gwangmyung)}</td>
-                <td class="text-right">${formatCurrency(row.semukyoung)}</td>
-                <td class="text-right">${formatCurrency(row.semu)}</td>
-                <td class="text-right">${formatCurrency(row.ecount)}</td>
-                <td class="text-right">${formatCurrency(row.bstech)}</td>
-                <td class="text-right">${formatCurrency(row.chungho)}</td>
-                <td class="text-right">${formatCurrency(row.kt)}</td>
-                <td class="text-right">${formatCurrency(row.skt)}</td>
-                <td class="text-right" style="color:var(--accent-indigo); font-weight:700;">${formatCurrency(mTotal)}</td>
+            grandTotal += rowTotal;
+            rowHtml += `
+                <td class="text-right" style="color:var(--accent-indigo); font-weight:700;">${formatCurrency(rowTotal)}</td>
                 <td class="text-center">
                     <button style="padding:4px 8px; font-size:0.75rem; border:1px solid var(--border); background:white; cursor:pointer; border-radius:4px;" onclick="window.editFixedExpense('vendor', '${row.month}')">수정</button>
                     <button style="padding:4px 8px; font-size:0.75rem; border:1px solid #fecaca; background:#fef2f2; color:#ef4444; cursor:pointer; border-radius:4px;" onclick="window.deleteFixedExpense('vendor', '${row.month}')">삭제</button>
                 </td>
             </tr>`;
+            html += rowHtml;
         });
         tbody.innerHTML = html;
-        tfoot.innerHTML = `<tr>
-            <td class="text-center">총합계</td>
-            <td class="text-right">${formatCurrency(t.samsung)}</td>
-            <td class="text-right">${formatCurrency(t.sungjin)}</td>
-            <td class="text-right">${formatCurrency(t.gwangmyung)}</td>
-            <td class="text-right">${formatCurrency(t.semukyoung)}</td>
-            <td class="text-right">${formatCurrency(t.semu)}</td>
-            <td class="text-right">${formatCurrency(t.ecount)}</td>
-            <td class="text-right">${formatCurrency(t.bstech)}</td>
-            <td class="text-right">${formatCurrency(t.chungho)}</td>
-            <td class="text-right">${formatCurrency(t.kt)}</td>
-            <td class="text-right">${formatCurrency(t.skt)}</td>
-            <td class="text-right" style="color:var(--accent-indigo);">${formatCurrency(t.total)}</td>
+
+        // Render tfoot
+        let tfootHtml = `<tr>
+            <td class="text-center">총합계</td>`;
+        state.fixedVendorColumns.forEach(col => {
+            tfootHtml += `<td class="text-right">${formatCurrency(colTotals[col.id])}</td>`;
+        });
+        tfootHtml += `
+            <td class="text-right" style="color:var(--accent-indigo);">${formatCurrency(grandTotal)}</td>
             <td></td>
         </tr>`;
+        tfoot.innerHTML = tfootHtml;
     }
 
-    // ===== 고정지출 월별 등록 모달 =====
     function getLastMonthFixedData(type, monthVal) {
-        // 가장 최근에 실제 금액이 있는 달의 데이터를 찾아서 프리필
         if (!monthVal) return null;
 
         if (type === 'labor') {
-            // items 배열 중 salary/ins/card 합이 0보다 큰 데이터 찾기
             return state.fixedLaborData.find(d => {
                 return d.items && d.items.some(i => (i.salary + i.ins + i.card) > 0);
             }) || null;
         } else if (type === 'office') {
             return state.fixedOfficeData.find(r => {
-                return (r.tax + r.phone + r.avante + r.ray + r.sosang + r.ibk + r.kibo + r.credit) > 0;
+                let sum = 0;
+                state.fixedOfficeColumns.forEach(col => { sum += r[col.id] || 0; });
+                return sum > 0;
             }) || null;
         } else if (type === 'vendor') {
             return state.fixedVendorData.find(r => {
-                return (r.samsung + r.sungjin + r.gwangmyung + r.semukyoung + r.semu + r.ecount + r.bstech + r.chungho + r.kt + r.skt) > 0;
+                let sum = 0;
+                state.fixedVendorColumns.forEach(col => { sum += r[col.id] || 0; });
+                return sum > 0;
             }) || null;
         }
         return null;
@@ -1091,18 +1191,13 @@
         const hintStyle = 'font-size:0.75rem; color:var(--accent-indigo); margin-top:2px;';
 
         if (type === 'labor') {
-            const people = [
-                { name: '김기환', role: '대표이사' },
-                { name: '나혜원', role: '부장' },
-                { name: '양유지', role: '매니저' }
-            ];
             let h = '';
             if (prefillData) {
                 h += `<div style="padding:8px 12px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:var(--radius-md); margin-bottom:12px; font-size:0.82rem; color:#15803d; font-weight:600;">📋 지난달 금액이 자동으로 입력되었습니다. 수정 후 저장해 주세요.</div>`;
             }
             h += '<div style="display:flex; flex-direction:column; gap:16px;">';
-            people.forEach((p, i) => {
-                const prev = prefillData && prefillData.items ? prefillData.items[i] : null;
+            state.fixedLaborPeople.forEach((p, i) => {
+                const prev = prefillData && prefillData.items ? prefillData.items.find(item => item.name === p.name) : null;
                 const salaryVal = prev ? prev.salary : '';
                 const insVal = prev ? prev.ins : '';
                 const cardVal = prev ? prev.card : '';
@@ -1118,39 +1213,26 @@
             h += '</div>';
             fieldsEl.innerHTML = h;
         } else if (type === 'office') {
-            const items = [
-                { id: 'tax', label: '세금' }, { id: 'phone', label: '법인핸드폰' },
-                { id: 'avante', label: '아반테 렌탈' }, { id: 'ray', label: '레이 할부' },
-                { id: 'sosang', label: '소상공인 이자' }, { id: 'ibk', label: '기업은행 이자' },
-                { id: 'kibo', label: '기술보증 이자' }, { id: 'credit', label: '신용대출 이자' }
-            ];
             let h = '';
             if (prefillData) {
                 h += `<div style="padding:8px 12px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:var(--radius-md); margin-bottom:12px; font-size:0.82rem; color:#15803d; font-weight:600;">📋 지난달 금액이 자동으로 입력되었습니다. 수정 후 저장해 주세요.</div>`;
             }
             h += '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">';
-            items.forEach(it => {
-                const val = prefillData ? (prefillData[it.id] || '') : '';
-                h += `<div><label style="${labelStyle}">${it.label}</label><input type="text" id="office-${it.id}" value="${val}" placeholder="0" style="${inputStyle}"></div>`;
+            state.fixedOfficeColumns.forEach(col => {
+                const val = prefillData ? (prefillData[col.id] || '') : '';
+                h += `<div><label style="${labelStyle}">${col.label}</label><input type="text" id="office-${col.id}" value="${val}" placeholder="0" style="${inputStyle}"></div>`;
             });
             h += '</div>';
             fieldsEl.innerHTML = h;
         } else if (type === 'vendor') {
-            const items = [
-                { id: 'samsung', label: '삼성오에이프라자' }, { id: 'sungjin', label: '성진정보텍' },
-                { id: 'gwangmyung', label: '광명G타워' }, { id: 'semukyoung', label: '기업세무회계경영' },
-                { id: 'semu', label: '기업세무회계' }, { id: 'ecount', label: '이카운트' },
-                { id: 'bstech', label: '비에스테크광명(임대료)' }, { id: 'chungho', label: '청호나이스' },
-                { id: 'kt', label: '케이티' }, { id: 'skt', label: '에스케이텔레콤' }
-            ];
             let h = '';
             if (prefillData) {
                 h += `<div style="padding:8px 12px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:var(--radius-md); margin-bottom:12px; font-size:0.82rem; color:#15803d; font-weight:600;">📋 지난달 금액이 자동으로 입력되었습니다. 수정 후 저장해 주세요.</div>`;
             }
             h += '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">';
-            items.forEach(it => {
-                const val = prefillData ? (prefillData[it.id] || '') : '';
-                h += `<div><label style="${labelStyle}">${it.label}</label><input type="text" id="vendor-${it.id}" value="${val}" placeholder="0" style="${inputStyle}"></div>`;
+            state.fixedVendorColumns.forEach(col => {
+                const val = prefillData ? (prefillData[col.id] || '') : '';
+                h += `<div><label style="${labelStyle}">${col.label}</label><input type="text" id="vendor-${col.id}" value="${val}" placeholder="0" style="${inputStyle}"></div>`;
             });
             h += '</div>';
             fieldsEl.innerHTML = h;
@@ -1177,7 +1259,7 @@
         const errorEl = document.getElementById('fixed-reg-error');
         if (!monthInput || !typeSelect) return;
 
-        const monthVal = monthInput.value; // e.g. '2026-07'
+        const monthVal = monthInput.value;
         if (!monthVal) {
             errorEl.textContent = '등록 연월을 선택해 주세요.';
             errorEl.style.display = 'block';
@@ -1192,13 +1274,18 @@
             const monthLabel = `${parts[0]}년 ${parseInt(parts[1], 10)}월`;
 
             const exists = state.fixedLaborData.findIndex(d => d.month === monthLabel);
+            const items = state.fixedLaborPeople.map((p, i) => {
+                return {
+                    name: p.name,
+                    role: p.role,
+                    salary: getNumVal(`labor-salary-${i}`),
+                    ins: getNumVal(`labor-ins-${i}`),
+                    card: getNumVal(`labor-card-${i}`)
+                };
+            });
             const newEntry = {
                 month: monthLabel,
-                items: [
-                    { name: '김기환', role: '대표이사', salary: getNumVal('labor-salary-0'), ins: getNumVal('labor-ins-0'), card: getNumVal('labor-card-0') },
-                    { name: '나혜원', role: '부장', salary: getNumVal('labor-salary-1'), ins: getNumVal('labor-ins-1'), card: getNumVal('labor-card-1') },
-                    { name: '양유지', role: '매니저', salary: getNumVal('labor-salary-2'), ins: getNumVal('labor-ins-2'), card: getNumVal('labor-card-2') }
-                ]
+                items: items
             };
             if (exists >= 0) {
                 state.fixedLaborData[exists] = newEntry;
@@ -1210,13 +1297,10 @@
 
         } else if (type === 'office') {
             const exists = state.fixedOfficeData.findIndex(d => d.month === monthVal);
-            const newEntry = {
-                month: monthVal,
-                tax: getNumVal('office-tax'), phone: getNumVal('office-phone'),
-                avante: getNumVal('office-avante'), ray: getNumVal('office-ray'),
-                sosang: getNumVal('office-sosang'), ibk: getNumVal('office-ibk'),
-                kibo: getNumVal('office-kibo'), credit: getNumVal('office-credit')
-            };
+            const newEntry = { month: monthVal };
+            state.fixedOfficeColumns.forEach(col => {
+                newEntry[col.id] = getNumVal(`office-${col.id}`);
+            });
             if (exists >= 0) {
                 state.fixedOfficeData[exists] = newEntry;
             } else {
@@ -1227,14 +1311,10 @@
 
         } else if (type === 'vendor') {
             const exists = state.fixedVendorData.findIndex(d => d.month === monthVal);
-            const newEntry = {
-                month: monthVal,
-                samsung: getNumVal('vendor-samsung'), sungjin: getNumVal('vendor-sungjin'),
-                gwangmyung: getNumVal('vendor-gwangmyung'), semukyoung: getNumVal('vendor-semukyoung'),
-                semu: getNumVal('vendor-semu'), ecount: getNumVal('vendor-ecount'),
-                bstech: getNumVal('vendor-bstech'), chungho: getNumVal('vendor-chungho'),
-                kt: getNumVal('vendor-kt'), skt: getNumVal('vendor-skt')
-            };
+            const newEntry = { month: monthVal };
+            state.fixedVendorColumns.forEach(col => {
+                newEntry[col.id] = getNumVal(`vendor-${col.id}`);
+            });
             if (exists >= 0) {
                 state.fixedVendorData[exists] = newEntry;
             } else {
@@ -1328,6 +1408,94 @@
         }
     };
 
+    function openFixedNewItemModal() {
+        const modal = document.getElementById('fixed-new-item-modal');
+        if (modal) {
+            modal.classList.add('active');
+            document.getElementById('fixed-new-labor-name').value = '';
+            document.getElementById('fixed-new-labor-role').value = '';
+            document.getElementById('fixed-new-general-name').value = '';
+            document.getElementById('fixed-new-item-error').style.display = 'none';
+            handleNewItemCategoryChange();
+        }
+    }
+
+    function closeFixedNewItemModal() {
+        const modal = document.getElementById('fixed-new-item-modal');
+        if (modal) {
+            modal.classList.remove('active');
+        }
+    }
+
+    function handleNewItemCategoryChange() {
+        const categorySelect = document.getElementById('fixed-new-item-category');
+        const laborFields = document.getElementById('new-item-labor-fields');
+        const generalFields = document.getElementById('new-item-general-fields');
+        const generalLabel = document.getElementById('new-item-general-label');
+        if (!categorySelect || !laborFields || !generalFields || !generalLabel) return;
+
+        const val = categorySelect.value;
+        if (val === 'labor') {
+            laborFields.style.display = 'block';
+            generalFields.style.display = 'none';
+        } else {
+            laborFields.style.display = 'none';
+            generalFields.style.display = 'block';
+            if (val === 'office') {
+                generalLabel.textContent = '사무실비용 항목 이름';
+            } else {
+                generalLabel.textContent = '거래처 이름';
+            }
+        }
+    }
+
+    function saveFixedNewItem() {
+        const categorySelect = document.getElementById('fixed-new-item-category');
+        const errorEl = document.getElementById('fixed-new-item-error');
+        if (!categorySelect || !errorEl) return;
+
+        const type = categorySelect.value;
+        errorEl.style.display = 'none';
+
+        if (type === 'labor') {
+            const name = document.getElementById('fixed-new-labor-name').value.trim();
+            const role = document.getElementById('fixed-new-labor-role').value.trim();
+            if (!name || !role) {
+                errorEl.textContent = '이름과 직급을 모두 입력해 주세요.';
+                errorEl.style.display = 'block';
+                return;
+            }
+            state.fixedLaborPeople.push({ name, role });
+            localStorage.setItem('fixed_labor_people', JSON.stringify(state.fixedLaborPeople));
+            showToast('✅ 신규 직원이 등록되었습니다.');
+        } else if (type === 'office') {
+            const name = document.getElementById('fixed-new-general-name').value.trim();
+            if (!name) {
+                errorEl.textContent = '항목 이름을 입력해 주세요.';
+                errorEl.style.display = 'block';
+                return;
+            }
+            const id = 'office_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+            state.fixedOfficeColumns.push({ id, label: name });
+            localStorage.setItem('fixed_office_columns', JSON.stringify(state.fixedOfficeColumns));
+            showToast('✅ 사무실비용 항목이 등록되었습니다.');
+        } else if (type === 'vendor') {
+            const name = document.getElementById('fixed-new-general-name').value.trim();
+            if (!name) {
+                errorEl.textContent = '거래처 이름을 입력해 주세요.';
+                errorEl.style.display = 'block';
+                return;
+            }
+            const id = 'vendor_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+            state.fixedVendorColumns.push({ id, label: name });
+            localStorage.setItem('fixed_vendor_columns', JSON.stringify(state.fixedVendorColumns));
+            showToast('✅ 고정 거래처가 등록되었습니다.');
+        }
+
+        closeFixedNewItemModal();
+        renderFixedExpensesView();
+    }
+
     function bindFixedExpenseEvents() {
         // 등록 버튼
         const regBtn = document.getElementById('btn-fixed-register');
@@ -1367,6 +1535,36 @@
         const saveBtn = document.getElementById('btn-fixed-reg-save');
         if (saveBtn) {
             saveBtn.addEventListener('click', saveFixedRegistration);
+        }
+
+        // --- 신규등록 항목/직원 모달 이벤트 ---
+        const newItemBtn = document.getElementById('btn-fixed-new-item');
+        if (newItemBtn) {
+            newItemBtn.addEventListener('click', openFixedNewItemModal);
+        }
+
+        const newItemCloseBtn = document.getElementById('fixed-new-item-modal-close');
+        if (newItemCloseBtn) {
+            newItemCloseBtn.addEventListener('click', closeFixedNewItemModal);
+        }
+
+        const newItemOverlay = document.getElementById('fixed-new-item-modal');
+        if (newItemOverlay) {
+            newItemOverlay.addEventListener('click', e => {
+                if (e.target === e.currentTarget) {
+                    closeFixedNewItemModal();
+                }
+            });
+        }
+
+        const newItemCategory = document.getElementById('fixed-new-item-category');
+        if (newItemCategory) {
+            newItemCategory.addEventListener('change', handleNewItemCategoryChange);
+        }
+
+        const newItemSaveBtn = document.getElementById('btn-fixed-new-item-save');
+        if (newItemSaveBtn) {
+            newItemSaveBtn.addEventListener('click', saveFixedNewItem);
         }
     }
 

@@ -523,7 +523,10 @@
                                 <button class="filter-btn" id="btn-fixed-office" onclick="toggleFixedTab('office')">사무실비용</button>
                                 <button class="filter-btn" id="btn-fixed-vendor" onclick="toggleFixedTab('vendor')">고정 거래처 지출</button>
                             </div>
-                            <button id="btn-fixed-register" style="font-size:0.85rem; padding:8px 16px; border-radius:6px; background:var(--accent-indigo); color:white; border:none; cursor:pointer; font-weight:600; box-shadow:var(--shadow-sm);">월별등록</button>
+                            <div style="display: flex; gap: 8px;">
+                                <button id="btn-fixed-register" style="font-size:0.85rem; padding:8px 16px; border-radius:6px; background:var(--accent-indigo); color:white; border:none; cursor:pointer; font-weight:600; box-shadow:var(--shadow-sm);">월별등록</button>
+                                <button id="btn-fixed-new-item" style="font-size:0.85rem; padding:8px 16px; border-radius:6px; background:var(--bg-secondary); color:var(--text-primary); border:1px solid var(--border); cursor:pointer; font-weight:600; box-shadow:var(--shadow-sm);">신규등록</button>
+                            </div>
                         </div>
                         
                         <!-- 인건비 테이블 -->
@@ -550,20 +553,8 @@
                         <!-- 사무실비용 테이블 -->
                         <div class="table-wrapper" id="fixed-office-container" style="display:none;">
                             <table class="data-table">
-                                <thead>
-                                    <tr>
-                                        <th>년월</th>
-                                        <th class="text-right">세금</th>
-                                        <th class="text-right">법인핸드폰</th>
-                                        <th class="text-right">아반테 렌탈</th>
-                                        <th class="text-right">레이 할부</th>
-                                        <th class="text-right">소상공인 이자</th>
-                                        <th class="text-right">기업은행 이자</th>
-                                        <th class="text-right">기술보증 이자</th>
-                                        <th class="text-right">신용대출 이자</th>
-                                        <th class="text-right">월 합계</th>
-                                        <th class="text-center">작업</th>
-                                    </tr>
+                                <thead id="fixed-office-thead">
+                                    <!-- Dynamic -->
                                 </thead>
                                 <tbody id="fixed-office-tbody"></tbody>
                                 <tfoot id="fixed-office-tfoot" style="font-weight:bold; background:var(--bg-secondary);"></tfoot>
@@ -573,22 +564,8 @@
                         <!-- 고정 거래처 지출 테이블 -->
                         <div class="table-wrapper" id="fixed-vendor-container" style="display:none;">
                             <table class="data-table">
-                                <thead>
-                                    <tr>
-                                        <th>년월</th>
-                                        <th class="text-right">삼성오에이프라자</th>
-                                        <th class="text-right">성진정보텍</th>
-                                        <th class="text-right">광명G타워</th>
-                                        <th class="text-right">기업세무회계경영</th>
-                                        <th class="text-right">기업세무회계</th>
-                                        <th class="text-right">이카운트</th>
-                                        <th class="text-right">비에스테크광명(임대료)</th>
-                                        <th class="text-right">청호나이스</th>
-                                        <th class="text-right">케이티</th>
-                                        <th class="text-right">에스케이텔레콤</th>
-                                        <th class="text-right">월 합계</th>
-                                        <th class="text-center">작업</th>
-                                    </tr>
+                                <thead id="fixed-vendor-thead">
+                                    <!-- Dynamic -->
                                 </thead>
                                 <tbody id="fixed-vendor-tbody"></tbody>
                                 <tfoot id="fixed-vendor-tfoot" style="font-weight:bold; background:var(--bg-secondary);"></tfoot>
@@ -644,7 +621,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-    <script src="app.js?v=1.6.0"></script>
+    <script src="app.js?v=1.7.0"></script>
     <script>
         function toggleExtChart(type) {
             const title = document.getElementById('ext-chart-title');
@@ -743,6 +720,53 @@
                 <div id="fixed-reg-error" style="color:var(--accent-rose); font-size:0.85rem; text-align:center; display:none; margin-bottom:12px; font-weight:600;"></div>
                 <button id="btn-fixed-reg-save" style="width:100%; padding:12px; background:var(--accent-indigo); color:white; border:none; border-radius:var(--radius-md); font-size:0.95rem; font-weight:700; cursor:pointer; box-shadow:var(--shadow-sm);">
                     저장하기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 고정지출 신규등록 (항목/직원 추가) 모달 -->
+    <div class="modal-overlay" id="fixed-new-item-modal">
+        <div class="modal" style="max-width: 480px; border-radius: var(--radius-lg);">
+            <div class="modal-header" style="padding: 16px 20px;">
+                <h3 style="font-weight: 700; font-size: 1.1rem;">➕ 고정지출 신규 항목/직원 등록</h3>
+                <button class="modal-close" id="fixed-new-item-modal-close">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="modal-body" style="padding: 24px;">
+                <div style="margin-bottom: 16px;">
+                    <label style="font-size:0.85rem; font-weight:600; color:var(--text-secondary); margin-bottom:6px; display:block;">등록 구분</label>
+                    <select id="fixed-new-item-category" style="width:100%; padding:10px 12px; border:1px solid var(--border-light); border-radius:var(--radius-md); font-size:0.95rem; box-sizing:border-box; background:var(--bg-secondary); color:var(--text-primary);">
+                        <option value="labor">인건비 (직원 추가)</option>
+                        <option value="office">사무실비용 (항목 추가)</option>
+                        <option value="vendor">고정 거래처 지출 (거래처 추가)</option>
+                    </select>
+                </div>
+                
+                <!-- 직원 추가용 입력 필드 -->
+                <div id="new-item-labor-fields" style="display:block; margin-bottom:20px;">
+                    <div style="margin-bottom:12px;">
+                        <label style="font-size:0.85rem; font-weight:600; color:var(--text-secondary); margin-bottom:6px; display:block;">직원 이름</label>
+                        <input type="text" id="fixed-new-labor-name" placeholder="예: 홍길동" style="width:100%; padding:10px 12px; border:1px solid var(--border-light); border-radius:var(--radius-md); font-size:0.95rem; box-sizing:border-box; background:var(--bg-secondary); color:var(--text-primary);">
+                    </div>
+                    <div>
+                        <label style="font-size:0.85rem; font-weight:600; color:var(--text-secondary); margin-bottom:6px; display:block;">직급</label>
+                        <input type="text" id="fixed-new-labor-role" placeholder="예: 대리" style="width:100%; padding:10px 12px; border:1px solid var(--border-light); border-radius:var(--radius-md); font-size:0.95rem; box-sizing:border-box; background:var(--bg-secondary); color:var(--text-primary);">
+                    </div>
+                </div>
+
+                <!-- 일반 항목 추가용 입력 필드 -->
+                <div id="new-item-general-fields" style="display:none; margin-bottom:20px;">
+                    <div>
+                        <label style="font-size:0.85rem; font-weight:600; color:var(--text-secondary); margin-bottom:6px; display:block;" id="new-item-general-label">항목 이름</label>
+                        <input type="text" id="fixed-new-general-name" placeholder="예: 인터넷 렌탈" style="width:100%; padding:10px 12px; border:1px solid var(--border-light); border-radius:var(--radius-md); font-size:0.95rem; box-sizing:border-box; background:var(--bg-secondary); color:var(--text-primary);">
+                    </div>
+                </div>
+
+                <div id="fixed-new-item-error" style="color:var(--accent-rose); font-size:0.85rem; text-align:center; display:none; margin-bottom:12px; font-weight:600;"></div>
+                <button id="btn-fixed-new-item-save" style="width:100%; padding:12px; background:var(--accent-indigo); color:white; border:none; border-radius:var(--radius-md); font-size:0.95rem; font-weight:700; cursor:pointer; box-shadow:var(--shadow-sm);">
+                    등록하기
                 </button>
             </div>
         </div>
