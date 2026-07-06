@@ -1340,6 +1340,97 @@
         });
     }
 
+    // ===== 월별 판매 추이 선 그래프 그리기 =====
+    function updateSalesTrendChart(canvasId, trendData) {
+        const ctx = document.getElementById(canvasId);
+        if (!ctx) return;
+
+        if (state.charts[canvasId]) {
+            state.charts[canvasId].destroy();
+        }
+
+        const dCtx = ctx.getContext('2d');
+        let gradSales = dCtx.createLinearGradient(0, 0, 0, 200);
+        gradSales.addColorStop(0, 'rgba(34, 197, 94, 0.4)'); // Green (emerald-500)
+        gradSales.addColorStop(1, 'rgba(34, 197, 94, 0.05)');
+
+        const chartData = [...trendData].reverse();
+
+        const topLabelsPluginSales = {
+            id: 'topLabelsSales',
+            afterDatasetsDraw(chart) {
+                const { ctx } = chart;
+                ctx.save();
+                ctx.font = 'bold 11px sans-serif';
+                ctx.fillStyle = '#16a34a'; // green-600
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                
+                chart.data.datasets.forEach((dataset, i) => {
+                    chart.getDatasetMeta(i).data.forEach((point, index) => {
+                        const value = dataset.data[index];
+                        const formatted = formatKoreanUnit(value);
+                        ctx.fillText(formatted, point.x, point.y - 8);
+                    });
+                });
+                ctx.restore();
+            }
+        };
+
+        state.charts[canvasId] = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: chartData.map(d => d.label),
+                datasets: [{
+                    label: '판매 매출액',
+                    data: chartData.map(d => d.sales),
+                    borderColor: '#22c55e', // green-500
+                    backgroundColor: gradSales,
+                    borderWidth: 2.5,
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: '#16a34a', // green-600
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                        titleFont: { size: 12, weight: 'bold' },
+                        bodyFont: { size: 11 },
+                        padding: 10,
+                        cornerRadius: 6,
+                        callbacks: {
+                            label: function(context) {
+                                return ' 매출액: ' + context.raw.toLocaleString() + '원';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#6b7280', font: { size: 11, weight: '500' } }
+                    },
+                    y: {
+                        display: false,
+                        grace: '15%',
+                        beginAtZero: true,
+                        grid: { display: false }
+                    }
+                }
+            },
+            plugins: [topLabelsPluginSales]
+        });
+    }
+
     // ===== 품목별 판매율 비교 가로 막대 그래프 그리기 =====
     function updateSalesRateChart(canvasId, categories, soldCounts) {
         const ctx = document.getElementById(canvasId);
@@ -1781,8 +1872,8 @@
         }
 
         // 차트 업데이트
+        updateSalesTrendChart('ext-sales-trend-chart', trendData);
         updateReportTrendChart('ext-report-chart', trendData);
-        updateSalesRateChart('ext-sales-rate-chart', categories, soldCounts);
 
         // 4. ExT 제품 재고 및 금액 현황 테이블 렌더
         const tbody = document.getElementById('inventory-tbody');
