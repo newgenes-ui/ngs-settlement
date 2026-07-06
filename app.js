@@ -2046,8 +2046,8 @@
         }
 
         // 차트 업데이트
+        updateSalesTrendChart('nujen-sales-trend-chart', trendData);
         updateReportTrendChart('nujen-report-chart', trendData);
-        updateSalesRateChart('nujen-sales-rate-chart', categories, soldCounts);
 
         // 4. NuGen 제품 재고 및 금액 현황 테이블 렌더
         const tbody = document.getElementById('nujen-tbody');
