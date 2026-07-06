@@ -3412,14 +3412,30 @@
         const clearBtn = document.getElementById('btn-csv-clear-all');
         if (clearBtn) {
             clearBtn.addEventListener('click', () => {
-                if (confirm('모든 직접 업로드한 데이터(로컬스토리지 저장분)를 삭제하고 서버의 기본 CSV 파일 데이터로 복원하시겠습니까?')) {
-                    localStorage.removeItem('custom_sales_data');
-                    localStorage.removeItem('custom_card_sales_data');
-                    localStorage.removeItem('custom_purchase_data');
-                    localStorage.removeItem('custom_ext_purchase_data');
-                    localStorage.removeItem('custom_ext_sales_data');
-                    localStorage.removeItem('custom_nujen_purchase_data');
-                    localStorage.removeItem('custom_nujen_sales_data');
+                const type = typeSelect ? typeSelect.value : '';
+                const typeNames = {
+                    'sales': '매출 내역',
+                    'card': '카드매출 내역',
+                    'purchases': '매입 내역',
+                    'ext-purchase': 'ExT 기초/매입',
+                    'ext-sales': 'ExT 당기/매출',
+                    'nujen-purchase': '뉴진스 기초/매입',
+                    'nujen-sales': '뉴진스 당기/매출'
+                };
+                const keyNames = {
+                    'sales': 'custom_sales_data',
+                    'card': 'custom_card_sales_data',
+                    'purchases': 'custom_purchase_data',
+                    'ext-purchase': 'custom_ext_purchase_data',
+                    'ext-sales': 'custom_ext_sales_data',
+                    'nujen-purchase': 'custom_nujen_purchase_data',
+                    'nujen-sales': 'custom_nujen_sales_data'
+                };
+                const name = typeNames[type] || '데이터';
+                const key = keyNames[type];
+
+                if (key && confirm(`선택된 [${name}] 업로드 데이터를 삭제하고 기본 데이터로 복원하시겠습니까?`)) {
+                    localStorage.removeItem(key);
                     alert('초기화가 완료되었습니다. 페이지를 새로고침합니다.');
                     location.reload();
                 }
