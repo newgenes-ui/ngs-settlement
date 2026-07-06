@@ -1617,7 +1617,7 @@
             if (m) {
                 const year = m[1];
                 const month = m[2];
-                if (state.currentPeriod === 'monthly') {
+                if (state.currentPeriod !== 'quarterly') {
                     periods.add(`${year}-${month}`);
                 } else {
                     const q = Math.ceil(parseInt(month, 10) / 3);
@@ -1633,7 +1633,7 @@
             let label = '';
             let fullLabel = '';
             
-            if (state.currentPeriod === 'monthly') {
+            if (state.currentPeriod !== 'quarterly') {
                 const [year, month] = pStr.split('-');
                 filteredSales = state.extSalesData.filter(r => {
                     const m = r.dateNo.match(/^(\d{4})[/-](\d{2})/);
@@ -1687,7 +1687,7 @@
             if (m) {
                 const year = m[1];
                 const month = m[2];
-                if (state.currentPeriod === 'monthly') {
+                if (state.currentPeriod !== 'quarterly') {
                     periods.add(`${year}-${month}`);
                 } else {
                     const q = Math.ceil(parseInt(month, 10) / 3);
@@ -1703,7 +1703,7 @@
             let label = '';
             let fullLabel = '';
             
-            if (state.currentPeriod === 'monthly') {
+            if (state.currentPeriod !== 'quarterly') {
                 const [year, month] = pStr.split('-');
                 filteredSales = state.nujenSalesData.filter(r => {
                     const m = r.dateNo.match(/^(\d{4})[/-](\d{2})/);
@@ -1866,7 +1866,7 @@
             extChartHeader.innerHTML = `
                 <div style="display:flex; flex-direction:column; gap:4px;">
                     <span style="font-size:1.15rem; font-weight:800; color:var(--text-primary);">영업 이익 (Profit) 트렌드</span>
-                    <span style="font-size:0.75rem; font-weight:400; color:var(--text-secondary);">2026년 ${state.currentPeriod === 'monthly' ? '월별' : '분기별'} 영업 이익(매출 - 매입) 현황입니다.</span>
+                    <span style="font-size:0.75rem; font-weight:400; color:var(--text-secondary);">2026년 ${state.currentPeriod === 'quarterly' ? '분기별' : '월별'} 영업 이익(매출 - 매입) 현황입니다.</span>
                 </div>
             `;
         }
@@ -2040,7 +2040,7 @@
             nujenChartHeader.innerHTML = `
                 <div style="display:flex; flex-direction:column; gap:4px;">
                     <span style="font-size:1.15rem; font-weight:800; color:var(--text-primary);">영업 이익 (Profit) 트렌드</span>
-                    <span style="font-size:0.75rem; font-weight:400; color:var(--text-secondary);">2026년 ${state.currentPeriod === 'monthly' ? '월별' : '분기별'} 영업 이익(매출 - 매입) 현황입니다.</span>
+                    <span style="font-size:0.75rem; font-weight:400; color:var(--text-secondary);">2026년 ${state.currentPeriod === 'quarterly' ? '분기별' : '월별'} 영업 이익(매출 - 매입) 현황입니다.</span>
                 </div>
             `;
         }
