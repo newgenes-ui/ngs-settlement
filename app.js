@@ -285,6 +285,8 @@
                 for (let i = 2; i < salesLines.length; i++) {
                     const v = parseCSVLine(salesLines[i]);
                     if (v.length < 15 || !v[0]) continue;
+                    const cleanDate = v[0].trim().replace(/^\ufeff/, '');
+                    if (!/^\d{4}[-/]\d{2}[-/]\d{2}/.test(cleanDate)) continue;
                     state.salesData.push({
                         date: v[0],
                         approvalNo: v[1],
@@ -348,6 +350,8 @@
                 for (let i = 2; i < purchaseLines.length; i++) {
                     const v = parseCSVLine(purchaseLines[i]);
                     if (v.length < 15 || !v[0]) continue;
+                    const cleanDate = v[0].trim().replace(/^\ufeff/, '');
+                    if (!/^\d{4}[-/]\d{2}[-/]\d{2}/.test(cleanDate)) continue;
                     state.purchaseData.push({
                         date: v[0],
                         approvalNo: v[1],
@@ -882,30 +886,35 @@
     function getFilteredData(data) {
         if (state.currentPeriod === 'all') return data;
 
+        const dateRegex = /^\d{4}[-/]\d{2}[-/]\d{2}/;
         return data.filter(item => {
             if (!item.date) return false;
+            const cleanDate = item.date.trim().replace(/^\ufeff/, '');
+            if (!dateRegex.test(cleanDate)) return false;
             if (state.currentPeriod === 'monthly') {
-                return getMonth(item.date) === state.selectedSubPeriod;
+                return getMonth(cleanDate) === state.selectedSubPeriod;
             } else if (state.currentPeriod === 'quarterly') {
-                return getQuarter(item.date) === state.selectedSubPeriod;
+                return getQuarter(cleanDate) === state.selectedSubPeriod;
             }
             return true;
         });
     }
 
     function getAvailablePeriods(periodType) {
+        const dateRegex = /^\d{4}[-/]\d{2}[-/]\d{2}/;
         const allDates = [
             ...state.salesData.map(d => d.date),
             ...state.cardSalesData.map(d => d.date),
             ...state.purchaseData.map(d => d.date)
-        ].filter(d => d);
+        ].filter(d => d && dateRegex.test(d.trim().replace(/^\ufeff/, '')));
 
         const periods = new Set();
         allDates.forEach(d => {
+            const cleanD = d.trim().replace(/^\ufeff/, '');
             if (periodType === 'monthly') {
-                periods.add(getMonth(d));
+                periods.add(getMonth(cleanD));
             } else if (periodType === 'quarterly') {
-                periods.add(getQuarter(d));
+                periods.add(getQuarter(cleanD));
             }
         });
 
@@ -3400,6 +3409,23 @@
         const typeSelect = document.getElementById('csv-upload-type');
         const encodingSelect = document.getElementById('csv-upload-encoding');
 
+        const clearBtn = document.getElementById('btn-csv-clear-all');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                if (confirm('모든 직접 업로드한 데이터(로컬스토리지 저장분)를 삭제하고 서버의 기본 CSV 파일 데이터로 복원하시겠습니까?')) {
+                    localStorage.removeItem('custom_sales_data');
+                    localStorage.removeItem('custom_card_sales_data');
+                    localStorage.removeItem('custom_purchase_data');
+                    localStorage.removeItem('custom_ext_purchase_data');
+                    localStorage.removeItem('custom_ext_sales_data');
+                    localStorage.removeItem('custom_nujen_purchase_data');
+                    localStorage.removeItem('custom_nujen_sales_data');
+                    alert('초기화가 완료되었습니다. 페이지를 새로고침합니다.');
+                    location.reload();
+                }
+            });
+        }
+
         if (closeBtn && modal) {
             closeBtn.addEventListener('click', () => {
                 modal.classList.remove('active');
@@ -3478,11 +3504,14 @@
 
         if (type === 'sales') {
             const newItems = [];
-            let startRow = 2;
+            let startRow = 0;
             for (let r = 0; r < Math.min(lines.length, 5); r++) {
                 const headerLine = parseCSVLine(lines[r]);
-                if (headerLine.includes('작성일자') || headerLine.includes('승인번호')) {
+                const firstVal = headerLine[0] ? headerLine[0].trim().replace(/^\ufeff/, '') : '';
+                if (firstVal.includes('작성일자') || firstVal.includes('승인번호') || firstVal.includes('목록조회')) {
                     startRow = r + 1;
+                } else if (/^\d{4}[-/]\d{2}[-/]\d{2}/.test(firstVal)) {
+                    startRow = r;
                     break;
                 }
             }
@@ -3490,6 +3519,8 @@
             for (let i = startRow; i < lines.length; i++) {
                 const v = parseCSVLine(lines[i]);
                 if (v.length < 15 || !v[0]) continue;
+                const cleanDate = v[0].trim().replace(/^\ufeff/, '');
+                if (!/^\d{4}[-/]\d{2}[-/]\d{2}/.test(cleanDate)) continue;
                 newItems.push({
                     date: v[0],
                     approvalNo: v[1],
@@ -3532,11 +3563,14 @@
 
         } else if (type === 'purchases') {
             const newItems = [];
-            let startRow = 2;
+            let startRow = 0;
             for (let r = 0; r < Math.min(lines.length, 5); r++) {
                 const headerLine = parseCSVLine(lines[r]);
-                if (headerLine.includes('작성일자') || headerLine.includes('승인번호')) {
+                const firstVal = headerLine[0] ? headerLine[0].trim().replace(/^\ufeff/, '') : '';
+                if (firstVal.includes('작성일자') || firstVal.includes('승인번호') || firstVal.includes('목록조회')) {
                     startRow = r + 1;
+                } else if (/^\d{4}[-/]\d{2}[-/]\d{2}/.test(firstVal)) {
+                    startRow = r;
                     break;
                 }
             }
@@ -3544,6 +3578,8 @@
             for (let i = startRow; i < lines.length; i++) {
                 const v = parseCSVLine(lines[i]);
                 if (v.length < 15 || !v[0]) continue;
+                const cleanDate = v[0].trim().replace(/^\ufeff/, '');
+                if (!/^\d{4}[-/]\d{2}[-/]\d{2}/.test(cleanDate)) continue;
                 newItems.push({
                     date: v[0],
                     approvalNo: v[1],
