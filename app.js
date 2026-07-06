@@ -1045,11 +1045,32 @@
     }
 
     // ===== 고정지출 월별 등록 모달 =====
-    function buildFixedRegFields(type) {
+    function getLastMonthFixedData(type, monthVal) {
+        // monthVal = '2026-07' → 지난달 = '2026-06'
+        if (!monthVal) return null;
+        const parts = monthVal.split('-');
+        let y = parseInt(parts[0], 10);
+        let m = parseInt(parts[1], 10) - 1; // 지난달
+        if (m <= 0) { m = 12; y--; }
+        const prevMonth = `${y}-${String(m).padStart(2, '0')}`;
+        const prevMonthLabel = `${y}년 ${m}월`;
+
+        if (type === 'labor') {
+            return state.fixedLaborData.find(d => d.month === prevMonthLabel) || null;
+        } else if (type === 'office') {
+            return state.fixedOfficeData.find(d => d.month === prevMonth) || null;
+        } else if (type === 'vendor') {
+            return state.fixedVendorData.find(d => d.month === prevMonth) || null;
+        }
+        return null;
+    }
+
+    function buildFixedRegFields(type, prefillData) {
         const fieldsEl = document.getElementById('fixed-reg-fields');
         if (!fieldsEl) return;
         const inputStyle = 'width:100%; padding:8px 10px; border:1px solid var(--border-light); border-radius:var(--radius-md); font-size:0.9rem; box-sizing:border-box; text-align:right; background:var(--bg-secondary); color:var(--text-primary);';
         const labelStyle = 'font-size:0.8rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px; display:block;';
+        const hintStyle = 'font-size:0.75rem; color:var(--accent-indigo); margin-top:2px;';
 
         if (type === 'labor') {
             const people = [
@@ -1057,14 +1078,22 @@
                 { name: '나혜원', role: '팀원 (디자인)' },
                 { name: '양유지', role: '팀원 (경영지원)' }
             ];
-            let h = '<div style="display:flex; flex-direction:column; gap:16px;">';
+            let h = '';
+            if (prefillData) {
+                h += `<div style="padding:8px 12px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:var(--radius-md); margin-bottom:12px; font-size:0.82rem; color:#15803d; font-weight:600;">📋 지난달 금액이 자동으로 입력되었습니다. 수정 후 저장해 주세요.</div>`;
+            }
+            h += '<div style="display:flex; flex-direction:column; gap:16px;">';
             people.forEach((p, i) => {
+                const prev = prefillData && prefillData.items ? prefillData.items[i] : null;
+                const salaryVal = prev ? prev.salary : '';
+                const insVal = prev ? prev.ins : '';
+                const cardVal = prev ? prev.card : '';
                 h += `<div style="padding:14px; border:1px solid var(--border-light); border-radius:var(--radius-md); background:var(--bg-primary);">
                     <div style="font-weight:700; margin-bottom:10px; font-size:0.95rem;">${p.name} <span style="font-weight:400; color:var(--text-secondary); font-size:0.85rem;">(${p.role})</span></div>
                     <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
-                        <div><label style="${labelStyle}">급여</label><input type="text" id="labor-salary-${i}" placeholder="0" style="${inputStyle}"></div>
-                        <div><label style="${labelStyle}">4대보험</label><input type="text" id="labor-ins-${i}" placeholder="0" style="${inputStyle}"></div>
-                        <div><label style="${labelStyle}">법인카드</label><input type="text" id="labor-card-${i}" placeholder="0" style="${inputStyle}"></div>
+                        <div><label style="${labelStyle}">급여</label><input type="text" id="labor-salary-${i}" value="${salaryVal}" placeholder="0" style="${inputStyle}"></div>
+                        <div><label style="${labelStyle}">4대보험</label><input type="text" id="labor-ins-${i}" value="${insVal}" placeholder="0" style="${inputStyle}"></div>
+                        <div><label style="${labelStyle}">법인카드</label><input type="text" id="labor-card-${i}" value="${cardVal}" placeholder="0" style="${inputStyle}"></div>
                     </div>
                 </div>`;
             });
@@ -1077,9 +1106,14 @@
                 { id: 'sosang', label: '소상공인 이자' }, { id: 'ibk', label: '기업은행 이자' },
                 { id: 'kibo', label: '기술보증 이자' }, { id: 'credit', label: '신용대출 이자' }
             ];
-            let h = '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">';
+            let h = '';
+            if (prefillData) {
+                h += `<div style="padding:8px 12px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:var(--radius-md); margin-bottom:12px; font-size:0.82rem; color:#15803d; font-weight:600;">📋 지난달 금액이 자동으로 입력되었습니다. 수정 후 저장해 주세요.</div>`;
+            }
+            h += '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">';
             items.forEach(it => {
-                h += `<div><label style="${labelStyle}">${it.label}</label><input type="text" id="office-${it.id}" placeholder="0" style="${inputStyle}"></div>`;
+                const val = prefillData ? (prefillData[it.id] || '') : '';
+                h += `<div><label style="${labelStyle}">${it.label}</label><input type="text" id="office-${it.id}" value="${val}" placeholder="0" style="${inputStyle}"></div>`;
             });
             h += '</div>';
             fieldsEl.innerHTML = h;
@@ -1091,13 +1125,26 @@
                 { id: 'bstech', label: '비에스테크광명(임대료)' }, { id: 'chungho', label: '청호나이스' },
                 { id: 'kt', label: '케이티' }, { id: 'skt', label: '에스케이텔레콤' }
             ];
-            let h = '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">';
+            let h = '';
+            if (prefillData) {
+                h += `<div style="padding:8px 12px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:var(--radius-md); margin-bottom:12px; font-size:0.82rem; color:#15803d; font-weight:600;">📋 지난달 금액이 자동으로 입력되었습니다. 수정 후 저장해 주세요.</div>`;
+            }
+            h += '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">';
             items.forEach(it => {
-                h += `<div><label style="${labelStyle}">${it.label}</label><input type="text" id="vendor-${it.id}" placeholder="0" style="${inputStyle}"></div>`;
+                const val = prefillData ? (prefillData[it.id] || '') : '';
+                h += `<div><label style="${labelStyle}">${it.label}</label><input type="text" id="vendor-${it.id}" value="${val}" placeholder="0" style="${inputStyle}"></div>`;
             });
             h += '</div>';
             fieldsEl.innerHTML = h;
         }
+    }
+
+    function refreshFixedRegFields() {
+        const typeSelect = document.getElementById('fixed-reg-type');
+        const monthInput = document.getElementById('fixed-reg-month');
+        if (!typeSelect || !monthInput) return;
+        const prevData = getLastMonthFixedData(typeSelect.value, monthInput.value);
+        buildFixedRegFields(typeSelect.value, prevData);
     }
 
     function getNumVal(id) {
@@ -1203,7 +1250,8 @@
         monthInput.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
         errorEl.style.display = 'none';
 
-        buildFixedRegFields(typeSelect.value);
+        // 지난달 데이터로 프리필
+        refreshFixedRegFields();
         modal.classList.add('active');
     }
 
@@ -1230,12 +1278,16 @@
             });
         }
 
-        // 구분 변경 시 필드 재생성
+        // 구분 변경 시 필드 재생성 (지난달 데이터 프리필)
         const typeSelect = document.getElementById('fixed-reg-type');
         if (typeSelect) {
-            typeSelect.addEventListener('change', () => {
-                buildFixedRegFields(typeSelect.value);
-            });
+            typeSelect.addEventListener('change', refreshFixedRegFields);
+        }
+
+        // 월 변경 시 해당 월의 지난달 데이터로 프리필
+        const monthInput = document.getElementById('fixed-reg-month');
+        if (monthInput) {
+            monthInput.addEventListener('change', refreshFixedRegFields);
         }
 
         // 저장
