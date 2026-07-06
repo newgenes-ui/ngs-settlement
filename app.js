@@ -1046,21 +1046,22 @@
 
     // ===== 고정지출 월별 등록 모달 =====
     function getLastMonthFixedData(type, monthVal) {
-        // monthVal = '2026-07' → 지난달 = '2026-06'
+        // 가장 최근에 실제 금액이 있는 달의 데이터를 찾아서 프리필
         if (!monthVal) return null;
-        const parts = monthVal.split('-');
-        let y = parseInt(parts[0], 10);
-        let m = parseInt(parts[1], 10) - 1; // 지난달
-        if (m <= 0) { m = 12; y--; }
-        const prevMonth = `${y}-${String(m).padStart(2, '0')}`;
-        const prevMonthLabel = `${y}년 ${m}월`;
 
         if (type === 'labor') {
-            return state.fixedLaborData.find(d => d.month === prevMonthLabel) || null;
+            // items 배열 중 salary/ins/card 합이 0보다 큰 데이터 찾기
+            return state.fixedLaborData.find(d => {
+                return d.items && d.items.some(i => (i.salary + i.ins + i.card) > 0);
+            }) || null;
         } else if (type === 'office') {
-            return state.fixedOfficeData.find(d => d.month === prevMonth) || null;
+            return state.fixedOfficeData.find(r => {
+                return (r.tax + r.phone + r.avante + r.ray + r.sosang + r.ibk + r.kibo + r.credit) > 0;
+            }) || null;
         } else if (type === 'vendor') {
-            return state.fixedVendorData.find(d => d.month === prevMonth) || null;
+            return state.fixedVendorData.find(r => {
+                return (r.samsung + r.sungjin + r.gwangmyung + r.semukyoung + r.semu + r.ecount + r.bstech + r.chungho + r.kt + r.skt) > 0;
+            }) || null;
         }
         return null;
     }
