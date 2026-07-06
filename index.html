@@ -181,14 +181,26 @@
                 <div class="view" id="view-inventory">
                     <div class="summary-cards" id="inventory-summary-cards"></div>
 
-                    <!-- 월별 판매 추이 그래프 카드 -->
+                    <!-- 월별 판매 추이 / 영업 이익 그래프 카드 -->
                     <div class="table-card" style="margin-bottom: 24px;">
-                        <div class="table-header">
-                            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--text-primary);">ExT 월별 판매 추이</h3>
+                        <div class="table-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                            <div style="display:flex; flex-direction:column; gap:4px;">
+                                <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--text-primary);" id="ext-chart-title">ExT 월별 판매 추이</h3>
+                                <span style="font-size:0.75rem; font-weight:400; color:var(--text-secondary);" id="ext-report-header-text"></span>
+                            </div>
+                            <div class="filter-group">
+                                <button class="filter-btn active" id="ext-btn-sales" onclick="toggleExtChart('sales')">월별 판매 추이</button>
+                                <button class="filter-btn" id="ext-btn-profit" onclick="toggleExtChart('profit')">영업 이익</button>
+                            </div>
                         </div>
-                        <div class="chart-container" style="padding: 20px; background: var(--bg-card); display: flex; justify-content: center;">
+                        <div class="chart-container" id="ext-chart-container-sales" style="padding: 20px; background: var(--bg-card); display: flex; justify-content: center;">
                             <div style="width: 100%; max-width: 800px; height: 320px;">
                                 <canvas id="ext-sales-trend-chart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-container" id="ext-chart-container-profit" style="padding: 20px; background: var(--bg-card); display: none; justify-content: center;">
+                            <div style="width: 100%; max-width: 800px; height: 320px;">
+                                <canvas id="ext-report-chart"></canvas>
                             </div>
                         </div>
                     </div>
@@ -226,12 +238,7 @@
                     <!-- ExT 결산 보고서 카드 -->
                     <div class="table-card" style="margin-bottom: 24px;">
                         <div class="table-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
-                            <h3 style="margin: 0;" id="ext-report-header">ExT 결산 보고서</h3>
-                        </div>
-                        <div class="chart-container" style="padding: 20px; border-bottom: 1px solid var(--border-subtle); background: var(--bg-card); display: flex; justify-content: center;">
-                            <div style="width: 100%; max-width: 800px; height: 260px;">
-                                <canvas id="ext-report-chart"></canvas>
-                            </div>
+                            <h3 style="margin: 0;">ExT 결산 보고서</h3>
                         </div>
                         <div class="table-wrapper">
                             <table class="data-table" id="ext-report-table">
@@ -287,14 +294,26 @@
                 <div class="view" id="view-nujen">
                     <div class="summary-cards" id="nujen-summary-cards"></div>
 
-                    <!-- 월별 판매 추이 그래프 카드 -->
+                    <!-- 월별 판매 추이 / 영업 이익 그래프 카드 -->
                     <div class="table-card" style="margin-bottom: 24px;">
-                        <div class="table-header">
-                            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--text-primary);">뉴진스 월별 판매 추이</h3>
+                        <div class="table-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                            <div style="display:flex; flex-direction:column; gap:4px;">
+                                <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--text-primary);" id="nujen-chart-title">뉴진스 월별 판매 추이</h3>
+                                <span style="font-size:0.75rem; font-weight:400; color:var(--text-secondary);" id="nujen-report-header-text"></span>
+                            </div>
+                            <div class="filter-group">
+                                <button class="filter-btn active" id="nujen-btn-sales" onclick="toggleNujenChart('sales')">월별 판매 추이</button>
+                                <button class="filter-btn" id="nujen-btn-profit" onclick="toggleNujenChart('profit')">영업 이익</button>
+                            </div>
                         </div>
-                        <div class="chart-container" style="padding: 20px; background: var(--bg-card); display: flex; justify-content: center;">
+                        <div class="chart-container" id="nujen-chart-container-sales" style="padding: 20px; background: var(--bg-card); display: flex; justify-content: center;">
                             <div style="width: 100%; max-width: 800px; height: 320px;">
                                 <canvas id="nujen-sales-trend-chart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-container" id="nujen-chart-container-profit" style="padding: 20px; background: var(--bg-card); display: none; justify-content: center;">
+                            <div style="width: 100%; max-width: 800px; height: 320px;">
+                                <canvas id="nujen-report-chart"></canvas>
                             </div>
                         </div>
                     </div>
@@ -332,12 +351,7 @@
                     <!-- NuGen 결산 보고서 카드 -->
                     <div class="table-card" style="margin-bottom: 24px;">
                         <div class="table-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
-                            <h3 style="margin: 0;" id="nujen-report-header">뉴진스 결산 보고서</h3>
-                        </div>
-                        <div class="chart-container" style="padding: 20px; border-bottom: 1px solid var(--border-subtle); background: var(--bg-card); display: flex; justify-content: center;">
-                            <div style="width: 100%; max-width: 800px; height: 260px;">
-                                <canvas id="nujen-report-chart"></canvas>
-                            </div>
+                            <h3 style="margin: 0;">뉴진스 결산 보고서</h3>
                         </div>
                         <div class="table-wrapper">
                             <table class="data-table" id="nujen-report-table">
@@ -541,5 +555,49 @@
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
     <script src="app.js?v=1.5.3"></script>
+    <script>
+        function toggleExtChart(type) {
+            const title = document.getElementById('ext-chart-title');
+            const btnSales = document.getElementById('ext-btn-sales');
+            const btnProfit = document.getElementById('ext-btn-profit');
+            const contSales = document.getElementById('ext-chart-container-sales');
+            const contProfit = document.getElementById('ext-chart-container-profit');
+
+            if(type === 'sales') {
+                title.innerText = 'ExT 월별 판매 추이';
+                btnSales.classList.add('active');
+                btnProfit.classList.remove('active');
+                contSales.style.display = 'flex';
+                contProfit.style.display = 'none';
+            } else {
+                title.innerText = 'ExT 영업 이익 (Profit) 트렌드';
+                btnProfit.classList.add('active');
+                btnSales.classList.remove('active');
+                contProfit.style.display = 'flex';
+                contSales.style.display = 'none';
+            }
+        }
+        function toggleNujenChart(type) {
+            const title = document.getElementById('nujen-chart-title');
+            const btnSales = document.getElementById('nujen-btn-sales');
+            const btnProfit = document.getElementById('nujen-btn-profit');
+            const contSales = document.getElementById('nujen-chart-container-sales');
+            const contProfit = document.getElementById('nujen-chart-container-profit');
+
+            if(type === 'sales') {
+                title.innerText = '뉴진스 월별 판매 추이';
+                btnSales.classList.add('active');
+                btnProfit.classList.remove('active');
+                contSales.style.display = 'flex';
+                contProfit.style.display = 'none';
+            } else {
+                title.innerText = '뉴진스 영업 이익 (Profit) 트렌드';
+                btnProfit.classList.add('active');
+                btnSales.classList.remove('active');
+                contProfit.style.display = 'flex';
+                contSales.style.display = 'none';
+            }
+        }
+    </script>
 </body>
 </html>

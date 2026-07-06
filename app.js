@@ -1861,14 +1861,9 @@
         reportTbody.innerHTML = extRows;
 
         // 차트 헤더 정보 동적 조절 (ExT)
-        const extChartHeader = document.getElementById('ext-report-header');
+        const extChartHeader = document.getElementById('ext-report-header-text');
         if (extChartHeader) {
-            extChartHeader.innerHTML = `
-                <div style="display:flex; flex-direction:column; gap:4px;">
-                    <span style="font-size:1.15rem; font-weight:800; color:var(--text-primary);">영업 이익 (Profit) 트렌드</span>
-                    <span style="font-size:0.75rem; font-weight:400; color:var(--text-secondary);">2026년 ${state.currentPeriod === 'quarterly' ? '분기별' : '월별'} 영업 이익(매출 - 매입) 현황입니다.</span>
-                </div>
-            `;
+            extChartHeader.innerHTML = `2026년 ${state.currentPeriod === 'quarterly' ? '분기별' : '월별'} 현황입니다.`;
         }
 
         // 차트 업데이트
@@ -2035,14 +2030,9 @@
         reportTbody.innerHTML = nujenRows;
 
         // 차트 헤더 정보 동적 조절 (NuGen)
-        const nujenChartHeader = document.getElementById('nujen-report-header');
+        const nujenChartHeader = document.getElementById('nujen-report-header-text');
         if (nujenChartHeader) {
-            nujenChartHeader.innerHTML = `
-                <div style="display:flex; flex-direction:column; gap:4px;">
-                    <span style="font-size:1.15rem; font-weight:800; color:var(--text-primary);">영업 이익 (Profit) 트렌드</span>
-                    <span style="font-size:0.75rem; font-weight:400; color:var(--text-secondary);">2026년 ${state.currentPeriod === 'quarterly' ? '분기별' : '월별'} 영업 이익(매출 - 매입) 현황입니다.</span>
-                </div>
-            `;
+            nujenChartHeader.innerHTML = `2026년 ${state.currentPeriod === 'quarterly' ? '분기별' : '월별'} 현황입니다.`;
         }
 
         // 차트 업데이트
