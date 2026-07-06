@@ -1698,10 +1698,13 @@
             key: m
         }));
 
-        document.getElementById('profit-trend-desc').textContent =
-            '2026년 상반기 월별 영업 이익(매출 - 매입) 현황입니다.';
+        const chartHeader = document.getElementById('dashboard-report-header-text');
+        if (chartHeader) {
+            chartHeader.innerHTML = `2026년 상반기 월별 현황입니다.`;
+        }
 
-        renderProfitBars(profitData);
+        updateSalesTrendChart('dashboard-sales-trend-chart', profitData);
+        updateReportTrendChart('dashboard-report-chart', profitData);
         renderSummaryTable(profitData);
     }
 
@@ -1739,33 +1742,14 @@
             };
         });
 
-        document.getElementById('profit-trend-desc').textContent =
-            '2026년 분기별 영업 이익(매출 - 매입) 현황입니다.';
+        const chartHeader = document.getElementById('dashboard-report-header-text');
+        if (chartHeader) {
+            chartHeader.innerHTML = `2026년 분기별 현황입니다.`;
+        }
 
-        renderProfitBars(profitData);
+        updateSalesTrendChart('dashboard-sales-trend-chart', profitData);
+        updateReportTrendChart('dashboard-report-chart', profitData);
         renderSummaryTable(profitData);
-    }
-
-    function renderProfitBars(profitData) {
-        const maxAbs = Math.max(...profitData.map(d => Math.abs(d.profit)), 1);
-        const maxBarHeight = 180;
-
-        const barsHTML = profitData.map(d => {
-            const barHeight = Math.max((Math.abs(d.profit) / maxAbs) * maxBarHeight, 8);
-            const isPositive = d.profit >= 0;
-            const cls = isPositive ? 'positive' : 'negative';
-            const valueLabel = formatShortCurrency(d.profit);
-
-            return `
-                <div class="profit-bar-item">
-                    <span class="profit-bar-value ${cls}">${valueLabel}</span>
-                    <div class="profit-bar ${cls}" style="height: ${barHeight}px;"></div>
-                    <span class="profit-bar-label">${d.label}</span>
-                </div>
-            `;
-        }).join('');
-
-        document.getElementById('profit-bars').innerHTML = barsHTML;
     }
 
     function renderSummaryTable(profitData) {
