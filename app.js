@@ -261,10 +261,10 @@
                 !savedSales ? fetch(`매출.csv?v=${t}`).then(r => r.text()) : Promise.resolve(null),
                 !savedCard ? fetch(`카드매출전표.csv?v=${t}`).then(r => r.text()) : Promise.resolve(null),
                 !savedPurchase ? fetch(`매입.csv?v=${t}`).then(r => r.text()) : Promise.resolve(null),
-                !savedExtPurchase ? fetch(`ExT구매현항.csv?v=${t}`).then(r => r.text()) : Promise.resolve(null),
-                !savedExtSales ? fetch(`ExT판매현황_수정.csv?v=${t}`).then(r => r.text()) : Promise.resolve(null),
-                !savedNujenPurchase ? fetch(`뉴진스제품 구매현황.csv?v=${t}`).then(r => r.text()) : Promise.resolve(null),
-                !savedNujenSales ? fetch(`뉴진스제품 판매현황.csv?v=${t}`).then(r => r.text()) : Promise.resolve(null)
+                Promise.resolve(null),
+                Promise.resolve(null),
+                Promise.resolve(null),
+                Promise.resolve(null)
             ];
 
             const [salesText, cardText, purchaseText, extPurchaseText, extSalesText, nujenPurchaseText, nujenSalesText] = await Promise.all(fetches);
@@ -589,8 +589,6 @@
 
             // 배지 업데이트
             document.getElementById('badge-sales').textContent = state.salesData.length;
-            document.getElementById('badge-inventory').textContent = '7'; // ExT 제품군 수
-            document.getElementById('badge-nujen').textContent = '10'; // 뉴진스 제품군 수
             document.getElementById('badge-card-sales').textContent = state.cardSalesData.length;
             document.getElementById('badge-purchases').textContent = state.purchaseData.length;
             document.getElementById('badge-vat').textContent = state.vatCardData.length;
