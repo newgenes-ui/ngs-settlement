@@ -3119,12 +3119,18 @@
         document.getElementById('purchases-search').addEventListener('input', e => {
             renderPurchasesView(e.target.value);
         });
-        document.getElementById('ext-sales-search').addEventListener('input', e => {
-            renderExtSalesList(e.target.value);
-        });
-        document.getElementById('nujen-sales-search').addEventListener('input', e => {
-            renderNujenSalesList(e.target.value);
-        });
+        const extSalesSearch = document.getElementById('ext-sales-search');
+        if (extSalesSearch) {
+            extSalesSearch.addEventListener('input', e => {
+                renderExtSalesList(e.target.value);
+            });
+        }
+        const nujenSalesSearch = document.getElementById('nujen-sales-search');
+        if (nujenSalesSearch) {
+            nujenSalesSearch.addEventListener('input', e => {
+                renderNujenSalesList(e.target.value);
+            });
+        }
 
         // 테이블 클릭 → 상세 모달
         document.addEventListener('click', e => {
