@@ -1218,102 +1218,155 @@ tr.total-row td.profit-negative, tr.total-row td.ratio-negative {
     gap: 8px;
 }
 
-.goal-container-flex {
+.goal-content {
     display: flex;
+    gap: 32px;
     align-items: center;
-    gap: 60px;
-    justify-content: flex-start;
-    padding: 10px 0;
 }
 
-.gauge-half-circle-wrapper {
+.goal-gauge-area {
+    flex: 1;
+}
+
+.goal-gauge-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.goal-gauge-bar {
+    width: 100%;
+    height: 40px;
+    background: var(--bg-secondary);
+    border-radius: 20px;
+    overflow: hidden;
     position: relative;
-    width: 330px;
-    height: 230px;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    align-items: center;
+    border: 1px solid var(--border-light);
 }
 
-.gauge-half-circle-svg {
-    width: 330px;
-    height: 198px;
+.goal-gauge-fill {
+    height: 100%;
+    border-radius: 20px;
+    background: linear-gradient(90deg, #6366f1, #8b5cf6, #a78bfa);
+    transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    min-width: 0;
 }
 
-.gauge-text-center {
+.goal-gauge-fill::after {
+    content: '';
     position: absolute;
-    top: 92px;
-    left: 50%;
-    transform: translateX(-50%);
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.25) 0%, transparent 50%, rgba(0,0,0,0.05) 100%);
+    border-radius: 20px;
+}
+
+.goal-gauge-fill.gauge-over::after {
+    background: linear-gradient(90deg, #6366f1, #10b981, #34d399);
+}
+
+.goal-gauge-fill.gauge-over {
+    background: linear-gradient(90deg, #6366f1, #10b981, #34d399);
+}
+
+.goal-gauge-label {
     text-align: center;
-}
-
-.gauge-percentage {
-    font-size: 3.2rem;
-    font-weight: 800;
-    color: var(--text-primary);
-    line-height: 1;
-    letter-spacing: -0.03em;
-}
-
-.gauge-stats-overlay {
-    margin-top: 15px;
-    text-align: center;
-    font-size: 1.15rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    line-height: 1.5;
-}
-
-.gauge-stats-overlay div {
-    margin-bottom: 2px;
-}
-
-.gauge-stats-vertical {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    justify-content: center;
-}
-
-.gauge-stat-item {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.gauge-stat-title {
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: var(--text-secondary);
-}
-
-.gauge-stat-val {
     font-size: 1.6rem;
-    font-weight: 700;
+    font-weight: 900;
+    color: var(--accent-indigo);
+    letter-spacing: -0.5px;
+}
+
+.goal-gauge-label span {
+    font-size: 2rem;
+}
+
+.goal-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 240px;
+}
+
+.goal-stat-card {
+    padding: 18px 22px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.goal-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.goal-stat-card.target {
+    background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(139,92,246,0.04));
+    border-color: rgba(99,102,241,0.2);
+}
+
+.goal-stat-card.actual {
+    background: linear-gradient(135deg, rgba(59,130,246,0.08), rgba(96,165,250,0.04));
+    border-color: rgba(59,130,246,0.2);
+}
+
+.goal-stat-card.remain {
+    background: linear-gradient(135deg, rgba(75,85,99,0.08), rgba(156,163,175,0.04));
+    border-color: rgba(75,85,99,0.2);
+}
+
+.goal-stat-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+.goal-stat-value {
+    font-size: 1.35rem;
+    font-weight: 800;
     color: var(--text-primary);
     font-feature-settings: 'tnum';
     font-variant-numeric: tabular-nums;
-    letter-spacing: -0.02em;
 }
 
-.gauge-stat-val.actual {
-    color: #2563eb;
+.goal-stat-card.target .goal-stat-value {
+    color: var(--accent-indigo);
 }
 
-.gauge-stat-val.remain {
+.goal-stat-card.actual .goal-stat-value {
+    color: var(--accent-blue);
+}
+
+.goal-stat-card.remain .goal-stat-value {
     color: var(--text-secondary);
 }
 
 @media (max-width: 768px) {
-    .goal-container-flex {
+    .goal-content {
         flex-direction: column;
-        align-items: center;
-        gap: 30px;
-        text-align: center;
     }
-    .gauge-stats-vertical {
-        align-items: center;
+    .goal-stats {
+        flex-direction: row;
+        min-width: 100%;
+        flex-wrap: wrap;
     }
+    .goal-stat-card {
+        flex: 1;
+        min-width: 150px;
+    }
+    .goal-section {
+        padding: 20px 16px;
+    }
+}
+
+@keyframes gaugeGrow {
+    from { width: 0%; }
+}
+
+.goal-gauge-fill.animate {
+    animation: gaugeGrow 1.5s cubic-bezier(0.4, 0, 0.2, 1);
 }

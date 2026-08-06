@@ -3002,38 +3002,26 @@
         const achievementRate = totalTargetAmount > 0 ? ((totalSoldAmount / totalTargetAmount) * 100) : 0;
 
         // 4. Update gauge
-        const gaugePath = document.getElementById('ext-inv-gauge-path');
+        const gaugeFill = document.getElementById('ext-inv-gauge-fill');
         const gaugePercent = document.getElementById('ext-inv-gauge-percent');
-        const needleEl = document.getElementById('ext-inv-needle');
         
         const targetAmountEl = document.getElementById('ext-inv-target-amount');
         const actualAmountEl = document.getElementById('ext-inv-actual-amount');
         const remainAmountEl = document.getElementById('ext-inv-remain-amount');
         
-        const gaugeTargetTextEl = document.getElementById('ext-inv-gauge-target-text');
-        const gaugeActualTextEl = document.getElementById('ext-inv-gauge-actual-text');
-        
         const totalRemainAmount = totalTargetAmount - totalSoldAmount;
-        const percentageForGauge = Math.min(achievementRate, 100);
 
-        if (gaugePath) {
-            const maxArc = 235.6;
-            const offset = maxArc - (maxArc * (percentageForGauge / 100));
-            gaugePath.style.strokeDashoffset = offset;
+        if (gaugeFill) {
+            const displayWidth = Math.min(achievementRate, 100);
+            gaugeFill.style.width = displayWidth + '%';
+            gaugeFill.classList.add('animate');
+            if (achievementRate >= 100) {
+                gaugeFill.classList.add('gauge-over');
+            } else {
+                gaugeFill.classList.remove('gauge-over');
+            }
         }
-
-        if (needleEl) {
-            const angle = -180 + (percentageForGauge * 1.8);
-            needleEl.style.transform = `rotate(${angle}deg)`;
-        }
-
-        const formatEok = (amt) => {
-            return (amt / 100000000).toFixed(1) + '억 원';
-        };
-
-        if (gaugePercent) gaugePercent.textContent = achievementRate.toFixed(0);
-        if (gaugeTargetTextEl) gaugeTargetTextEl.textContent = `목표: ${formatEok(totalTargetAmount)}`;
-        if (gaugeActualTextEl) gaugeActualTextEl.textContent = `실적: ${formatEok(totalSoldAmount)}`;
+        if (gaugePercent) gaugePercent.textContent = achievementRate.toFixed(1);
 
         if (targetAmountEl) targetAmountEl.textContent = totalTargetAmount.toLocaleString() + '원';
         if (actualAmountEl) actualAmountEl.textContent = totalSoldAmount.toLocaleString() + '원';
