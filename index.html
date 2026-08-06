@@ -370,25 +370,34 @@
                     <!-- 목표달성 게이지 섹션 -->
                     <div class="goal-section">
                         <h2 class="goal-title">🎯 2026년 EXT 판매 목표 달성 현황</h2>
-                        <div class="goal-content">
-                            <div class="goal-gauge-area">
-                                <div class="goal-gauge-container">
-                                    <div class="goal-gauge-bar">
-                                        <div class="goal-gauge-fill" id="ext-inv-gauge-fill" style="width: 0%"></div>
-                                    </div>
-                                    <div class="goal-gauge-label">
-                                        <span id="ext-inv-gauge-percent">0</span>% 달성
-                                    </div>
+                        <div class="goal-container-flex">
+                            <!-- 왼쪽: 반원 게이지 그래프 -->
+                            <div class="gauge-half-circle-wrapper">
+                                <svg viewBox="0 0 200 100" class="gauge-half-circle-svg">
+                                    <!-- 배경 원호 -->
+                                    <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#f3f4f6" stroke-width="18" stroke-linecap="round" />
+                                    <!-- 채워지는 원호 -->
+                                    <path id="ext-inv-gauge-path" d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#2563eb" stroke-width="18" stroke-linecap="round" stroke-dasharray="251.3" stroke-dashoffset="251.3" style="transition: stroke-dashoffset 1.2s ease-in-out;" />
+                                </svg>
+                                <div class="gauge-text-center">
+                                    <div class="gauge-percentage"><span id="ext-inv-gauge-percent">0.0</span>%</div>
+                                    <div class="gauge-label-sub">달성률</div>
                                 </div>
                             </div>
-                            <div class="goal-stats">
-                                <div class="goal-stat-card target">
-                                    <div class="goal-stat-label">🎯 목표금액</div>
-                                    <div class="goal-stat-value" id="ext-inv-target-amount">0원</div>
+                            
+                            <!-- 오른쪽: 목표/실적/잔여 금액 리스트 -->
+                            <div class="gauge-stats-vertical">
+                                <div class="gauge-stat-item">
+                                    <div class="gauge-stat-title">목표금액</div>
+                                    <div class="gauge-stat-val target" id="ext-inv-target-amount">0원</div>
                                 </div>
-                                <div class="goal-stat-card actual">
-                                    <div class="goal-stat-label">📊 실적금액</div>
-                                    <div class="goal-stat-value" id="ext-inv-actual-amount">0원</div>
+                                <div class="gauge-stat-item">
+                                    <div class="gauge-stat-title">현재실적</div>
+                                    <div class="gauge-stat-val actual" id="ext-inv-actual-amount">0원</div>
+                                </div>
+                                <div class="gauge-stat-item">
+                                    <div class="gauge-stat-title">잔여금액</div>
+                                    <div class="gauge-stat-val remain" id="ext-inv-remain-amount">0원</div>
                                 </div>
                             </div>
                         </div>
