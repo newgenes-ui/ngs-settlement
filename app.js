@@ -16,6 +16,8 @@
         extSalesData: [],
         nujenPurchaseData: [],
         nujenSalesData: [],
+        extInvPurchaseData: [],
+        extInvSalesData: [],
         vatCardData: [],
         fixedLaborData: [],
         fixedOfficeData: [],
@@ -264,10 +266,12 @@
                 Promise.resolve(null),
                 Promise.resolve(null),
                 Promise.resolve(null),
-                Promise.resolve(null)
+                Promise.resolve(null),
+                fetch(`EXT재고관리/EXT 기초매입 신규.csv?v=${t}`).then(r => r.ok ? r.text() : null).catch(() => null),
+                fetch(`EXT재고관리/EXT 판매현황_신규.csv?v=${t}`).then(r => r.ok ? r.text() : null).catch(() => null)
             ];
 
-            const [salesText, cardText, purchaseText, extPurchaseText, extSalesText, nujenPurchaseText, nujenSalesText] = await Promise.all(fetches);
+            const [salesText, cardText, purchaseText, extPurchaseText, extSalesText, nujenPurchaseText, nujenSalesText, extInvPurchaseText, extInvSalesText] = await Promise.all(fetches);
 
             const cutoffDate = "2026/06/30";
             function filterCutoff(d, dateField) {
@@ -511,6 +515,51 @@
                     });
                 }
                 state.nujenSalesData = state.nujenSalesData.filter(d => filterCutoff(d, 'dateNo'));
+            }
+
+            // 8. EXT 재고관리 - 기초매입(목표) 데이터 로드
+            if (extInvPurchaseText) {
+                const extInvPLines = parseCSVTextIntoLines(extInvPurchaseText);
+                state.extInvPurchaseData = [];
+                for (let i = 1; i < extInvPLines.length; i++) {
+                    const v = parseCSVLine(extInvPLines[i]);
+                    if (!v[0] || v[0].startsWith('총합계') || v[0].startsWith('총계')) continue;
+                    state.extInvPurchaseData.push({
+                        dateNo: v[0],
+                        code: normalizeExtCode(v[1]),
+                        name: v[2],
+                        qty: parseInt(v[3]) || 0,
+                        unitPrice: parseAmount(v[4]),
+                        supplyAmount: parseAmount(v[5]),
+                        taxAmount: parseAmount(v[6]),
+                        totalAmount: parseAmount(v[5]) + parseAmount(v[6])
+                    });
+                }
+            }
+
+            // 9. EXT 재고관리 - 판매현황(실적) 데이터 로드
+            if (extInvSalesText) {
+                const extInvSLines = parseCSVTextIntoLines(extInvSalesText);
+                state.extInvSalesData = [];
+                for (let i = 1; i < extInvSLines.length; i++) {
+                    const v = parseCSVLine(extInvSLines[i]);
+                    if (!v[0] || v[0].startsWith('총합계') || v[0].startsWith('총계')) continue;
+                    // Skip shipping fee items
+                    const code = (v[2] || '').trim();
+                    if (code === 'AA' || code === 'A') continue;
+                    state.extInvSalesData.push({
+                        dateNo: v[0],
+                        buyer: v[1],
+                        code: normalizeExtCode(v[2]),
+                        name: v[3],
+                        qty: parseInt(v[4]) || 0,
+                        unitPrice: parseAmount(v[5]),
+                        supplyAmount: parseAmount(v[6]),
+                        taxAmount: parseAmount(v[7]),
+                        totalAmount: parseAmount(v[8])
+                    });
+                }
+                state.extInvSalesData.sort((a, b) => b.dateNo.localeCompare(a.dateNo));
             }
 
             // 부가세 카드 데이터 로드
@@ -2880,6 +2929,193 @@
         renderNujenSalesList();
     }
 
+    // ===== EXT 재고관리 뷰 렌더 =====
+    function getFilteredExtInvSalesData() {
+        const data = state.extInvSalesData;
+        if (state.currentPeriod === 'all' || !state.selectedSubPeriod) return data;
+        return data.filter(r => {
+            if (!r.dateNo) return false;
+            const m = r.dateNo.match(/^(\d{4})[/-](\d{2})/);
+            if (!m) return false;
+            const year = m[1];
+            const month = parseInt(m[2], 10);
+            if (state.currentPeriod === 'monthly') {
+                return `${year}-${m[2]}` === state.selectedSubPeriod;
+            } else if (state.currentPeriod === 'quarterly') {
+                const q = Math.ceil(month / 3);
+                return `${year}-Q${q}` === state.selectedSubPeriod;
+            }
+            return true;
+        });
+    }
+
+    function normalizeExtInvCode(code) {
+        if (!code) return '';
+        let c = code.replace(/[\s\r\n]+/g, '').toUpperCase();
+        // Remove suffixes like (할증), (지역), (보상) to normalize
+        c = c.replace(/\(할증\)/g, '').replace(/\(지역\)/g, '').replace(/\(보상\)/g, '');
+        // Normalize dashes: EXT-10096K → EXT10096K
+        c = c.replace(/^EXT-/, 'EXT');
+        if (c === 'EXT1001S' || c === 'EXT1000S') return 'EXT1000S';
+        if (c === 'DEMO_VERSION' || c === 'DEMOVERSION' || c === 'EXT1000S(DEMO)') return 'EXT1000S(Demo)';
+        return c;
+    }
+
+    function renderExtInventoryView() {
+        // Categories from purchase data
+        const categories = [
+            { id: 'EXT10096K', code: 'EXT10096K', name: 'ExT 100 ul Kit (96 rxn)', initQty: 0, initAmount: 0, soldQty: 0, soldAmount: 0 },
+            { id: 'EXT1096K', code: 'EXT1096K', name: 'ExT 10 ul Kit (96 rxn)', initQty: 0, initAmount: 0, soldQty: 0, soldAmount: 0 },
+            { id: 'EXT1000S', code: 'EXT1000S', name: 'ExT Starter Pack (192 rxn)', initQty: 0, initAmount: 0, soldQty: 0, soldAmount: 0 },
+            { id: 'EXT10025K', code: 'EXT10025K', name: 'ExT 100 ul Kit (25 rxn)', initQty: 0, initAmount: 0, soldQty: 0, soldAmount: 0 },
+            { id: 'EXT1025K', code: 'EXT1025K', name: 'ExT 10 ul Kit (25 rxn)', initQty: 0, initAmount: 0, soldQty: 0, soldAmount: 0 },
+            { id: 'EXT1000S(Demo)', code: 'EXT1000S(Demo)', name: 'ExT Starter Pack (Demo)', initQty: 0, initAmount: 0, soldQty: 0, soldAmount: 0 },
+            { id: 'EXT50T', code: 'EXT50T', name: 'ExTransfection Tube', initQty: 0, initAmount: 0, soldQty: 0, soldAmount: 0 }
+        ];
+
+        // 1. Aggregate purchase (target) data
+        state.extInvPurchaseData.forEach(p => {
+            const normCode = normalizeExtInvCode(p.code);
+            const cat = categories.find(c => c.id === normCode);
+            if (cat) {
+                cat.initQty += p.qty;
+                cat.initAmount += p.totalAmount;
+            }
+        });
+
+        // 2. Aggregate sales (actual) data
+        const filteredSales = getFilteredExtInvSalesData();
+        filteredSales.forEach(s => {
+            const normCode = normalizeExtInvCode(s.code);
+            const cat = categories.find(c => c.id === normCode);
+            if (cat) {
+                cat.soldQty += s.qty;
+                cat.soldAmount += s.totalAmount;
+            }
+        });
+
+        // 3. Calculate totals
+        const totalTargetAmount = categories.reduce((s, c) => s + c.initAmount, 0);
+        const totalTargetQty = categories.reduce((s, c) => s + c.initQty, 0);
+        const totalSoldAmount = filteredSales.reduce((s, r) => s + r.totalAmount, 0);
+        const totalSoldQty = filteredSales.reduce((s, r) => s + r.qty, 0);
+        const achievementRate = totalTargetAmount > 0 ? ((totalSoldAmount / totalTargetAmount) * 100) : 0;
+
+        // 4. Update gauge
+        const gaugeFill = document.getElementById('ext-inv-gauge-fill');
+        const gaugePercent = document.getElementById('ext-inv-gauge-percent');
+        const targetAmountEl = document.getElementById('ext-inv-target-amount');
+        const actualAmountEl = document.getElementById('ext-inv-actual-amount');
+        if (gaugeFill) {
+            const displayWidth = Math.min(achievementRate, 100);
+            gaugeFill.style.width = displayWidth + '%';
+            gaugeFill.classList.add('animate');
+            if (achievementRate >= 100) {
+                gaugeFill.classList.add('gauge-over');
+            } else {
+                gaugeFill.classList.remove('gauge-over');
+            }
+        }
+        if (gaugePercent) gaugePercent.textContent = achievementRate.toFixed(1);
+        if (targetAmountEl) targetAmountEl.textContent = totalTargetAmount.toLocaleString() + '원';
+        if (actualAmountEl) actualAmountEl.textContent = totalSoldAmount.toLocaleString() + '원';
+
+        // 5. Summary cards
+        const totalStockQty = Math.max(totalTargetQty - categories.reduce((s, c) => s + c.soldQty, 0), 0);
+        const totalStockAmount = categories.reduce((s, c) => {
+            const stock = Math.max(c.initQty - c.soldQty, 0);
+            return s + (c.initAmount > 0 && c.initQty > 0 ? Math.round(stock * (c.initAmount / c.initQty)) : 0);
+        }, 0);
+
+        const summaryCards = document.getElementById('ext-inv-summary-cards');
+        if (summaryCards) {
+            const initTax = Math.round(totalTargetAmount / 11);
+            const initSupply = totalTargetAmount - initTax;
+            const soldTax = Math.round(totalSoldAmount / 11);
+            const soldSupply = totalSoldAmount - soldTax;
+            const stockTax = Math.round(totalStockAmount / 11);
+            const stockSupply = totalStockAmount - stockTax;
+
+            summaryCards.innerHTML = [
+                createSummaryCard('indigo', ICONS.purchase, '기초 입고 (목표)', formatCurrency(totalTargetAmount), `공급가액: ${formatCurrency(initSupply)} · 세액: ${formatCurrency(initTax)} · 수량: ${totalTargetQty}개`),
+                createSummaryCard('blue', ICONS.sales, '당기 판매 (실적)', formatCurrency(totalSoldAmount), `공급가액: ${formatCurrency(soldSupply)} · 세액: ${formatCurrency(soldTax)} · 수량: ${totalSoldQty}개 (달성률: ${achievementRate.toFixed(1)}%)`),
+                createSummaryCard('emerald', ICONS.profit, '잔여 재고', formatCurrency(totalStockAmount), `공급가액: ${formatCurrency(stockSupply)} · 세액: ${formatCurrency(stockTax)} · 수량: ${totalStockQty}개`)
+            ].join('');
+        }
+
+        // 6. Inventory table
+        const tbody = document.getElementById('ext-inv-tbody');
+        if (tbody) {
+            tbody.innerHTML = categories.filter(c => c.initQty > 0 || c.soldQty > 0).map(c => {
+                const stockQty = Math.max(c.initQty - c.soldQty, 0);
+                const stockAmount = c.initAmount > 0 && c.initQty > 0 ? Math.round(stockQty * (c.initAmount / c.initQty)) : 0;
+                const soldRate = c.initQty > 0 ? ((c.soldQty / c.initQty) * 100).toFixed(1) : '0.0';
+
+                let statusHTML = '';
+                if (stockQty <= 0) {
+                    statusHTML = '<span class="tag correction">품절</span>';
+                } else if (stockQty <= 5) {
+                    statusHTML = '<span class="tag correction" style="background:rgba(245,158,11,0.1);color:var(--accent-amber);">재고 부족</span>';
+                } else {
+                    statusHTML = '<span class="tag normal" style="background:rgba(16,185,129,0.1);color:var(--accent-emerald);">보유중</span>';
+                }
+
+                return `
+                    <tr>
+                        <td style="font-weight:700;">${c.name}</td>
+                        <td style="font-family:monospace;font-size:0.82rem;color:var(--text-secondary);">${c.code}</td>
+                        <td class="text-center" style="font-weight:600;">${c.initQty}개</td>
+                        <td class="text-right" style="font-feature-settings:'tnum';font-variant-numeric:tabular-nums;">${c.initAmount.toLocaleString()}원</td>
+                        <td class="text-center" style="font-weight:600;color:var(--accent-indigo);">${c.soldQty}개<br><span style="font-size:0.75rem;color:var(--text-tertiary);">(${soldRate}%)</span></td>
+                        <td class="text-right" style="font-feature-settings:'tnum';font-variant-numeric:tabular-nums;color:var(--accent-indigo);">${c.soldAmount.toLocaleString()}원</td>
+                        <td class="text-center" style="font-weight:700;color:${stockQty <= 5 ? 'var(--accent-rose)' : 'var(--text-primary)'}">${stockQty}개</td>
+                        <td class="text-right" style="font-feature-settings:'tnum';font-variant-numeric:tabular-nums;font-weight:600;">${stockAmount.toLocaleString()}원</td>
+                        <td class="text-center">${statusHTML}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // 7. Sales list
+        renderExtInvSalesList();
+    }
+
+    function renderExtInvSalesList(searchTerm = '') {
+        const data = getFilteredExtInvSalesData();
+        const filtered = searchTerm
+            ? data.filter(r =>
+                (r.buyer && r.buyer.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                (r.name && r.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                (r.code && r.code.toLowerCase().includes(searchTerm.toLowerCase())))
+            : data;
+
+        const totalAmount = filtered.reduce((s, r) => s + r.totalAmount, 0);
+
+        const tbody = document.getElementById('ext-inv-sales-tbody');
+        if (tbody) {
+            tbody.innerHTML = filtered.map((r) => `
+                <tr>
+                    <td>${(r.dateNo || '').split(' ')[0]}</td>
+                    <td>${r.buyer || '-'}</td>
+                    <td style="font-family:monospace;font-size:0.82rem;color:var(--text-secondary);">${r.code || '-'}</td>
+                    <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;">${r.name || '-'}</td>
+                    <td class="text-center">${(r.qty || 0).toLocaleString()}</td>
+                    <td class="text-right amount ${r.totalAmount < 0 ? 'negative' : ''}">${(r.totalAmount || 0).toLocaleString()}원</td>
+                    <td class="text-right amount">${(r.supplyAmount || 0).toLocaleString()}원</td>
+                    <td class="text-right amount">${(r.taxAmount || 0).toLocaleString()}원</td>
+                </tr>
+            `).join('');
+        }
+
+        const footer = document.getElementById('ext-inv-sales-footer');
+        if (footer) {
+            footer.innerHTML = `
+                <span>${filtered.length}건 조회됨</span>
+                <span class="table-footer-total">합계: ${formatFullCurrency(totalAmount)}</span>
+            `;
+        }
+    }
+
     // ===== 뷰 전환 =====
     function switchView(viewName) {
         if ((viewName === 'vat' || viewName === 'fixed-expenses') && !state.isVatAuthorized) {
@@ -2926,7 +3162,8 @@
             'card-sales': ['카드매출 내역', '카드매출전표 세부내역을 확인합니다.'],
             'purchases': ['매입 내역', '세금계산서 기반 매입 세부내역을 확인합니다.'],
             'vat': ['부가세 신고', '2026년 상반기 부가가치세 신고를 위한 세금계산서 및 신용카드 매입 집계 현황입니다.'],
-            'fixed-expenses': ['고정지출 관리', '인건비, 사무실비용, 고정 거래처 지출 내역입니다.']
+            'fixed-expenses': ['고정지출 관리', '인건비, 사무실비용, 고정 거래처 지출 내역입니다.'],
+            'ext-inventory': ['EXT 재고관리', '2026년 EXT 판매 목표 대비 실적 현황 및 품목별 재고관리입니다.']
         };
         const [title, desc] = titles[viewName] || ['', ''];
         document.getElementById('page-title').textContent = title;
@@ -2948,6 +3185,7 @@
             case 'purchases': renderPurchasesView(); break;
             case 'vat': renderVatView(); break;
             case 'fixed-expenses': renderFixedExpensesView(); break;
+            case 'ext-inventory': renderExtInventoryView(); break;
         }
     }
 
@@ -3129,6 +3367,13 @@
         if (nujenSalesSearch) {
             nujenSalesSearch.addEventListener('input', e => {
                 renderNujenSalesList(e.target.value);
+            });
+        }
+
+        const extInvSalesSearch = document.getElementById('ext-inv-sales-search');
+        if (extInvSalesSearch) {
+            extInvSalesSearch.addEventListener('input', e => {
+                renderExtInvSalesList(e.target.value);
             });
         }
 

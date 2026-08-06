@@ -72,6 +72,13 @@
                         <span>고정지출</span>
                     </a>
                 </div>
+                <div class="nav-section">
+                    <span class="nav-label">재고관리</span>
+                    <a href="#" class="nav-item" data-view="ext-inventory" id="nav-ext-inventory">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                        <span>EXT 재고관리</span>
+                    </a>
+                </div>
             </nav>
 
             <div class="sidebar-footer">
@@ -355,6 +362,95 @@
                                 <tfoot id="fixed-vendor-tfoot" style="font-weight:bold; background:var(--bg-secondary);"></tfoot>
                             </table>
                         </div>
+                    </div>
+                </div>
+
+                <!-- EXT Inventory View -->
+                <div class="view" id="view-ext-inventory">
+                    <!-- 목표달성 게이지 섹션 -->
+                    <div class="goal-section">
+                        <h2 class="goal-title">🎯 2026년 EXT 판매 목표 달성 현황</h2>
+                        <div class="goal-content">
+                            <div class="goal-gauge-area">
+                                <div class="goal-gauge-container">
+                                    <div class="goal-gauge-bar">
+                                        <div class="goal-gauge-fill" id="ext-inv-gauge-fill" style="width: 0%"></div>
+                                    </div>
+                                    <div class="goal-gauge-label">
+                                        <span id="ext-inv-gauge-percent">0</span>% 달성
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="goal-stats">
+                                <div class="goal-stat-card target">
+                                    <div class="goal-stat-label">🎯 목표금액</div>
+                                    <div class="goal-stat-value" id="ext-inv-target-amount">0원</div>
+                                </div>
+                                <div class="goal-stat-card actual">
+                                    <div class="goal-stat-label">📊 실적금액</div>
+                                    <div class="goal-stat-value" id="ext-inv-actual-amount">0원</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 요약 카드 -->
+                    <div class="summary-cards" id="ext-inv-summary-cards"></div>
+
+                    <!-- 재고현황 테이블 -->
+                    <div class="table-card">
+                        <div class="table-header">
+                            <h3>📦 품목별 재고 현황</h3>
+                        </div>
+                        <div class="table-wrapper">
+                            <table class="data-table" id="ext-inv-table">
+                                <thead>
+                                    <tr>
+                                        <th>품목명</th>
+                                        <th>품목코드</th>
+                                        <th class="text-center">목표수량</th>
+                                        <th class="text-right">목표금액</th>
+                                        <th class="text-center">판매수량</th>
+                                        <th class="text-right">판매금액</th>
+                                        <th class="text-center">잔여수량</th>
+                                        <th class="text-right">잔여금액</th>
+                                        <th class="text-center">상태</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ext-inv-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 판매현황 리스트 -->
+                    <div class="table-card">
+                        <div class="table-header">
+                            <h3>📋 판매현황 리스트</h3>
+                            <div class="table-actions">
+                                <div class="search-box">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                                    <input type="text" id="ext-inv-sales-search" placeholder="거래처명, 품목 검색...">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="table-wrapper">
+                            <table class="data-table" id="ext-inv-sales-table">
+                                <thead>
+                                    <tr>
+                                        <th>일자</th>
+                                        <th>거래처명</th>
+                                        <th>품목코드</th>
+                                        <th>품목명</th>
+                                        <th class="text-center">수량</th>
+                                        <th class="text-right">합계금액</th>
+                                        <th class="text-right">공급가액</th>
+                                        <th class="text-right">세액</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ext-inv-sales-tbody"></tbody>
+                            </table>
+                        </div>
+                        <div class="table-footer" id="ext-inv-sales-footer"></div>
                     </div>
                 </div>
             </div>
