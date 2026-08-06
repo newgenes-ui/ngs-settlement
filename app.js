@@ -3027,25 +3027,7 @@
         if (actualAmountEl) actualAmountEl.textContent = totalSoldAmount.toLocaleString() + '원';
         if (remainAmountEl) remainAmountEl.textContent = totalRemainAmount.toLocaleString() + '원';
 
-        // 5. Summary cards
-        const summaryCards = document.getElementById('ext-inv-summary-cards');
-        if (summaryCards) {
-            const targetTax = Math.round(totalTargetAmount / 11);
-            const targetSupply = totalTargetAmount - targetTax;
-            const soldTax = Math.round(totalSoldAmount / 11);
-            const soldSupply = totalSoldAmount - soldTax;
-            const remainTax = Math.round(totalRemainAmount / 11);
-            const remainSupply = totalRemainAmount - remainTax;
-            const totalStockQty = Math.max(totalTargetQty - totalSoldQty, 0);
-
-            summaryCards.innerHTML = [
-                createSummaryCard('indigo', ICONS.purchase, '목표금액', formatCurrency(totalTargetAmount), `공급가액: ${formatCurrency(targetSupply)} · 세액: ${formatCurrency(targetTax)} · 수량: ${totalTargetQty}개`),
-                createSummaryCard('blue', ICONS.sales, '현재실적', formatCurrency(totalSoldAmount), `공급가액: ${formatCurrency(soldSupply)} · 세액: ${formatCurrency(soldTax)} · 수량: ${totalSoldQty}개 (달성률: ${achievementRate.toFixed(1)}%)`),
-                createSummaryCard('emerald', ICONS.profit, '잔여금액', formatCurrency(totalRemainAmount), `공급가액: ${formatCurrency(remainSupply)} · 세액: ${formatCurrency(remainTax)} · 예상 잔여수량: ${totalStockQty}개`)
-            ].join('');
-        }
-
-        // 6. Inventory table
+        // 5. Inventory table
         const tbody = document.getElementById('ext-inv-tbody');
         if (tbody) {
             tbody.innerHTML = categories.filter(c => c.initQty > 0 || c.soldQty > 0).map(c => {
