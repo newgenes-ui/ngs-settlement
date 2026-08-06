@@ -18,6 +18,7 @@
         nujenSalesData: [],
         extInvPurchaseData: [],
         extInvSalesData: [],
+        extInvAddPurchaseData: [],
         vatCardData: [],
         fixedLaborData: [],
         fixedOfficeData: [],
@@ -258,6 +259,8 @@
             const savedExtSales = localStorage.getItem('custom_ext_sales_data');
             const savedNujenPurchase = localStorage.getItem('custom_nujen_purchase_data');
             const savedNujenSales = localStorage.getItem('custom_nujen_sales_data');
+            const savedExtInvSales = localStorage.getItem('custom_ext_inv_sales_data');
+            const savedExtInvAddPurchase = localStorage.getItem('custom_ext_inv_add_purchase_data');
 
             const fetches = [
                 !savedSales ? fetch(`매출.csv?v=${t}`).then(r => r.text()) : Promise.resolve(null),
@@ -268,7 +271,7 @@
                 Promise.resolve(null),
                 Promise.resolve(null),
                 fetch(`EXT재고관리/EXT 기초매입 신규.csv?v=${t}`).then(r => r.ok ? r.text() : null).catch(() => null),
-                fetch(`EXT재고관리/EXT 판매현황_신규.csv?v=${t}`).then(r => r.ok ? r.text() : null).catch(() => null)
+                !savedExtInvSales ? fetch(`EXT재고관리/EXT 판매현황_신규.csv?v=${t}`).then(r => r.ok ? r.text() : null).catch(() => null) : Promise.resolve(null)
             ];
 
             const [salesText, cardText, purchaseText, extPurchaseText, extSalesText, nujenPurchaseText, nujenSalesText, extInvPurchaseText, extInvSalesText] = await Promise.all(fetches);
@@ -538,7 +541,9 @@
             }
 
             // 9. EXT 재고관리 - 판매현황(실적) 데이터 로드
-            if (extInvSalesText) {
+            if (savedExtInvSales) {
+                state.extInvSalesData = JSON.parse(savedExtInvSales);
+            } else if (extInvSalesText) {
                 const extInvSLines = parseCSVTextIntoLines(extInvSalesText);
                 state.extInvSalesData = [];
                 for (let i = 1; i < extInvSLines.length; i++) {
@@ -560,6 +565,13 @@
                     });
                 }
                 state.extInvSalesData.sort((a, b) => b.dateNo.localeCompare(a.dateNo));
+            }
+
+            // 10. EXT 재고관리 - 추가 매입 데이터 로드 (기초매입 미반영)
+            if (savedExtInvAddPurchase) {
+                state.extInvAddPurchaseData = JSON.parse(savedExtInvAddPurchase);
+            } else {
+                state.extInvAddPurchaseData = [];
             }
 
             // 부가세 카드 데이터 로드
@@ -3060,8 +3072,59 @@
             }).join('');
         }
 
+        // 6. Additional purchase table
+        renderExtInvAddPurchaseList();
+
         // 7. Sales list
         renderExtInvSalesList();
+    }
+
+    function renderExtInvAddPurchaseList() {
+        const data = state.extInvAddPurchaseData || [];
+        const tbody = document.getElementById('ext-inv-add-purchase-tbody');
+        const tfoot = document.getElementById('ext-inv-add-purchase-tfoot');
+        if (!tbody) return;
+
+        if (data.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="text-center" style="padding:24px 0; color:var(--text-tertiary); font-weight:500;">등록된 추가 매입 내역이 없습니다. 우측 상단의 "월별 CSV 등록하기" 버튼을 눌러 등록해 주세요.</td>
+                </tr>
+            `;
+            if (tfoot) tfoot.innerHTML = '';
+            return;
+        }
+
+        tbody.innerHTML = data.map(r => `
+            <tr>
+                <td>${(r.dateNo || '').split(' ')[0]}</td>
+                <td style="font-family:monospace;font-size:0.82rem;color:var(--text-secondary);">${r.code || '-'}</td>
+                <td style="font-weight:700; max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${r.name || '-'}</td>
+                <td class="text-center" style="font-weight:600;">${(r.qty || 0).toLocaleString()}개</td>
+                <td class="text-right">${r.unitPrice > 0 ? r.unitPrice.toLocaleString() + '원' : '-'}</td>
+                <td class="text-right">${r.supplyAmount > 0 ? r.supplyAmount.toLocaleString() + '원' : '-'}</td>
+                <td class="text-right">${r.taxAmount > 0 ? r.taxAmount.toLocaleString() + '원' : '-'}</td>
+                <td class="text-right" style="font-weight:600;color:var(--text-primary);">${r.totalAmount > 0 ? r.totalAmount.toLocaleString() + '원' : '-'}</td>
+            </tr>
+        `).join('');
+
+        const totalQty = data.reduce((s, r) => s + (r.qty || 0), 0);
+        const totalSupply = data.reduce((s, r) => s + (r.supplyAmount || 0), 0);
+        const totalTax = data.reduce((s, r) => s + (r.taxAmount || 0), 0);
+        const totalAmount = data.reduce((s, r) => s + (r.totalAmount || 0), 0);
+
+        if (tfoot) {
+            tfoot.innerHTML = `
+                <tr class="total-row">
+                    <td colspan="3" class="text-center">합계</td>
+                    <td class="text-center">${totalQty.toLocaleString()}개</td>
+                    <td class="text-right">-</td>
+                    <td class="text-right">${totalSupply.toLocaleString()}원</td>
+                    <td class="text-right">${totalTax.toLocaleString()}원</td>
+                    <td class="text-right" style="color:var(--accent-indigo);">${totalAmount.toLocaleString()}원</td>
+                </tr>
+            `;
+        }
     }
 
     function renderExtInvSalesList(searchTerm = '') {
@@ -3621,6 +3684,8 @@
                     typeSelect.value = 'ext-purchase';
                 } else if (type === 'nujen') {
                     typeSelect.value = 'nujen-purchase';
+                } else if (type === 'ext-inv-add-purchase' || type === 'ext-inv-sales') {
+                    typeSelect.value = type;
                 } else {
                     typeSelect.value = type;
                 }
@@ -3653,7 +3718,9 @@
                     'ext-purchase': 'ExT 기초/매입',
                     'ext-sales': 'ExT 당기/매출',
                     'nujen-purchase': '뉴진스 기초/매입',
-                    'nujen-sales': '뉴진스 당기/매출'
+                    'nujen-sales': '뉴진스 당기/매출',
+                    'ext-inv-add-purchase': 'EXT 추가매입',
+                    'ext-inv-sales': 'EXT 판매현황'
                 };
                 const keyNames = {
                     'sales': 'custom_sales_data',
@@ -3662,7 +3729,9 @@
                     'ext-purchase': 'custom_ext_purchase_data',
                     'ext-sales': 'custom_ext_sales_data',
                     'nujen-purchase': 'custom_nujen_purchase_data',
-                    'nujen-sales': 'custom_nujen_sales_data'
+                    'nujen-sales': 'custom_nujen_sales_data',
+                    'ext-inv-add-purchase': 'custom_ext_inv_add_purchase_data',
+                    'ext-inv-sales': 'custom_ext_inv_sales_data'
                 };
                 const name = typeNames[type] || '데이터';
                 const key = keyNames[type];
@@ -4068,6 +4137,84 @@
             state.nujenSalesData = state.nujenSalesData.concat(newItems);
             state.nujenSalesData.sort((a, b) => b.dateNo.localeCompare(a.dateNo));
             localStorage.setItem('custom_nujen_sales_data', JSON.stringify(state.nujenSalesData));
+        } else if (type === 'ext-inv-add-purchase') {
+            const newItems = [];
+            let startRow = 1;
+            for (let r = 0; r < Math.min(lines.length, 5); r++) {
+                const headerLine = parseCSVLine(lines[r]);
+                const firstVal = headerLine[0] ? headerLine[0].trim().replace(/^\ufeff/, '') : '';
+                if (firstVal.includes('일자-No.') || firstVal.includes('품목코드')) {
+                    startRow = r + 1;
+                    break;
+                }
+            }
+
+            for (let i = startRow; i < lines.length; i++) {
+                const v = parseCSVLine(lines[i]);
+                if (!v[0] || v[0].startsWith('총합계') || v[0].startsWith('총계')) continue;
+                
+                const code = normalizeExtCode(v[1]);
+                newItems.push({
+                    dateNo: v[0],
+                    code: code,
+                    name: v[2] || '',
+                    qty: parseInt(v[3]) || 0,
+                    unitPrice: parseAmount(v[4]),
+                    supplyAmount: parseAmount(v[5]),
+                    taxAmount: parseAmount(v[6]),
+                    totalAmount: parseAmount(v[7]) || (parseAmount(v[5]) + parseAmount(v[6]))
+                });
+            }
+
+            if (newItems.length === 0) throw new Error('등록할 수 있는 EXT 추가매입 행이 없습니다. 양식에 맞춰 업로드해 주세요.');
+
+            newItems.forEach(newItem => {
+                state.extInvAddPurchaseData = state.extInvAddPurchaseData.filter(item => !(item.dateNo === newItem.dateNo && item.code === newItem.code));
+            });
+            state.extInvAddPurchaseData = state.extInvAddPurchaseData.concat(newItems);
+            state.extInvAddPurchaseData.sort((a, b) => b.dateNo.localeCompare(a.dateNo));
+            localStorage.setItem('custom_ext_inv_add_purchase_data', JSON.stringify(state.extInvAddPurchaseData));
+
+        } else if (type === 'ext-inv-sales') {
+            const newItems = [];
+            let startRow = 1;
+            for (let r = 0; r < Math.min(lines.length, 5); r++) {
+                const headerLine = parseCSVLine(lines[r]);
+                const firstVal = headerLine[0] ? headerLine[0].trim().replace(/^\ufeff/, '') : '';
+                if (firstVal.includes('일자-No.') || firstVal.includes('거래처명')) {
+                    startRow = r + 1;
+                    break;
+                }
+            }
+
+            for (let i = startRow; i < lines.length; i++) {
+                const v = parseCSVLine(lines[i]);
+                if (!v[0] || v[0].startsWith('총합계') || v[0].startsWith('총계')) continue;
+                
+                const code = normalizeExtCode(v[2]);
+                if (code === 'AA' || code === 'A') continue; // 배송비 스킵
+                
+                newItems.push({
+                    dateNo: v[0],
+                    buyer: v[1] || '',
+                    code: code,
+                    name: v[3] || '',
+                    qty: parseInt(v[4]) || 0,
+                    unitPrice: parseAmount(v[5]),
+                    supplyAmount: parseAmount(v[6]),
+                    taxAmount: parseAmount(v[7]),
+                    totalAmount: parseAmount(v[8])
+                });
+            }
+
+            if (newItems.length === 0) throw new Error('등록할 수 있는 EXT 판매현황 행이 없습니다. 양식에 맞춰 업로드해 주세요.');
+
+            newItems.forEach(newItem => {
+                state.extInvSalesData = state.extInvSalesData.filter(item => !(item.dateNo === newItem.dateNo && item.code === newItem.code));
+            });
+            state.extInvSalesData = state.extInvSalesData.concat(newItems);
+            state.extInvSalesData.sort((a, b) => b.dateNo.localeCompare(a.dateNo));
+            localStorage.setItem('custom_ext_inv_sales_data', JSON.stringify(state.extInvSalesData));
         }
     }
 
