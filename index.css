@@ -1228,47 +1228,46 @@ tr.total-row td.profit-negative, tr.total-row td.ratio-negative {
 
 .gauge-half-circle-wrapper {
     position: relative;
-    width: 220px;
-    height: 110px;
-    overflow: hidden;
+    width: 330px;
+    height: 230px;
     display: flex;
-    justify-content: center;
-    align-items: flex-end;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
 }
 
 .gauge-half-circle-svg {
-    width: 220px;
-    height: 220px;
-    position: absolute;
-    top: 0;
-    left: 0;
+    width: 330px;
+    height: 198px;
 }
 
 .gauge-text-center {
     position: absolute;
-    bottom: 5px;
+    top: 92px;
     left: 50%;
     transform: translateX(-50%);
     text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-end;
 }
 
 .gauge-percentage {
-    font-size: 2.2rem;
+    font-size: 3.2rem;
     font-weight: 800;
     color: var(--text-primary);
-    line-height: 1.1;
-    letter-spacing: -0.02em;
+    line-height: 1;
+    letter-spacing: -0.03em;
 }
 
-.gauge-label-sub {
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: var(--text-tertiary);
-    margin-top: 2px;
+.gauge-stats-overlay {
+    margin-top: 15px;
+    text-align: center;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.5;
+}
+
+.gauge-stats-overlay div {
+    margin-bottom: 2px;
 }
 
 .gauge-stats-vertical {

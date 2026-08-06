@@ -373,15 +373,24 @@
                         <div class="goal-container-flex">
                             <!-- 왼쪽: 반원 게이지 그래프 -->
                             <div class="gauge-half-circle-wrapper">
-                                <svg viewBox="0 0 200 100" class="gauge-half-circle-svg">
+                                <svg viewBox="0 0 200 120" class="gauge-half-circle-svg">
                                     <!-- 배경 원호 -->
-                                    <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#f3f4f6" stroke-width="18" stroke-linecap="round" />
+                                    <path d="M 25 85 A 75 75 0 0 1 175 85" fill="none" stroke="#f3f4f6" stroke-width="16" stroke-linecap="round" />
                                     <!-- 채워지는 원호 -->
-                                    <path id="ext-inv-gauge-path" d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#2563eb" stroke-width="18" stroke-linecap="round" stroke-dasharray="251.3" stroke-dashoffset="251.3" style="transition: stroke-dashoffset 1.2s ease-in-out;" />
+                                    <path id="ext-inv-gauge-path" d="M 25 85 A 75 75 0 0 1 175 85" fill="none" stroke="#00acc1" stroke-width="16" stroke-linecap="round" stroke-dasharray="235.6" stroke-dashoffset="235.6" style="transition: stroke-dashoffset 1.2s ease-in-out;" />
+                                    <!-- 바늘 (Needle) -->
+                                    <g id="ext-inv-needle" style="transform-origin: 100px 85px; transition: transform 1.2s ease-in-out; transform: rotate(-180deg);">
+                                        <polygon points="100,81 165,85 100,89" fill="#0f172a" />
+                                        <circle cx="100" cy="85" r="9" fill="#0f172a" />
+                                        <circle cx="100" cy="85" r="4.5" fill="#ffffff" />
+                                    </g>
                                 </svg>
                                 <div class="gauge-text-center">
                                     <div class="gauge-percentage"><span id="ext-inv-gauge-percent">0.0</span>%</div>
-                                    <div class="gauge-label-sub">달성률</div>
+                                </div>
+                                <div class="gauge-stats-overlay">
+                                    <div id="ext-inv-gauge-target-text">목표: 0.0억 원</div>
+                                    <div id="ext-inv-gauge-actual-text">실적: 0.0억 원</div>
                                 </div>
                             </div>
                             

@@ -3004,19 +3004,37 @@
         // 4. Update gauge
         const gaugePath = document.getElementById('ext-inv-gauge-path');
         const gaugePercent = document.getElementById('ext-inv-gauge-percent');
+        const needleEl = document.getElementById('ext-inv-needle');
+        
         const targetAmountEl = document.getElementById('ext-inv-target-amount');
         const actualAmountEl = document.getElementById('ext-inv-actual-amount');
         const remainAmountEl = document.getElementById('ext-inv-remain-amount');
         
+        const gaugeTargetTextEl = document.getElementById('ext-inv-gauge-target-text');
+        const gaugeActualTextEl = document.getElementById('ext-inv-gauge-actual-text');
+        
         const totalRemainAmount = totalTargetAmount - totalSoldAmount;
+        const percentageForGauge = Math.min(achievementRate, 100);
 
         if (gaugePath) {
-            const maxArc = 251.3;
-            const percentage = Math.min(achievementRate, 100);
-            const offset = maxArc - (maxArc * (percentage / 100));
+            const maxArc = 235.6;
+            const offset = maxArc - (maxArc * (percentageForGauge / 100));
             gaugePath.style.strokeDashoffset = offset;
         }
-        if (gaugePercent) gaugePercent.textContent = achievementRate.toFixed(1);
+
+        if (needleEl) {
+            const angle = -180 + (percentageForGauge * 1.8);
+            needleEl.style.transform = `rotate(${angle}deg)`;
+        }
+
+        const formatEok = (amt) => {
+            return (amt / 100000000).toFixed(1) + '억 원';
+        };
+
+        if (gaugePercent) gaugePercent.textContent = achievementRate.toFixed(0);
+        if (gaugeTargetTextEl) gaugeTargetTextEl.textContent = `목표: ${formatEok(totalTargetAmount)}`;
+        if (gaugeActualTextEl) gaugeActualTextEl.textContent = `실적: ${formatEok(totalSoldAmount)}`;
+
         if (targetAmountEl) targetAmountEl.textContent = totalTargetAmount.toLocaleString() + '원';
         if (actualAmountEl) actualAmountEl.textContent = totalSoldAmount.toLocaleString() + '원';
         if (remainAmountEl) remainAmountEl.textContent = totalRemainAmount.toLocaleString() + '원';
