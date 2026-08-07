@@ -276,7 +276,7 @@
 
             const [salesText, cardText, purchaseText, extPurchaseText, extSalesText, nujenPurchaseText, nujenSalesText, extInvPurchaseText, extInvSalesText] = await Promise.all(fetches);
 
-            const cutoffDate = "2026/06/30";
+            const cutoffDate = "2026/07/31";
             function filterCutoff(d, dateField) {
                 if (!d[dateField]) return true;
                 const clean = d[dateField].split(' ')[0].replace(/-/g, '/');
