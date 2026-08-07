@@ -2121,8 +2121,11 @@
         gradProfit.addColorStop(0, 'rgba(124, 58, 237, 0.85)'); // Indigo/Purple
         gradProfit.addColorStop(1, 'rgba(139, 92, 246, 0.35)');
 
-        // 시계열 흐름(오름차순)으로 보여주기 위해 reverse
-        const chartData = [...trendData].reverse();
+        // 시계열 흐름(오름차순)으로 보여주기 위해 key를 기준으로 오름차순 정렬
+        const chartData = [...trendData].sort((a, b) => {
+            if (a.key && b.key) return a.key.localeCompare(b.key);
+            return 0;
+        });
 
         const topLabelsPlugin = {
             id: 'topLabels',
@@ -2219,7 +2222,11 @@
         gradSales.addColorStop(0, 'rgba(34, 197, 94, 0.4)'); // Green (emerald-500)
         gradSales.addColorStop(1, 'rgba(34, 197, 94, 0.05)');
 
-        const chartData = [...trendData].reverse();
+        // 시계열 흐름(오름차순)으로 보여주기 위해 key를 기준으로 오름차순 정렬
+        const chartData = [...trendData].sort((a, b) => {
+            if (a.key && b.key) return a.key.localeCompare(b.key);
+            return 0;
+        });
 
         const topLabelsPluginSales = {
             id: 'topLabelsSales',
@@ -2536,7 +2543,8 @@
                 sales: totalSales,
                 cost: totalCost,
                 profit: totalSales - totalCost,
-                margin: totalSales !== 0 ? (((totalSales - totalCost) / totalSales) * 100).toFixed(1) : '0.0'
+                margin: totalSales !== 0 ? (((totalSales - totalCost) / totalSales) * 100).toFixed(1) : '0.0',
+                key: pStr
             };
         });
 
@@ -2606,7 +2614,8 @@
                 sales: totalSales,
                 cost: totalCost,
                 profit: totalSales - totalCost,
-                margin: totalSales !== 0 ? (((totalSales - totalCost) / totalSales) * 100).toFixed(1) : '0.0'
+                margin: totalSales !== 0 ? (((totalSales - totalCost) / totalSales) * 100).toFixed(1) : '0.0',
+                key: pStr
             };
         });
 
