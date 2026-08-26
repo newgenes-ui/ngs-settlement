@@ -999,6 +999,7 @@
 
     function getAvailablePeriods(periodType) {
         const dateRegex = /^\d{4}[-/]\d{2}[-/]\d{2}/;
+        const monthRegex = /^\d{4}-\d{2}/;
         const allDates = [
             ...state.salesData.map(d => d.date),
             ...state.cardSalesData.map(d => d.date),
@@ -1015,7 +1016,96 @@
             }
         });
 
+        // 고정지출 데이터(인건비)의 날짜 추가
+        state.fixedLaborData.forEach(d => {
+            if (d.month) {
+                const m = d.month.match(/(\d+)년\s+(\d+)월/);
+                if (m) {
+                    const ym = `${m[1]}-${String(m[2]).padStart(2, '0')}`;
+                    if (periodType === 'monthly') {
+                        periods.add(ym);
+                    } else if (periodType === 'quarterly') {
+                        const q = Math.ceil(parseInt(m[2], 10) / 3);
+                        periods.add(`${m[1]}-Q${q}`);
+                    }
+                }
+            }
+        });
+
+        // 고정지출 데이터(사무실)의 날짜 추가
+        state.fixedOfficeData.forEach(d => {
+            if (d.month && monthRegex.test(d.month)) {
+                if (periodType === 'monthly') {
+                    periods.add(d.month);
+                } else if (periodType === 'quarterly') {
+                    const parts = d.month.split('-');
+                    const q = Math.ceil(parseInt(parts[1], 10) / 3);
+                    periods.add(`${parts[0]}-Q${q}`);
+                }
+            }
+        });
+
+        // 고정지출 데이터(고정거래처)의 날짜 추가
+        state.fixedVendorData.forEach(d => {
+            if (d.month && monthRegex.test(d.month)) {
+                if (periodType === 'monthly') {
+                    periods.add(d.month);
+                } else if (periodType === 'quarterly') {
+                    const parts = d.month.split('-');
+                    const q = Math.ceil(parseInt(parts[1], 10) / 3);
+                    periods.add(`${parts[0]}-Q${q}`);
+                }
+            }
+        });
+
+        // 부가세 신용카드 매입 누계 데이터의 날짜 추가
+        state.vatCardData.forEach(d => {
+            if (d.month && monthRegex.test(d.month)) {
+                if (periodType === 'monthly') {
+                    periods.add(d.month);
+                } else if (periodType === 'quarterly') {
+                    const parts = d.month.split('-');
+                    const q = Math.ceil(parseInt(parts[1], 10) / 3);
+                    periods.add(`${parts[0]}-Q${q}`);
+                }
+            }
+        });
+
         return [...periods].sort().reverse();
+    }
+
+    function getFilteredFixedData(data, isLabor = false) {
+        if (state.currentPeriod === 'all') return data;
+
+        return data.filter(row => {
+            let rowMonth = '';
+            if (isLabor) {
+                if (!row.month) return false;
+                const m = row.month.match(/(\d+)년\s+(\d+)월/);
+                if (m) {
+                    rowMonth = `${m[1]}-${String(m[2]).padStart(2, '0')}`;
+                } else {
+                    rowMonth = row.month;
+                }
+            } else {
+                rowMonth = row.month;
+            }
+
+            if (!rowMonth) return false;
+
+            if (state.currentPeriod === 'monthly') {
+                return rowMonth === state.selectedSubPeriod;
+            } else if (state.currentPeriod === 'quarterly') {
+                if (rowMonth.includes('-')) {
+                    const parts = rowMonth.split('-');
+                    const monthNum = parseInt(parts[1], 10);
+                    const q = Math.ceil(monthNum / 3);
+                    const qStr = `${parts[0]}-Q${q}`;
+                    return qStr === state.selectedSubPeriod;
+                }
+            }
+            return true;
+        });
     }
 
     // ===== 고정지출 렌더 =====
@@ -1030,9 +1120,13 @@
         const container = document.getElementById('fixed-summary-cards');
         if (!container) return;
 
+        const filteredLabor = getFilteredFixedData(state.fixedLaborData, true);
+        const filteredOffice = getFilteredFixedData(state.fixedOfficeData, false);
+        const filteredVendor = getFilteredFixedData(state.fixedVendorData, false);
+
         // 인건비 합산
         let laborTotal = 0;
-        state.fixedLaborData.forEach(m => {
+        filteredLabor.forEach(m => {
             if (m.items) {
                 m.items.forEach(i => { laborTotal += i.salary + i.ins + i.card; });
             }
@@ -1040,7 +1134,7 @@
 
         // 사무실비용 합산 (세금+폰+렌탈+할부 = 사무실고정, 이자 = 금융이자)
         let officeFixed = 0, interestTotal = 0;
-        state.fixedOfficeData.forEach(r => {
+        filteredOffice.forEach(r => {
             state.fixedOfficeColumns.forEach(col => {
                 const val = r[col.id] || 0;
                 if (col.label.includes('이자')) {
@@ -1053,7 +1147,7 @@
 
         // 거래처 합산
         let vendorTotal = 0;
-        state.fixedVendorData.forEach(r => {
+        filteredVendor.forEach(r => {
             state.fixedVendorColumns.forEach(col => {
                 vendorTotal += r[col.id] || 0;
             });
@@ -1062,11 +1156,13 @@
         const grandTotal = laborTotal + officeFixed + interestTotal + vendorTotal;
         const officeAndVendor = officeFixed + vendorTotal;
 
+        const periodLabel = state.currentPeriod === 'all' ? '전체 기간' : '선택 기간';
+
         container.innerHTML = `
-            ${createSummaryCard('#d4a373', '💰', '전체 기간 총 고정 지출 (인건비+사무실+이자)', formatCurrency(grandTotal), '인건비 + 사무실 고정비 + 이자비용 합산')}
-            ${createSummaryCard('#6b705c', '👥', '전체 기간 직원 총 인건비 지출', formatCurrency(laborTotal), '급여 + 4대보험 + 법인카드 합계')}
-            ${createSummaryCard('#a5a58d', '🏢', '사무실 전체 고정 지출', formatCurrency(officeAndVendor), '세금, 법인폰, 렌탈비 + 거래처 고정비')}
-            ${createSummaryCard('#b5838d', '📊', '전체 총 금융 대출 이자비용', formatCurrency(interestTotal), '소상공인, 기업은행, 기보, 신용대출 이자 합산')}
+            ${createSummaryCard('#d4a373', '💰', `${periodLabel} 총 고정 지출 (인건비+사무실+이자)`, formatCurrency(grandTotal), '인건비 + 사무실 고정비 + 이자비용 합산')}
+            ${createSummaryCard('#6b705c', '👥', `${periodLabel} 직원 총 인건비 지출`, formatCurrency(laborTotal), '급여 + 4대보험 + 법인카드 합계')}
+            ${createSummaryCard('#a5a58d', '🏢', `${periodLabel} 사무실 전체 고정 지출`, formatCurrency(officeAndVendor), '세금, 법인폰, 렌탈비 + 거래처 고정비')}
+            ${createSummaryCard('#b5838d', '📊', `${periodLabel} 총 금융 대출 이자비용`, formatCurrency(interestTotal), '소상공인, 기업은행, 기보, 신용대출 이자 합산')}
         `;
     }
 
@@ -1078,7 +1174,9 @@
         let html = '';
         let totalSalary = 0, totalIns = 0, totalCard = 0, grandTotal = 0;
 
-        state.fixedLaborData.forEach(monthData => {
+        const filteredLabor = getFilteredFixedData(state.fixedLaborData, true);
+
+        filteredLabor.forEach(monthData => {
             const rowCount = monthData.items.length;
             let monthTotal = monthData.items.reduce((s, i) => s + i.salary + i.ins + i.card, 0);
             
@@ -1159,7 +1257,8 @@
 
         // Render tbody
         let html = '';
-        state.fixedOfficeData.forEach(row => {
+        const filteredOffice = getFilteredFixedData(state.fixedOfficeData, false);
+        filteredOffice.forEach(row => {
             let rowTotal = 0;
             let rowHtml = `<tr>
                 <td class="text-center" style="font-weight:600;">${row.month}</td>`;
@@ -1226,7 +1325,8 @@
 
         // Render tbody
         let html = '';
-        state.fixedVendorData.forEach(row => {
+        const filteredVendor = getFilteredFixedData(state.fixedVendorData, false);
+        filteredVendor.forEach(row => {
             let rowTotal = 0;
             let rowHtml = `<tr>
                 <td class="text-center" style="font-weight:600;">${row.month}</td>`;
