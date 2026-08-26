@@ -1782,7 +1782,37 @@
         const saveBtn = document.getElementById('btn-vat-reg-save');
         const clearBtn = document.getElementById('btn-vat-reg-clear');
 
+        const regBtn = document.getElementById('btn-vat-register');
+        const modal = document.getElementById('vat-register-modal');
+        const closeBtn = document.getElementById('vat-register-modal-close');
+
         if (!monthInput || !saveBtn || !clearBtn) return;
+
+        // 모달 열기
+        if (regBtn && modal) {
+            regBtn.addEventListener('click', () => {
+                const now = new Date();
+                monthInput.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                monthInput.dispatchEvent(new Event('change'));
+                modal.classList.add('active');
+            });
+        }
+
+        // 모달 닫기 (X 버튼)
+        if (closeBtn && modal) {
+            closeBtn.addEventListener('click', () => {
+                modal.classList.remove('active');
+            });
+        }
+
+        // 모달 닫기 (바깥 오버레이 클릭)
+        if (modal) {
+            modal.addEventListener('click', e => {
+                if (e.target === e.currentTarget) {
+                    modal.classList.remove('active');
+                }
+            });
+        }
 
         // 월 변경 시 기존 데이터 있으면 프리필
         monthInput.addEventListener('change', e => {
@@ -1886,6 +1916,11 @@
             const badge = document.getElementById('badge-vat');
             if (badge) {
                 badge.textContent = state.vatCardData.length;
+            }
+
+            // 모달 닫기
+            if (modal) {
+                modal.classList.remove('active');
             }
 
             showToast(`✅ ${monthVal} 신용카드 매입 내역이 저장되었습니다.`);
@@ -3749,6 +3784,8 @@
                 if (fixedModal) fixedModal.classList.remove('active');
                 const csvModal = document.getElementById('csv-upload-modal');
                 if (csvModal) csvModal.classList.remove('active');
+                const vatModal = document.getElementById('vat-register-modal');
+                if (vatModal) vatModal.classList.remove('active');
             }
         });
 
