@@ -263,7 +263,66 @@
                     <div class="summary-cards" id="vat-summary-cards">
                         <!-- Rendered by JS -->
                     </div>
-                    
+
+                    <!-- 사업용신용카드 월별 등록 카드 -->
+                    <div class="table-card" style="margin-bottom: 24px; border: 1px solid var(--border-subtle); box-shadow: var(--shadow-sm);">
+                        <div class="table-header" style="border-bottom: 1px solid var(--border-subtle); padding: 14px 20px;">
+                            <h3 style="font-size: 1rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px; color: var(--accent-indigo);"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                                사업용신용카드 월별 등록/수정
+                            </h3>
+                        </div>
+                        <div style="padding: 20px; background: var(--bg-card);">
+                            <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-end;">
+                                <div style="flex: 1; min-width: 150px;">
+                                    <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; display: block;">등록 연월</label>
+                                    <input type="month" id="vat-reg-month" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border-light); border-radius: var(--radius-md); font-size: 0.95rem; box-sizing: border-box; background: var(--bg-secondary); color: var(--text-primary);">
+                                </div>
+                                
+                                <div style="flex: 2; min-width: 280px; border-left: 2px solid var(--border-subtle); padding-left: 20px;">
+                                    <span style="font-size: 0.85rem; font-weight: 700; color: var(--accent-indigo); display: block; margin-bottom: 8px;">공제대상 (매입세액 공제)</span>
+                                    <div style="display: flex; gap: 12px;">
+                                        <div style="flex: 1;">
+                                            <label style="font-size: 0.75rem; color: var(--text-secondary); display: block; margin-bottom: 4px;">건수</label>
+                                            <input type="number" id="vat-reg-ded-count" placeholder="0" style="width: 100%; padding: 8px; border: 1px solid var(--border-light); border-radius: var(--radius-md); background: var(--bg-secondary); color: var(--text-primary); text-align: right; box-sizing: border-box;">
+                                        </div>
+                                        <div style="flex: 2;">
+                                            <label style="font-size: 0.75rem; color: var(--text-secondary); display: block; margin-bottom: 4px;">공급가액</label>
+                                            <input type="number" id="vat-reg-ded-supply" placeholder="0" style="width: 100%; padding: 8px; border: 1px solid var(--border-light); border-radius: var(--radius-md); background: var(--bg-secondary); color: var(--text-primary); text-align: right; box-sizing: border-box;">
+                                        </div>
+                                        <div style="flex: 2;">
+                                            <label style="font-size: 0.75rem; color: var(--text-secondary); display: block; margin-bottom: 4px;">세액</label>
+                                            <input type="number" id="vat-reg-ded-tax" placeholder="0" style="width: 100%; padding: 8px; border: 1px solid var(--border-light); border-radius: var(--radius-md); background: var(--bg-secondary); color: var(--text-primary); text-align: right; box-sizing: border-box;">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div style="flex: 2; min-width: 280px; border-left: 2px solid var(--border-subtle); padding-left: 20px;">
+                                    <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary); display: block; margin-bottom: 8px;">전체 (총 매입)</span>
+                                    <div style="display: flex; gap: 12px;">
+                                        <div style="flex: 1;">
+                                            <label style="font-size: 0.75rem; color: var(--text-secondary); display: block; margin-bottom: 4px;">건수</label>
+                                            <input type="number" id="vat-reg-tot-count" placeholder="0" style="width: 100%; padding: 8px; border: 1px solid var(--border-light); border-radius: var(--radius-md); background: var(--bg-secondary); color: var(--text-primary); text-align: right; box-sizing: border-box;">
+                                        </div>
+                                        <div style="flex: 2;">
+                                            <label style="font-size: 0.75rem; color: var(--text-secondary); display: block; margin-bottom: 4px;">공급가액</label>
+                                            <input type="number" id="vat-reg-tot-supply" placeholder="0" style="width: 100%; padding: 8px; border: 1px solid var(--border-light); border-radius: var(--radius-md); background: var(--bg-secondary); color: var(--text-primary); text-align: right; box-sizing: border-box;">
+                                        </div>
+                                        <div style="flex: 2;">
+                                            <label style="font-size: 0.75rem; color: var(--text-secondary); display: block; margin-bottom: 4px;">세액</label>
+                                            <input type="number" id="vat-reg-tot-tax" placeholder="0" style="width: 100%; padding: 8px; border: 1px solid var(--border-light); border-radius: var(--radius-md); background: var(--bg-secondary); color: var(--text-primary); text-align: right; box-sizing: border-box;">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div style="display: flex; gap: 8px; min-width: 160px; height: 38px;">
+                                    <button id="btn-vat-reg-save" style="flex: 2; padding: 10px; background: var(--accent-indigo); color: white; border: none; border-radius: var(--radius-md); font-weight: 700; cursor: pointer; transition: background 0.15s ease; box-shadow: var(--shadow-sm); font-size: 0.9rem;">저장</button>
+                                    <button id="btn-vat-reg-clear" style="flex: 1; padding: 10px; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-light); border-radius: var(--radius-md); font-weight: 600; cursor: pointer; transition: background 0.15s ease; font-size: 0.9rem;">초기화</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="table-card">
                         <div class="table-header">
                             <h3>사업용신용카드 매입내역누계 (2026년 상반기)</h3>

@@ -854,6 +854,44 @@
         return sign + Math.abs(amount).toLocaleString() + '원';
     }
 
+    function showToast(message) {
+        let toast = document.getElementById('app-toast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'app-toast';
+            toast.style.cssText = `
+                position: fixed;
+                bottom: 30px;
+                right: 30px;
+                background: #1e293b;
+                color: #ffffff;
+                padding: 12px 24px;
+                border-radius: var(--radius-md);
+                box-shadow: var(--shadow-lg);
+                z-index: 10000;
+                font-weight: 600;
+                font-size: 0.9rem;
+                opacity: 0;
+                transition: opacity 0.3s ease, transform 0.3s ease;
+                transform: translateY(10px);
+                pointer-events: none;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            `;
+            document.body.appendChild(toast);
+        }
+        toast.textContent = message;
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateY(0)';
+        
+        if (toast.timeoutId) clearTimeout(toast.timeoutId);
+        toast.timeoutId = setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(10px)';
+        }, 3000);
+    }
+
     // ===== 품목명/코드 크게 보기 팝업 띄우기 (차트 인터랙션) =====
     function showLargeLabelPopup(code, name, rate) {
         let toast = document.getElementById('chart-large-toast');
@@ -1631,6 +1669,127 @@
         if (newItemSaveBtn) {
             newItemSaveBtn.addEventListener('click', saveFixedNewItem);
         }
+    }
+
+    function bindVatRegEvents() {
+        const monthInput = document.getElementById('vat-reg-month');
+        const dedCountInput = document.getElementById('vat-reg-ded-count');
+        const dedSupplyInput = document.getElementById('vat-reg-ded-supply');
+        const dedTaxInput = document.getElementById('vat-reg-ded-tax');
+        const totCountInput = document.getElementById('vat-reg-tot-count');
+        const totSupplyInput = document.getElementById('vat-reg-tot-supply');
+        const totTaxInput = document.getElementById('vat-reg-tot-tax');
+        const saveBtn = document.getElementById('btn-vat-reg-save');
+        const clearBtn = document.getElementById('btn-vat-reg-clear');
+
+        if (!monthInput || !saveBtn || !clearBtn) return;
+
+        // 월 변경 시 기존 데이터 있으면 프리필
+        monthInput.addEventListener('change', e => {
+            const selectedMonth = e.target.value; // YYYY-MM
+            if (selectedMonth) {
+                const row = state.vatCardData.find(r => r.month === selectedMonth);
+                if (row) {
+                    dedCountInput.value = row.dedCount !== undefined ? row.dedCount : 0;
+                    dedSupplyInput.value = row.dedSupply !== undefined ? row.dedSupply : 0;
+                    dedTaxInput.value = row.dedTax !== undefined ? row.dedTax : 0;
+                    totCountInput.value = row.totCount !== undefined ? row.totCount : 0;
+                    totSupplyInput.value = row.totSupply !== undefined ? row.totSupply : 0;
+                    totTaxInput.value = row.totTax !== undefined ? row.totTax : 0;
+                } else {
+                    // 데이터 없으면 비움
+                    dedCountInput.value = '';
+                    dedSupplyInput.value = '';
+                    dedTaxInput.value = '';
+                    totCountInput.value = '';
+                    totSupplyInput.value = '';
+                    totTaxInput.value = '';
+                }
+            }
+        });
+
+        // 공급가액 입력 시 세액 자동 계산 (10%)
+        dedSupplyInput.addEventListener('input', e => {
+            const val = parseInt(e.target.value, 10) || 0;
+            dedTaxInput.value = Math.round(val / 10);
+        });
+
+        totSupplyInput.addEventListener('input', e => {
+            const val = parseInt(e.target.value, 10) || 0;
+            totTaxInput.value = Math.round(val / 10);
+        });
+
+        // 비우기 버튼
+        clearBtn.addEventListener('click', () => {
+            monthInput.value = '';
+            dedCountInput.value = '';
+            dedSupplyInput.value = '';
+            dedTaxInput.value = '';
+            totCountInput.value = '';
+            totSupplyInput.value = '';
+            totTaxInput.value = '';
+        });
+
+        // 저장 버튼
+        saveBtn.addEventListener('click', () => {
+            const monthVal = monthInput.value;
+            if (!monthVal) {
+                alert('등록할 연월을 선택해 주세요.');
+                monthInput.focus();
+                return;
+            }
+
+            const dedCount = parseInt(dedCountInput.value, 10) || 0;
+            const dedSupply = parseInt(dedSupplyInput.value, 10) || 0;
+            const dedTax = parseInt(dedTaxInput.value, 10) || 0;
+            const dedTotal = dedSupply + dedTax;
+
+            const totCount = parseInt(totCountInput.value, 10) || 0;
+            const totSupply = parseInt(totSupplyInput.value, 10) || 0;
+            const totTax = parseInt(totTaxInput.value, 10) || 0;
+            const totTotal = totSupply + totTax;
+
+            let row = state.vatCardData.find(r => r.month === monthVal);
+            if (row) {
+                row.dedCount = dedCount;
+                row.dedSupply = dedSupply;
+                row.dedTax = dedTax;
+                row.dedTotal = dedTotal;
+                row.totCount = totCount;
+                row.totSupply = totSupply;
+                row.totTax = totTax;
+                row.totTotal = totTotal;
+            } else {
+                state.vatCardData.push({
+                    month: monthVal,
+                    dedCount,
+                    dedSupply,
+                    dedTax,
+                    dedTotal,
+                    totCount,
+                    totSupply,
+                    totTax,
+                    totTotal
+                });
+            }
+
+            // 날짜순 정렬
+            state.vatCardData.sort((a, b) => a.month.localeCompare(b.month));
+
+            // 로컬 스토리지 저장
+            localStorage.setItem('vat_card_data', JSON.stringify(state.vatCardData));
+
+            // 다시 렌더링
+            renderVatView();
+
+            // 배지 업데이트
+            const badge = document.getElementById('badge-vat');
+            if (badge) {
+                badge.textContent = state.vatCardData.length;
+            }
+
+            showToast(`✅ ${monthVal} 신용카드 매입 내역이 저장되었습니다.`);
+        });
     }
 
     // toggleFixedTab을 window에 노출 (inline onclick에서 호출)
@@ -3495,6 +3654,9 @@
 
         // 고정지출 이벤트 바인딩
         bindFixedExpenseEvents();
+
+        // 부가세 등록 이벤트 바인딩
+        bindVatRegEvents();
         
         // CSV 업로드 이벤트 바인딩
         bindCsvUploadEvents();
