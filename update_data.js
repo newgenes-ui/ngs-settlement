@@ -1,157 +1,318 @@
 const fs = require('fs');
 const path = require('path');
 
-// 2026년 기준
+// 기준 연도
 const YEAR = 2026;
 
-// 현재 폴더의 파일 목록 스캔하여 최신 월 찾기
-function detectLatestMonth() {
-    const files = fs.readdirSync('.');
-    let maxMonth = 0;
-
-    for (const file of files) {
-        // "7월 매출1.csv", "7월 매출.csv", "7월매입1.csv" 등에서 숫자 추출
-        const match = file.match(/^(\d+)월\s*(매출|매입|카드매출)/);
-        if (match) {
-            const m = parseInt(match[1], 10);
-            if (m > maxMonth) {
-                maxMonth = m;
-            }
+// ===== CSV 유틸리티 함수 =====
+function parseCSVTextIntoLines(text) {
+    const lines = [];
+    let currentLine = '';
+    let inQuotes = false;
+    for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        if (ch === '"') {
+            inQuotes = !inQuotes;
+            currentLine += ch;
+        } else if (ch === '\n' && !inQuotes) {
+            lines.push(currentLine);
+            currentLine = '';
+        } else if (ch === '\r') {
+            if (inQuotes) currentLine += ch;
+        } else {
+            currentLine += ch;
         }
     }
-    return maxMonth;
+    if (currentLine) lines.push(currentLine);
+    return lines.filter(l => l.trim());
 }
 
-// 특정 월의 파일들 찾기
-function getFilesForMonth(month) {
-    const files = fs.readdirSync('.');
-    let salesFile = null;
-    let purchaseFile = null;
-    let cardFile = null;
+function parseCSVLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
 
-    for (const file of files) {
-        if (file.startsWith(`${month}월`)) {
-            if (file.includes('매출') && !file.includes('카드') && file.endsWith('.csv')) {
-                // "7월 매출1.csv" 우선, 없으면 "7월 매출.csv"
-                if (!salesFile || file.includes('1')) salesFile = file;
-            } else if (file.includes('매입') && file.endsWith('.csv')) {
-                if (!purchaseFile || file.includes('1')) purchaseFile = file;
-            } else if (file.includes('카드') && file.endsWith('.csv')) {
-                cardFile = file;
+    for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') {
+            if (inQuotes && i + 1 < line.length && line[i + 1] === '"') {
+                current += '"';
+                i++;
+            } else {
+                inQuotes = !inQuotes;
             }
+        } else if (ch === ',' && !inQuotes) {
+            result.push(current.trim());
+            current = '';
+        } else if (ch === '\r') {
+            continue;
+        } else {
+            current += ch;
         }
     }
-
-    return { salesFile, purchaseFile, cardFile };
+    result.push(current.trim());
+    return result;
 }
 
-function processMerge() {
-    const latestMonth = detectLatestMonth();
-    if (latestMonth === 0) {
-        console.log("새로운 월별 데이터 파일(*월 매출.csv 등)을 찾지 못했습니다.");
-        return;
+function parseAmount(val) {
+    if (!val) return 0;
+    return parseInt(String(val).replace(/"/g, '').replace(/,/g, '').trim(), 10) || 0;
+}
+
+function formatAmount(num) {
+    if (num === 0) return '0';
+    return `"${num.toLocaleString('ko-KR')}"`;
+}
+
+// ===== 파일 타입 자동 감지 =====
+function classifyFile(fileName) {
+    // 마스터 파일은 분류 대상에서 제외 (별도 처리)
+    if (['매출.csv', '매입.csv', '카드매출전표.csv'].includes(fileName)) {
+        return 'master';
+    }
+    // 재고 및 기초 데이터 제외
+    if (fileName.includes('기초매입') || fileName.includes('재고') || fileName.includes('판매현황') || fileName.includes('추가매입')) {
+        return 'ignore';
+    }
+    if (!fileName.endsWith('.csv')) {
+        return 'ignore';
     }
 
-    console.log(`감지된 최신 월: ${latestMonth}월`);
-    const { salesFile, purchaseFile, cardFile } = getFilesForMonth(latestMonth);
+    try {
+        const content = fs.readFileSync(fileName, 'utf8');
+        const first1000 = content.slice(0, 1000);
 
-    if (!salesFile || !purchaseFile || !cardFile) {
-        console.log(`오류: ${latestMonth}월의 매출, 매입, 카드매출 CSV 파일이 모두 존재해야 합니다.`);
-        console.log(`찾은 파일 - 매출: ${salesFile || '없음'}, 매입: ${purchaseFile || '없음'}, 카드: ${cardFile || '없음'}`);
-        return;
-    }
-
-    console.log(`병합 시작 - 매출: ${salesFile}, 매입: ${purchaseFile}, 카드: ${cardFile}`);
-
-    const monthStr = String(latestMonth).padStart(2, '0');
-    const datePrefix = `${YEAR}-${monthStr}`;
-
-    // 이미 병합되었는지 확인 (매출.csv의 첫 데이터 줄 검사)
-    const masterSalesContent = fs.readFileSync('매출.csv', 'utf8');
-    if (masterSalesContent.includes(datePrefix)) {
-        console.log(`${latestMonth}월 데이터는 이미 매출.csv에 병합되어 있습니다. 병합을 건너뜁니다.`);
-        return;
-    }
-
-    // 1. 매출 병합
-    const salesHeader = masterSalesContent.split(/\r?\n/);
-    const julySales = fs.readFileSync(salesFile, 'utf8').split(/\r?\n/);
-    const salesHeaderLines = salesHeader.slice(0, 2);
-    const originalSalesData = salesHeader.slice(2).filter(line => line.trim() !== '');
-    const newSalesData = julySales.slice(6).filter(line => line.trim() !== '' && line.startsWith(`${YEAR}-`));
-    const mergedSales = [...salesHeaderLines, ...newSalesData, ...originalSalesData].join('\n') + '\n';
-    fs.writeFileSync('매출.csv', mergedSales, 'utf8');
-    console.log(`매출 병합 완료 (신규 ${newSalesData.length}행 추가)`);
-
-    // 2. 매입 병합
-    const purchaseHeader = fs.readFileSync('매입.csv', 'utf8').split(/\r?\n/);
-    const julyPurchase = fs.readFileSync(purchaseFile, 'utf8').split(/\r?\n/);
-    const purchaseHeaderLines = purchaseHeader.slice(0, 2);
-    const originalPurchaseData = purchaseHeader.slice(2).filter(line => line.trim() !== '');
-    const newPurchaseData = julyPurchase.slice(6).filter(line => line.trim() !== '' && line.startsWith(`${YEAR}-`));
-    const mergedPurchase = [...purchaseHeaderLines, ...newPurchaseData, ...originalPurchaseData].join('\n') + '\n';
-    fs.writeFileSync('매입.csv', mergedPurchase, 'utf8');
-    console.log(`매입 병합 완료 (신규 ${newPurchaseData.length}행 추가)`);
-
-    // 3. 카드매출 병합 및 총계 업데이트
-    const cardHeader = fs.readFileSync('카드매출전표.csv', 'utf8').split(/\r?\n/);
-    const julyCard = fs.readFileSync(cardFile, 'utf8').split(/\r?\n/);
-    const cardHeaderLines = cardHeader.slice(0, 3);
-    const originalCardData = cardHeader.slice(3).filter(line => line.trim() !== '' && !line.startsWith('총계'));
-    const newCardData = julyCard.slice(6).filter(line => line.trim() !== '' && line.startsWith(`${YEAR}-`));
-
-    // 신규 카드매출 총계 계산을 위한 파싱 함수
-    function parseAmount(val) {
-        if (!val) return 0;
-        return parseInt(val.replace(/"/g, '').replace(/,/g, ''), 10) || 0;
-    }
-
-    // 총계 누적 계산
-    let totalTradeSum = 0;
-    let totalCount = 0;
-    let totalApproveSum = 0;
-    let totalApproveCount = 0;
-    let totalCancelSum = 0;
-    let totalCancelCount = 0;
-
-    const allCardRows = [...newCardData, ...originalCardData];
-    allCardRows.forEach(row => {
-        const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/); // CSV쉼표 분할 (큰따옴표 고려)
-        if (cols.length >= 7) {
-            totalTradeSum += parseAmount(cols[1]);
-            totalCount += parseAmount(cols[2]);
-            totalApproveSum += parseAmount(cols[3]);
-            totalApproveCount += parseAmount(cols[4]);
-            totalCancelSum += parseAmount(cols[5]);
-            totalCancelCount += parseAmount(cols[6]);
+        if (first1000.includes('매출 전자(수정) 세금계산서') || (fileName.includes('매출') && !fileName.includes('카드') && first1000.includes('승인번호'))) {
+            return 'sales';
         }
+        if (first1000.includes('매입 전자(수정) 세금계산서') || (fileName.includes('매입') && first1000.includes('승인번호'))) {
+            return 'purchase';
+        }
+        if (first1000.includes('일별 승인내역 조회') || first1000.includes('거래합계,거래건수,승인소계') || fileName.includes('카드') || fileName.includes('기간별승인내역')) {
+            return 'card';
+        }
+    } catch (e) {
+        return 'ignore';
+    }
+
+    return 'ignore';
+}
+
+function runMerge() {
+    console.log('====================================================');
+    console.log(' [NGS 결산] 스마트 데이터 자동 병합 및 갱신 시작');
+    console.log('====================================================');
+
+    const allFiles = fs.readdirSync('.');
+    const salesFiles = [];
+    const purchaseFiles = [];
+    const cardFiles = [];
+
+    allFiles.forEach(f => {
+        const type = classifyFile(f);
+        if (type === 'sales') salesFiles.push(f);
+        else if (type === 'purchase') purchaseFiles.push(f);
+        else if (type === 'card') cardFiles.push(f);
     });
 
-    const formatNum = (num) => {
-        return `"${num.toLocaleString('ko-KR')}"`;
-    };
+    console.log(`\n📁 감지된 추가 데이터 파일 목록:`);
+    console.log(` - 매출 파일: ${salesFiles.length > 0 ? salesFiles.join(', ') : '(없음)'}`);
+    console.log(` - 매입 파일: ${purchaseFiles.length > 0 ? purchaseFiles.join(', ') : '(없음)'}`);
+    console.log(` - 카드 파일: ${cardFiles.length > 0 ? cardFiles.join(', ') : '(없음)'}`);
 
-    const newTotalLine = `총계,${formatNum(totalTradeSum)},${totalCount},${formatNum(totalApproveSum)},${totalApproveCount},${formatNum(totalCancelSum)},${totalCancelCount}`;
-    const mergedCard = [...cardHeaderLines, ...newCardData, ...originalCardData, newTotalLine].join('\n') + '\n';
-    fs.writeFileSync('카드매출전표.csv', mergedCard, 'utf8');
-    console.log(`카드매출 병합 완료 (신규 ${newCardData.length}행 추가, 총계 업데이트 완료)`);
+    // ===== 1. 매출 데이터 병합 =====
+    console.log('\n[1/4] 매출 세금계산서 병합 중...');
+    const masterSalesContent = fs.existsSync('매출.csv') ? fs.readFileSync('매출.csv', 'utf8') : '';
+    const masterSalesLines = parseCSVTextIntoLines(masterSalesContent);
+    const salesHeaderLines = masterSalesLines.slice(0, 2);
+    if (salesHeaderLines.length < 2) {
+        throw new Error('매출.csv의 기본 헤더가 손상되었습니다.');
+    }
 
-    // 4. app.js cutoffDate 업데이트
-    const lastDay = new Date(YEAR, latestMonth, 0).getDate();
-    const newCutoffDate = `${YEAR}/${String(latestMonth).padStart(2, '0')}/${String(lastDay).padStart(2, '0')}`;
-    
+    const salesMap = new Map();
+
+    function ingestSalesFile(text, label) {
+        const lines = parseCSVTextIntoLines(text);
+        let added = 0;
+        for (const line of lines) {
+            const cols = parseCSVLine(line);
+            if (cols.length >= 15 && cols[0]) {
+                const cleanDate = cols[0].trim().replace(/^\ufeff/, '');
+                if (/^\d{4}[-/]\d{2}[-/]\d{2}/.test(cleanDate) && cols[1]) {
+                    const approvalNo = cols[1].trim();
+                    const cleanLine = line.replace(/^\ufeff/, '');
+                    salesMap.set(approvalNo, { date: cleanDate, line: cleanLine });
+                    added++;
+                }
+            }
+        }
+        return added;
+    }
+
+    const initialSalesCount = ingestSalesFile(masterSalesContent, '매출.csv');
+    salesFiles.forEach(f => {
+        const cnt = ingestSalesFile(fs.readFileSync(f, 'utf8'), f);
+        console.log(`   -> ${f} : ${cnt}행 처리`);
+    });
+
+    // 날짜 내림차순 정렬
+    const sortedSales = Array.from(salesMap.values()).sort((a, b) => b.date.localeCompare(a.date));
+    const newSalesContent = [...salesHeaderLines, ...sortedSales.map(item => item.line)].join('\n') + '\n';
+    fs.writeFileSync('매출.csv', newSalesContent, 'utf8');
+    console.log(`   ✅ 매출.csv 저장 완료: 총 ${sortedSales.length}건 (기존 ${initialSalesCount}건 대비 +${sortedSales.length - initialSalesCount}건 신규/수정 반영)`);
+
+
+    // ===== 2. 매입 데이터 병합 =====
+    console.log('\n[2/4] 매입 세금계산서 병합 중...');
+    const masterPurchaseContent = fs.existsSync('매입.csv') ? fs.readFileSync('매입.csv', 'utf8') : '';
+    const masterPurchaseLines = parseCSVTextIntoLines(masterPurchaseContent);
+    const purchaseHeaderLines = masterPurchaseLines.slice(0, 2);
+    if (purchaseHeaderLines.length < 2) {
+        throw new Error('매입.csv의 기본 헤더가 손상되었습니다.');
+    }
+
+    const purchaseMap = new Map();
+
+    function ingestPurchaseFile(text, label) {
+        const lines = parseCSVTextIntoLines(text);
+        let added = 0;
+        for (const line of lines) {
+            const cols = parseCSVLine(line);
+            if (cols.length >= 15 && cols[0]) {
+                const cleanDate = cols[0].trim().replace(/^\ufeff/, '');
+                if (/^\d{4}[-/]\d{2}[-/]\d{2}/.test(cleanDate) && cols[1]) {
+                    const approvalNo = cols[1].trim();
+                    const cleanLine = line.replace(/^\ufeff/, '');
+                    purchaseMap.set(approvalNo, { date: cleanDate, line: cleanLine });
+                    added++;
+                }
+            }
+        }
+        return added;
+    }
+
+    const initialPurchaseCount = ingestPurchaseFile(masterPurchaseContent, '매입.csv');
+    purchaseFiles.forEach(f => {
+        const cnt = ingestPurchaseFile(fs.readFileSync(f, 'utf8'), f);
+        console.log(`   -> ${f} : ${cnt}행 처리`);
+    });
+
+    // 날짜 내림차순 정렬
+    const sortedPurchase = Array.from(purchaseMap.values()).sort((a, b) => b.date.localeCompare(a.date));
+    const newPurchaseContent = [...purchaseHeaderLines, ...sortedPurchase.map(item => item.line)].join('\n') + '\n';
+    fs.writeFileSync('매입.csv', newPurchaseContent, 'utf8');
+    console.log(`   ✅ 매입.csv 저장 완료: 총 ${sortedPurchase.length}건 (기존 ${initialPurchaseCount}건 대비 +${sortedPurchase.length - initialPurchaseCount}건 신규/수정 반영)`);
+
+
+    // ===== 3. 카드매출 데이터 병합 =====
+    console.log('\n[3/4] 카드매출전표 병합 중...');
+    const masterCardContent = fs.existsSync('카드매출전표.csv') ? fs.readFileSync('카드매출전표.csv', 'utf8') : '';
+    const masterCardLines = parseCSVTextIntoLines(masterCardContent);
+    const cardHeaderLines = masterCardLines.slice(0, 3);
+    if (cardHeaderLines.length < 3) {
+        throw new Error('카드매출전표.csv의 기본 헤더가 손상되었습니다.');
+    }
+
+    const cardMap = new Map();
+
+    function ingestCardFile(text, label) {
+        const lines = parseCSVTextIntoLines(text);
+        let added = 0;
+        for (const line of lines) {
+            const cols = parseCSVLine(line);
+            if (cols.length >= 7 && cols[0] && cols[0] !== '총계') {
+                const cleanDate = cols[0].trim().replace(/^\ufeff/, '');
+                if (/^\d{4}[-/]\d{2}[-/]\d{2}/.test(cleanDate)) {
+                    cardMap.set(cleanDate, {
+                        date: cleanDate,
+                        totalTrade: parseAmount(cols[1]),
+                        totalCount: parseAmount(cols[2]),
+                        approveSum: parseAmount(cols[3]),
+                        approveCount: parseAmount(cols[4]),
+                        cancelSum: parseAmount(cols[5]),
+                        cancelCount: parseAmount(cols[6])
+                    });
+                    added++;
+                }
+            }
+        }
+        return added;
+    }
+
+    const initialCardDays = ingestCardFile(masterCardContent, '카드매출전표.csv');
+    cardFiles.forEach(f => {
+        const cnt = ingestCardFile(fs.readFileSync(f, 'utf8'), f);
+        console.log(`   -> ${f} : ${cnt}행 처리`);
+    });
+
+    // 날짜 내림차순 정렬 및 총계 산출
+    const sortedCard = Array.from(cardMap.values()).sort((a, b) => b.date.localeCompare(a.date));
+
+    let sumTrade = 0;
+    let sumTradeCount = 0;
+    let sumApprove = 0;
+    let sumApproveCount = 0;
+    let sumCancel = 0;
+    let sumCancelCount = 0;
+
+    const cardDataLines = sortedCard.map(c => {
+        sumTrade += c.totalTrade;
+        sumTradeCount += c.totalCount;
+        sumApprove += c.approveSum;
+        sumApproveCount += c.approveCount;
+        sumCancel += c.cancelSum;
+        sumCancelCount += c.cancelCount;
+
+        return `${c.date},${formatAmount(c.totalTrade)},${c.totalCount},${formatAmount(c.approveSum)},${c.approveCount},${formatAmount(c.cancelSum)},${c.cancelCount}`;
+    });
+
+    const totalLine = `총계,${formatAmount(sumTrade)},${sumTradeCount},${formatAmount(sumApprove)},${sumApproveCount},${formatAmount(sumCancel)},${sumCancelCount}`;
+    const newCardContent = [...cardHeaderLines, ...cardDataLines, totalLine].join('\n') + '\n';
+    fs.writeFileSync('카드매출전표.csv', newCardContent, 'utf8');
+    console.log(`   ✅ 카드매출전표.csv 저장 완료: 총 ${sortedCard.length}영업일 (기존 ${initialCardDays}일 대비 +${sortedCard.length - initialCardDays}일 추가, 총계 갱신 완료)`);
+
+
+    // ===== 4. 최신 월 감지 및 cutoffDate 자동 갱신 =====
+    console.log('\n[4/4] 데이터 마감일(cutoffDate) 자동 갱신 중...');
+    const allDates = [
+        ...sortedSales.map(s => s.date),
+        ...sortedPurchase.map(p => p.date),
+        ...sortedCard.map(c => c.date)
+    ];
+
+    let maxDateStr = '2026-07-31';
+    allDates.forEach(d => {
+        if (d > maxDateStr) maxDateStr = d;
+    });
+
+    const dateMatch = maxDateStr.match(/^(\d{4})[-/](\d{2})/);
+    let newCutoffDate = '2026/08/31';
+    let targetYear = YEAR;
+    let targetMonth = 8;
+
+    if (dateMatch) {
+        targetYear = parseInt(dateMatch[1], 10);
+        targetMonth = parseInt(dateMatch[2], 10);
+        const lastDay = new Date(targetYear, targetMonth, 0).getDate();
+        newCutoffDate = `${targetYear}/${String(targetMonth).padStart(2, '0')}/${String(lastDay).padStart(2, '0')}`;
+    }
+
     let appContent = fs.readFileSync('app.js', 'utf8');
     const cutoffRegex = /const cutoffDate\s*=\s*"[^"]+";/;
-    
     if (cutoffRegex.test(appContent)) {
         appContent = appContent.replace(cutoffRegex, `const cutoffDate = "${newCutoffDate}";`);
         fs.writeFileSync('app.js', appContent, 'utf8');
-        console.log(`app.js cutoffDate 업데이트 완료 -> "${newCutoffDate}"`);
+        console.log(`   ✅ app.js 마감일(cutoffDate) 설정 완료: "${newCutoffDate}" (${targetMonth}월 말일)`);
     } else {
-        console.log("경고: app.js에서 const cutoffDate 선언을 찾지 못했습니다.");
+        console.log(`   ⚠️ app.js에서 const cutoffDate 선언을 찾지 못했습니다.`);
     }
 
-    console.log("모든 데이터 병합 및 설정 업데이트가 완료되었습니다!");
+    console.log('\n🎉 모든 데이터 병합 및 설정이 성공적으로 완료되었습니다!');
 }
 
-processMerge();
+try {
+    runMerge();
+} catch (err) {
+    console.error('\n❌ 데이터 병합 중 오류 발생:', err.message);
+    process.exit(1);
+}
