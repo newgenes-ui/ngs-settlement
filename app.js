@@ -4649,6 +4649,123 @@
         }
     }
 
+    // ===== 실시간 공유 데이터 처리 (URL 동기화) =====
+    function encodeShareData() {
+        const shareObj = {
+            vat: state.vatCardData,
+            labor: state.fixedLaborData,
+            office: state.fixedOfficeData,
+            vendor: state.fixedVendorData,
+            people: state.fixedLaborPeople,
+            offCols: state.fixedOfficeColumns,
+            venCols: state.fixedVendorColumns
+        };
+        const jsonStr = JSON.stringify(shareObj);
+        const encoded = btoa(encodeURIComponent(jsonStr).replace(/%([0-9A-F]{2})/g, (match, p1) => {
+            return String.fromCharCode('0x' + p1);
+        }));
+        return encoded;
+    }
+
+    function decodeShareData(encodedStr) {
+        try {
+            const decodedStr = decodeURIComponent(Array.prototype.map.call(atob(encodedStr), c => {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            return JSON.parse(decodedStr);
+        } catch (e) {
+            console.error('공유 데이터 디코딩 실패:', e);
+            return null;
+        }
+    }
+
+    function applySharedDataFromUrl() {
+        let hash = window.location.hash || '';
+        let encoded = '';
+        if (hash.startsWith('#share=')) {
+            encoded = hash.slice(7);
+        } else {
+            const params = new URLSearchParams(window.location.search);
+            encoded = params.get('share') || '';
+        }
+
+        if (!encoded) return false;
+
+        const shared = decodeShareData(encoded);
+        if (!shared) return false;
+
+        let modified = false;
+
+        if (Array.isArray(shared.vat) && shared.vat.length > 0) {
+            state.vatCardData = shared.vat;
+            localStorage.setItem('vat_card_data', JSON.stringify(state.vatCardData));
+            modified = true;
+        }
+        if (Array.isArray(shared.labor) && shared.labor.length > 0) {
+            state.fixedLaborData = shared.labor;
+            localStorage.setItem('fixed_labor_data', JSON.stringify(state.fixedLaborData));
+            modified = true;
+        }
+        if (Array.isArray(shared.office) && shared.office.length > 0) {
+            state.fixedOfficeData = shared.office;
+            localStorage.setItem('fixed_office_data', JSON.stringify(state.fixedOfficeData));
+            modified = true;
+        }
+        if (Array.isArray(shared.vendor) && shared.vendor.length > 0) {
+            state.fixedVendorData = shared.vendor;
+            localStorage.setItem('fixed_vendor_data', JSON.stringify(state.fixedVendorData));
+            modified = true;
+        }
+        if (Array.isArray(shared.people) && shared.people.length > 0) {
+            state.fixedLaborPeople = shared.people;
+            localStorage.setItem('fixed_labor_people', JSON.stringify(state.fixedLaborPeople));
+            modified = true;
+        }
+        if (Array.isArray(shared.offCols) && shared.offCols.length > 0) {
+            state.fixedOfficeColumns = shared.offCols;
+            localStorage.setItem('fixed_office_columns', JSON.stringify(state.fixedOfficeColumns));
+            modified = true;
+        }
+        if (Array.isArray(shared.venCols) && shared.venCols.length > 0) {
+            state.fixedVendorColumns = shared.venCols;
+            localStorage.setItem('fixed_vendor_columns', JSON.stringify(state.fixedVendorColumns));
+            modified = true;
+        }
+
+        if (modified) {
+            setTimeout(() => {
+                showToast('🔗 공유받은 최신 결산 데이터(신용카드 매입 및 수정 내역)가 완벽하게 적용되었습니다!');
+            }, 800);
+        }
+        return modified;
+    }
+
+    function setupShareButton() {
+        const btn = document.getElementById('btn-share-link');
+        if (!btn) return;
+        btn.addEventListener('click', async () => {
+            try {
+                const encoded = encodeShareData();
+                const shareUrl = `${window.location.origin}${window.location.pathname}#share=${encoded}`;
+                
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(shareUrl);
+                } else {
+                    const input = document.createElement('textarea');
+                    input.value = shareUrl;
+                    document.body.appendChild(input);
+                    input.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(input);
+                }
+                
+                showToast('✅ 내가 입력/수정한 모든 내역이 반영된 공유 링크가 복사되었습니다! 상대방에게 전달해 주세요.');
+            } catch (err) {
+                alert('링크 복사 실패: ' + err.message);
+            }
+        });
+    }
+
     // ===== 초기화 =====
     async function init() {
         // 로딩 화면
@@ -4658,7 +4775,9 @@
         document.body.appendChild(loadingOverlay);
 
         await loadData();
+        applySharedDataFromUrl();
         bindEvents();
+        setupShareButton();
 
         // Save and restore active view across refreshes/saves
         const savedView = sessionStorage.getItem('current_view') || 'dashboard';

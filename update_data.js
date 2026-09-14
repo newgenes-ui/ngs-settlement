@@ -82,6 +82,11 @@ function classifyFile(fileName) {
         const content = fs.readFileSync(fileName, 'utf8');
         const first1000 = content.slice(0, 1000);
 
+        // 사업용신용카드 매입자료 감지
+        if ((fileName.includes('신용카드') && fileName.includes('매입')) || fileName.includes('사업용신용카드') || first1000.includes('화물운전자복지카드') || first1000.includes('사업용신용카드')) {
+            return 'vat_card';
+        }
+
         if (first1000.includes('매출 전자(수정) 세금계산서') || (fileName.includes('매출') && !fileName.includes('카드') && first1000.includes('승인번호'))) {
             return 'sales';
         }
@@ -111,7 +116,7 @@ function runMerge() {
             const dlFiles = fs.readdirSync(downloadsDir);
             const now = Date.now();
             dlFiles.forEach(f => {
-                if (f.endsWith('.csv') && (f.includes('세금계산서') || f.includes('승인내역') || f.includes('매출') || f.includes('매입'))) {
+                if (f.endsWith('.csv') && (f.includes('세금계산서') || f.includes('승인내역') || f.includes('매출') || f.includes('매입') || f.includes('신용카드') || f.includes('사업용'))) {
                     const fullPath = path.join(downloadsDir, f);
                     try {
                         const stat = fs.statSync(fullPath);
@@ -132,18 +137,21 @@ function runMerge() {
     const salesFiles = [];
     const purchaseFiles = [];
     const cardFiles = [];
+    const vatCardFiles = [];
 
     allFiles.forEach(f => {
         const type = classifyFile(f);
         if (type === 'sales') salesFiles.push(f);
         else if (type === 'purchase') purchaseFiles.push(f);
         else if (type === 'card') cardFiles.push(f);
+        else if (type === 'vat_card') vatCardFiles.push(f);
     });
 
     console.log(`\n📁 감지된 추가 데이터 파일 목록:`);
     console.log(` - 매출 파일: ${salesFiles.length > 0 ? salesFiles.join(', ') : '(없음)'}`);
     console.log(` - 매입 파일: ${purchaseFiles.length > 0 ? purchaseFiles.join(', ') : '(없음)'}`);
-    console.log(` - 카드 파일: ${cardFiles.length > 0 ? cardFiles.join(', ') : '(없음)'}`);
+    console.log(` - 카드매출 파일: ${cardFiles.length > 0 ? cardFiles.join(', ') : '(없음)'}`);
+    console.log(` - 사업용신용카드 매입 파일: ${vatCardFiles.length > 0 ? vatCardFiles.join(', ') : '(없음)'}`);
 
     // ===== 1. 매출 데이터 병합 =====
     console.log('\n[1/4] 매출 세금계산서 병합 중...');
@@ -330,6 +338,59 @@ function runMerge() {
         console.log(`   ✅ app.js 마감일(cutoffDate) 설정 완료: "${newCutoffDate}" (${targetMonth}월 말일)`);
     } else {
         console.log(`   ⚠️ app.js에서 const cutoffDate 선언을 찾지 못했습니다.`);
+    }
+
+    // ===== 5. 커스텀 입력 데이터(custom_inputs.json) 감지 및 app.js 기본값 영구 동기화 =====
+    // 1) 다운로드 폴더에서 custom_inputs.json 가져오기
+    try {
+        const userProfile = process.env.USERPROFILE || 'C:\\Users\\admin';
+        const dlCustom = path.join(userProfile, 'Downloads', 'custom_inputs.json');
+        if (fs.existsSync(dlCustom)) {
+            fs.copyFileSync(dlCustom, 'custom_inputs.json');
+            try { fs.unlinkSync(dlCustom); } catch(e) {}
+            console.log(`   📥 다운로드 폴더에서 custom_inputs.json 가져옴`);
+        }
+    } catch (e) {}
+
+    if (fs.existsSync('custom_inputs.json')) {
+        try {
+            console.log('\n[5/5] 웹에서 입력/수정된 커스텀 결산 데이터(custom_inputs.json) 병합 중...');
+            const customData = JSON.parse(fs.readFileSync('custom_inputs.json', 'utf8'));
+            let updatedApp = fs.readFileSync('app.js', 'utf8');
+
+            if (customData.vat && Array.isArray(customData.vat)) {
+                const vatRegex = /const DEFAULT_VAT_CARD_DATA\s*=\s*\[[\s\S]*?\];/;
+                if (vatRegex.test(updatedApp)) {
+                    updatedApp = updatedApp.replace(vatRegex, `const DEFAULT_VAT_CARD_DATA = ${JSON.stringify(customData.vat, null, 4)};`);
+                    console.log(`   ✅ 사업용신용카드 매입 기본값 영구 반영 완료 (${customData.vat.length}개월)`);
+                }
+            }
+            if (customData.labor && Array.isArray(customData.labor)) {
+                const laborRegex = /const DEFAULT_FIXED_LABOR_DATA\s*=\s*\[[\s\S]*?\];/;
+                if (laborRegex.test(updatedApp)) {
+                    updatedApp = updatedApp.replace(laborRegex, `const DEFAULT_FIXED_LABOR_DATA = ${JSON.stringify(customData.labor, null, 4)};`);
+                    console.log(`   ✅ 고정지출(인건비) 기본값 영구 반영 완료`);
+                }
+            }
+            if (customData.office && Array.isArray(customData.office)) {
+                const officeRegex = /const DEFAULT_FIXED_OFFICE_DATA\s*=\s*\[[\s\S]*?\];/;
+                if (officeRegex.test(updatedApp)) {
+                    updatedApp = updatedApp.replace(officeRegex, `const DEFAULT_FIXED_OFFICE_DATA = ${JSON.stringify(customData.office, null, 4)};`);
+                    console.log(`   ✅ 고정지출(임대/통신) 기본값 영구 반영 완료`);
+                }
+            }
+            if (customData.vendor && Array.isArray(customData.vendor)) {
+                const vendorRegex = /const DEFAULT_FIXED_VENDOR_DATA\s*=\s*\[[\s\S]*?\];/;
+                if (vendorRegex.test(updatedApp)) {
+                    updatedApp = updatedApp.replace(vendorRegex, `const DEFAULT_FIXED_VENDOR_DATA = ${JSON.stringify(customData.vendor, null, 4)};`);
+                    console.log(`   ✅ 고정지출(거래처) 기본값 영구 반영 완료`);
+                }
+            }
+
+            fs.writeFileSync('app.js', updatedApp, 'utf8');
+        } catch (e) {
+            console.log(`   ⚠️ custom_inputs.json 처리 중 오류:`, e.message);
+        }
     }
 
     console.log('\n🎉 모든 데이터 병합 및 설정이 성공적으로 완료되었습니다!');

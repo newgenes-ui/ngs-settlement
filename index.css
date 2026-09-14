@@ -1370,3 +1370,33 @@ tr.total-row td.profit-negative, tr.total-row td.ratio-negative {
 .goal-gauge-fill.animate {
     animation: gaugeGrow 1.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+/* ===== 공유 링크 복사 버튼 ===== */
+.btn-share-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    margin-right: 6px;
+}
+
+.btn-share-link:hover {
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.45);
+}
+
+.btn-share-link:active {
+    transform: translateY(0);
+}
+
