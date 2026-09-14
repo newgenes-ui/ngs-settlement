@@ -103,6 +103,31 @@ function runMerge() {
     console.log(' [NGS 결산] 스마트 데이터 자동 병합 및 갱신 시작');
     console.log('====================================================');
 
+    // 0. 다운로드 폴더에서 최신 국세청/카드사 CSV 자동 가져오기 (최근 14일 이내)
+    try {
+        const userProfile = process.env.USERPROFILE || 'C:\\Users\\admin';
+        const downloadsDir = path.join(userProfile, 'Downloads');
+        if (fs.existsSync(downloadsDir)) {
+            const dlFiles = fs.readdirSync(downloadsDir);
+            const now = Date.now();
+            dlFiles.forEach(f => {
+                if (f.endsWith('.csv') && (f.includes('세금계산서') || f.includes('승인내역') || f.includes('매출') || f.includes('매입'))) {
+                    const fullPath = path.join(downloadsDir, f);
+                    try {
+                        const stat = fs.statSync(fullPath);
+                        if (now - stat.mtimeMs < 14 * 24 * 60 * 60 * 1000) {
+                            const targetPath = path.join('.', f);
+                            if (!fs.existsSync(targetPath)) {
+                                fs.copyFileSync(fullPath, targetPath);
+                                console.log(`   📥 다운로드 폴더에서 새 파일 감지 및 가져옴: ${f}`);
+                            }
+                        }
+                    } catch (e) {}
+                }
+            });
+        }
+    } catch (e) {}
+
     const allFiles = fs.readdirSync('.');
     const salesFiles = [];
     const purchaseFiles = [];

@@ -16,7 +16,7 @@ if %errorlevel% neq 0 (
 
 echo.
 echo [2/4] 변경된 데이터 및 소스코드 감지 중...
-git add app.js index.html index.css *.csv *.xlsx update_data.js deploy.bat
+git add app.js index.html index.css *.csv *.xlsx update_data.js deploy.bat "[결산 자동배포].bat"
 
 echo.
 echo [3/4] 변경 사항 기록 중...
@@ -34,8 +34,8 @@ if %errorlevel% neq 0 (
 
 echo.
 echo ==========================================
-echo  🎉 배포 완료! Vercel 모바일 반영에 약 30초~1분 소요됩니다.
-echo  스마트폰에서 새로고침하여 8월 데이터를 확인해보세요.
+echo  🎉 배포 완료! 모바일 및 공유 링크 반영에 약 30초~1분 소요됩니다.
+echo  스마트폰이나 링크에서 새로고침하여 최신 데이터를 확인해보세요.
 echo ==========================================
 echo.
 pause

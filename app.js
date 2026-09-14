@@ -4219,7 +4219,7 @@
                 try {
                     processCsvTextAndMerge(type, csvText);
                     modal.classList.remove('active');
-                    alert('성공적으로 등록 및 중복 데이터 덮어쓰기가 완료되었습니다.');
+                    alert('성공적으로 등록되었습니다!\n\n※ 다른 사람에게 보낸 링크(모바일/외부)에도 반영하려면 바탕화면의 [결산 자동배포] 아이콘을 1회 실행해 주세요.');
                     
                     // Re-render
                     await loadData();

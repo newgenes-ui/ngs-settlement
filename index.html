@@ -532,7 +532,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-    <script src="app.js?v=1.9.2"></script>
+    <script src="app.js?v=1.9.3"></script>
     <script>
         function toggleDashboardChart(type) {
             const title = document.getElementById('dashboard-chart-title');
@@ -780,8 +780,10 @@
                     <textarea id="csv-text-input" placeholder="여기에 CSV 데이터를 복사-붙여넣기 할 수도 있습니다..." style="width:100%; height:120px; padding:10px; border:1px solid var(--border-light); border-radius:var(--radius-md); font-family:monospace; font-size:0.8rem; box-sizing:border-box; background:var(--bg-secondary); color:var(--text-primary); resize:vertical;"></textarea>
                 </div>
 
-                <div style="font-size:0.78rem; color:var(--text-secondary); line-height:1.4; margin-bottom:16px; padding:10px; background:rgba(99,102,241,0.05); border:1px solid rgba(99,102,241,0.15); border-radius:var(--radius-md);">
-                    💡 <strong>데이터 중복 처리 안내:</strong> 동일한 승인번호, 날짜 또는 일자-No.를 가진 데이터가 감지되면 기존 내용을 자동으로 <strong>덮어씁니다(Overwrite)</strong>. 그 외의 데이터는 누적하여 추가됩니다.
+                <div style="font-size:0.78rem; color:var(--text-secondary); line-height:1.5; margin-bottom:16px; padding:12px; background:rgba(99,102,241,0.06); border:1px solid rgba(99,102,241,0.2); border-radius:var(--radius-md);">
+                    <div style="margin-bottom:6px;">💡 <strong>데이터 중복 처리:</strong> 동일한 승인번호/일자가 감지되면 기존 내용을 자동으로 <strong>덮어씁니다</strong>.</div>
+                    <div style="color:var(--accent-indigo); font-weight:600;">📢 <strong>전사 공유 링크(모바일/타인) 반영 안내:</strong><br>
+                    이 브라우저 창에서 등록한 내용은 현재 PC에만 저장됩니다. 다른 사람에게 보낼 링크(GitHub/Vercel)에도 영구 반영하시려면 바탕화면의 <strong>[결산 자동배포]</strong> 아이콘을 1회 실행해 주세요!</div>
                 </div>
 
                 <div id="csv-upload-error" style="color:var(--accent-rose); font-size:0.85rem; text-align:center; display:none; margin-bottom:12px; font-weight:600;"></div>
