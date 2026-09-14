@@ -113,7 +113,10 @@
         { month: '2026-03', dedCount: 8, dedSupply: 131457, dedTax: 13143, dedTotal: 144600, totCount: 105, totSupply: 2214410, totTax: 205840, totTotal: 2420250 },
         { month: '2026-04', dedCount: 16, dedSupply: 520729, dedTax: 52071, dedTotal: 572800, totCount: 131, totSupply: 4093245, totTax: 275505, totTotal: 4368750 },
         { month: '2026-05', dedCount: 11, dedSupply: 247356, dedTax: 24734, dedTotal: 272090, totCount: 106, totSupply: 2954198, totTax: 271936, totTotal: 3226134 },
-        { month: '2026-06', dedCount: 0, dedSupply: 0, dedTax: 0, dedTotal: 0, totCount: 0, totSupply: 3837825, totTax: 383782, totTotal: 4221607 }
+        { month: '2026-06', dedCount: 0, dedSupply: 0, dedTax: 0, dedTotal: 0, totCount: 0, totSupply: 3837825, totTax: 383782, totTotal: 4221607 },
+        { month: '2026-07', dedCount: 0, dedSupply: 0, dedTax: 0, dedTotal: 0, totCount: 0, totSupply: 0, totTax: 0, totTotal: 0 },
+        { month: '2026-08', dedCount: 0, dedSupply: 0, dedTax: 0, dedTotal: 0, totCount: 0, totSupply: 0, totTax: 0, totTotal: 0 },
+        { month: '2026-09', dedCount: 0, dedSupply: 0, dedTax: 0, dedTotal: 0, totCount: 0, totSupply: 0, totTax: 0, totTotal: 0 }
     ];
 
     const EXT_CATEGORIES = [
@@ -276,7 +279,7 @@
 
             const [salesText, cardText, purchaseText, extPurchaseText, extSalesText, nujenPurchaseText, nujenSalesText, extInvPurchaseText, extInvSalesText] = await Promise.all(fetches);
 
-            const cutoffDate = "2026/08/31";
+            const cutoffDate = "2026/09/30";
             function filterCutoff(d, dateField) {
                 if (!d[dateField]) return true;
                 const clean = d[dateField].split(' ')[0].replace(/-/g, '/');
@@ -585,6 +588,13 @@
             } else {
                 state.vatCardData = JSON.parse(JSON.stringify(DEFAULT_VAT_CARD_DATA));
             }
+            // DEFAULT_VAT_CARD_DATA에 있는 월이 없으면 보충
+            DEFAULT_VAT_CARD_DATA.forEach(defRow => {
+                if (!state.vatCardData.some(r => r.month === defRow.month)) {
+                    state.vatCardData.push(JSON.parse(JSON.stringify(defRow)));
+                }
+            });
+            state.vatCardData.sort((a, b) => a.month.localeCompare(b.month));
 
             // 고정지출 데이터 로드 (인건비)
             const savedLaborData = localStorage.getItem('fixed_labor_data');
