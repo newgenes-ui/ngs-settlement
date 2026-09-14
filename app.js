@@ -114,9 +114,9 @@
         { month: '2026-04', dedCount: 16, dedSupply: 520729, dedTax: 52071, dedTotal: 572800, totCount: 131, totSupply: 4093245, totTax: 275505, totTotal: 4368750 },
         { month: '2026-05', dedCount: 11, dedSupply: 247356, dedTax: 24734, dedTotal: 272090, totCount: 106, totSupply: 2954198, totTax: 271936, totTotal: 3226134 },
         { month: '2026-06', dedCount: 0, dedSupply: 0, dedTax: 0, dedTotal: 0, totCount: 0, totSupply: 3837825, totTax: 383782, totTotal: 4221607 },
-        { month: '2026-07', dedCount: 0, dedSupply: 0, dedTax: 0, dedTotal: 0, totCount: 0, totSupply: 0, totTax: 0, totTotal: 0 },
-        { month: '2026-08', dedCount: 0, dedSupply: 0, dedTax: 0, dedTotal: 0, totCount: 0, totSupply: 0, totTax: 0, totTotal: 0 },
-        { month: '2026-09', dedCount: 0, dedSupply: 0, dedTax: 0, dedTotal: 0, totCount: 0, totSupply: 0, totTax: 0, totTotal: 0 }
+        { month: '2026-07', dedCount: 0, dedSupply: 3831600, dedTax: 383160, dedTotal: 4214760, totCount: 0, totSupply: 3831600, totTax: 383160, totTotal: 4214760 },
+        { month: '2026-08', dedCount: 0, dedSupply: 2816485, dedTax: 281648, dedTotal: 3098134, totCount: 0, totSupply: 2816485, totTax: 281648, totTotal: 3098134 },
+        { month: '2026-09', dedCount: 0, dedSupply: 1724927, dedTax: 172493, dedTotal: 1897420, totCount: 0, totSupply: 1724927, totTax: 172493, totTotal: 1897420 }
     ];
 
     const EXT_CATEGORIES = [
