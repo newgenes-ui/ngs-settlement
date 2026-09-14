@@ -532,7 +532,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-    <script src="app.js?v=1.9.0"></script>
+    <script src="app.js?v=1.9.1"></script>
     <script>
         function toggleDashboardChart(type) {
             const title = document.getElementById('dashboard-chart-title');
@@ -601,11 +601,18 @@
                     </div>
                     
                     <div style="border-top: 1px solid var(--border-subtle); padding-top: 16px;">
-                        <span style="font-size: 0.9rem; font-weight: 700; color: var(--accent-indigo); display: block; margin-bottom: 12px;">공제대상 (매입세액 공제)</span>
-                        <div style="display: grid; grid-template-columns: 1fr 2fr 2fr; gap: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 6px;">
+                            <span style="font-size: 0.9rem; font-weight: 700; color: var(--accent-indigo);">공제대상 (매입세액 공제)</span>
+                            <span style="font-size: 0.75rem; color: var(--accent-indigo); font-weight: 500;">💡 총금액 입력 시 공급가액과 세액 자동 계산</span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 80px 1.25fr 1.25fr 1fr; gap: 10px;">
                             <div>
                                 <label style="font-size: 0.75rem; color: var(--text-secondary); display: block; margin-bottom: 4px;">건수</label>
                                 <input type="number" id="vat-reg-ded-count" placeholder="0" style="width: 100%; padding: 10px; border: 1px solid var(--border-light); border-radius: var(--radius-md); background: var(--bg-secondary); color: var(--text-primary); text-align: right; box-sizing: border-box; font-size: 0.95rem;">
+                            </div>
+                            <div>
+                                <label style="font-size: 0.75rem; font-weight: 700; color: var(--accent-indigo); display: block; margin-bottom: 4px;">총금액 (입력)</label>
+                                <input type="number" id="vat-reg-ded-total" placeholder="0" style="width: 100%; padding: 10px; border: 1.5px solid var(--accent-indigo); border-radius: var(--radius-md); background: var(--bg-secondary); color: var(--text-primary); text-align: right; box-sizing: border-box; font-size: 0.95rem; font-weight: 600;">
                             </div>
                             <div>
                                 <label style="font-size: 0.75rem; color: var(--text-secondary); display: block; margin-bottom: 4px;">공급가액</label>
@@ -619,11 +626,18 @@
                     </div>
                     
                     <div style="border-top: 1px solid var(--border-subtle); padding-top: 16px; margin-bottom: 10px;">
-                        <span style="font-size: 0.9rem; font-weight: 700; color: var(--text-primary); display: block; margin-bottom: 12px;">전체 (총 매입)</span>
-                        <div style="display: grid; grid-template-columns: 1fr 2fr 2fr; gap: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 6px;">
+                            <span style="font-size: 0.9rem; font-weight: 700; color: var(--text-primary);">전체 (총 매입)</span>
+                            <span style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 500;">💡 총금액 입력 시 공급가액과 세액 자동 계산</span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 80px 1.25fr 1.25fr 1fr; gap: 10px;">
                             <div>
                                 <label style="font-size: 0.75rem; color: var(--text-secondary); display: block; margin-bottom: 4px;">건수</label>
                                 <input type="number" id="vat-reg-tot-count" placeholder="0" style="width: 100%; padding: 10px; border: 1px solid var(--border-light); border-radius: var(--radius-md); background: var(--bg-secondary); color: var(--text-primary); text-align: right; box-sizing: border-box; font-size: 0.95rem;">
+                            </div>
+                            <div>
+                                <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-primary); display: block; margin-bottom: 4px;">총금액 (입력)</label>
+                                <input type="number" id="vat-reg-tot-total" placeholder="0" style="width: 100%; padding: 10px; border: 1.5px solid var(--border-light); border-radius: var(--radius-md); background: var(--bg-secondary); color: var(--text-primary); text-align: right; box-sizing: border-box; font-size: 0.95rem; font-weight: 600;">
                             </div>
                             <div>
                                 <label style="font-size: 0.75rem; color: var(--text-secondary); display: block; margin-bottom: 4px;">공급가액</label>

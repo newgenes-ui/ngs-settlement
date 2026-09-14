@@ -1774,9 +1774,11 @@
     function bindVatRegEvents() {
         const monthInput = document.getElementById('vat-reg-month');
         const dedCountInput = document.getElementById('vat-reg-ded-count');
+        const dedTotalInput = document.getElementById('vat-reg-ded-total');
         const dedSupplyInput = document.getElementById('vat-reg-ded-supply');
         const dedTaxInput = document.getElementById('vat-reg-ded-tax');
         const totCountInput = document.getElementById('vat-reg-tot-count');
+        const totTotalInput = document.getElementById('vat-reg-tot-total');
         const totSupplyInput = document.getElementById('vat-reg-tot-supply');
         const totTaxInput = document.getElementById('vat-reg-tot-tax');
         const saveBtn = document.getElementById('btn-vat-reg-save');
@@ -1821,41 +1823,112 @@
                 const row = state.vatCardData.find(r => r.month === selectedMonth);
                 if (row) {
                     dedCountInput.value = row.dedCount !== undefined ? row.dedCount : 0;
+                    if (dedTotalInput) dedTotalInput.value = row.dedTotal !== undefined ? row.dedTotal : ((row.dedSupply || 0) + (row.dedTax || 0));
                     dedSupplyInput.value = row.dedSupply !== undefined ? row.dedSupply : 0;
                     dedTaxInput.value = row.dedTax !== undefined ? row.dedTax : 0;
                     totCountInput.value = row.totCount !== undefined ? row.totCount : 0;
+                    if (totTotalInput) totTotalInput.value = row.totTotal !== undefined ? row.totTotal : ((row.totSupply || 0) + (row.totTax || 0));
                     totSupplyInput.value = row.totSupply !== undefined ? row.totSupply : 0;
                     totTaxInput.value = row.totTax !== undefined ? row.totTax : 0;
                 } else {
                     // 데이터 없으면 비움
                     dedCountInput.value = '';
+                    if (dedTotalInput) dedTotalInput.value = '';
                     dedSupplyInput.value = '';
                     dedTaxInput.value = '';
                     totCountInput.value = '';
+                    if (totTotalInput) totTotalInput.value = '';
                     totSupplyInput.value = '';
                     totTaxInput.value = '';
                 }
             }
         });
 
-        // 공급가액 입력 시 세액 자동 계산 (10%)
+        // 공제대상 - 총금액 입력 시 공급가액, 세액 자동 분리 계산
+        if (dedTotalInput) {
+            dedTotalInput.addEventListener('input', e => {
+                const raw = e.target.value.trim();
+                if (raw === '') {
+                    dedSupplyInput.value = '';
+                    dedTaxInput.value = '';
+                    return;
+                }
+                const total = parseInt(raw, 10) || 0;
+                const supply = Math.round(total / 1.1);
+                const tax = total - supply;
+                dedSupplyInput.value = supply;
+                dedTaxInput.value = tax;
+            });
+        }
+
+        // 공제대상 - 공급가액 입력 시 세액 및 총금액 자동 계산
         dedSupplyInput.addEventListener('input', e => {
-            const val = parseInt(e.target.value, 10) || 0;
-            dedTaxInput.value = Math.round(val / 10);
+            const raw = e.target.value.trim();
+            if (raw === '') {
+                dedTaxInput.value = '';
+                if (dedTotalInput) dedTotalInput.value = '';
+                return;
+            }
+            const supply = parseInt(raw, 10) || 0;
+            const tax = Math.round(supply * 0.1);
+            dedTaxInput.value = tax;
+            if (dedTotalInput) dedTotalInput.value = supply + tax;
         });
 
+        // 공제대상 - 세액 직접 수정 시 총금액 재계산
+        dedTaxInput.addEventListener('input', e => {
+            const supply = parseInt(dedSupplyInput.value, 10) || 0;
+            const tax = parseInt(e.target.value, 10) || 0;
+            if (dedTotalInput) dedTotalInput.value = supply + tax;
+        });
+
+        // 전체 - 총금액 입력 시 공급가액, 세액 자동 분리 계산
+        if (totTotalInput) {
+            totTotalInput.addEventListener('input', e => {
+                const raw = e.target.value.trim();
+                if (raw === '') {
+                    totSupplyInput.value = '';
+                    totTaxInput.value = '';
+                    return;
+                }
+                const total = parseInt(raw, 10) || 0;
+                const supply = Math.round(total / 1.1);
+                const tax = total - supply;
+                totSupplyInput.value = supply;
+                totTaxInput.value = tax;
+            });
+        }
+
+        // 전체 - 공급가액 입력 시 세액 및 총금액 자동 계산
         totSupplyInput.addEventListener('input', e => {
-            const val = parseInt(e.target.value, 10) || 0;
-            totTaxInput.value = Math.round(val / 10);
+            const raw = e.target.value.trim();
+            if (raw === '') {
+                totTaxInput.value = '';
+                if (totTotalInput) totTotalInput.value = '';
+                return;
+            }
+            const supply = parseInt(raw, 10) || 0;
+            const tax = Math.round(supply * 0.1);
+            totTaxInput.value = tax;
+            if (totTotalInput) totTotalInput.value = supply + tax;
+        });
+
+        // 전체 - 세액 직접 수정 시 총금액 재계산
+        totTaxInput.addEventListener('input', e => {
+            const supply = parseInt(totSupplyInput.value, 10) || 0;
+            const tax = parseInt(e.target.value, 10) || 0;
+            if (totTotalInput) totTotalInput.value = supply + tax;
         });
 
         // 비우기 버튼
         clearBtn.addEventListener('click', () => {
             monthInput.value = '';
             dedCountInput.value = '';
+            if (dedTotalInput) dedTotalInput.value = '';
             dedSupplyInput.value = '';
             dedTaxInput.value = '';
             totCountInput.value = '';
+            if (totTotalInput) totTotalInput.value = '';
             totSupplyInput.value = '';
             totTaxInput.value = '';
         });
@@ -1872,12 +1945,12 @@
             const dedCount = parseInt(dedCountInput.value, 10) || 0;
             const dedSupply = parseInt(dedSupplyInput.value, 10) || 0;
             const dedTax = parseInt(dedTaxInput.value, 10) || 0;
-            const dedTotal = dedSupply + dedTax;
+            const dedTotal = dedTotalInput && dedTotalInput.value !== '' ? (parseInt(dedTotalInput.value, 10) || 0) : (dedSupply + dedTax);
 
             const totCount = parseInt(totCountInput.value, 10) || 0;
             const totSupply = parseInt(totSupplyInput.value, 10) || 0;
             const totTax = parseInt(totTaxInput.value, 10) || 0;
-            const totTotal = totSupply + totTax;
+            const totTotal = totTotalInput && totTotalInput.value !== '' ? (parseInt(totTotalInput.value, 10) || 0) : (totSupply + totTax);
 
             let row = state.vatCardData.find(r => r.month === monthVal);
             if (row) {
@@ -3921,8 +3994,8 @@
                 <td class="text-right" style="text-align:right; padding: 2px 4px;">
                     <input type="number" class="vat-input" data-month="${row.month}" data-field="dedTax" value="${row.dedTax || 0}">
                 </td>
-                <td class="text-right" id="dedTotal-${row.month}" style="text-align:right; border-right:1px solid var(--border-subtle); font-weight:500; padding-right:12px;">
-                    ${formatCurrency(row.dedTotal || 0)}
+                <td class="text-right" style="text-align:right; border-right:1px solid var(--border-subtle); padding: 2px 4px;">
+                    <input type="number" class="vat-input" data-month="${row.month}" data-field="dedTotal" value="${row.dedTotal || 0}" style="font-weight:600; color:var(--accent-indigo);">
                 </td>
                 
                 <td class="text-right" style="text-align:right; padding: 2px 4px;">
@@ -3934,8 +4007,8 @@
                 <td class="text-right" style="text-align:right; padding: 2px 4px;">
                     <input type="number" class="vat-input" data-month="${row.month}" data-field="totTax" value="${row.totTax || 0}">
                 </td>
-                <td class="text-right" id="totTotal-${row.month}" style="text-align:right; font-weight:500; padding-right:12px;">
-                    ${formatCurrency(row.totTotal || 0)}
+                <td class="text-right" style="text-align:right; padding: 2px 4px;">
+                    <input type="number" class="vat-input" data-month="${row.month}" data-field="totTotal" value="${row.totTotal || 0}" style="font-weight:600;">
                 </td>
             `;
             tbody.appendChild(tr);
@@ -3948,16 +4021,56 @@
             input.addEventListener('input', e => {
                 const month = e.target.dataset.month;
                 const field = e.target.dataset.field;
-                const value = parseInt(e.target.value, 10) || 0;
+                const raw = e.target.value.trim();
+                const value = parseInt(raw, 10) || 0;
 
                 const row = state.vatCardData.find(r => r.month === month);
                 if (row) {
-                    row[field] = value;
-                    row.dedTotal = (row.dedSupply || 0) + (row.dedTax || 0);
-                    row.totTotal = (row.totSupply || 0) + (row.totTax || 0);
-
-                    document.getElementById(`dedTotal-${month}`).textContent = formatCurrency(row.dedTotal);
-                    document.getElementById(`totTotal-${month}`).textContent = formatCurrency(row.totTotal);
+                    if (field === 'dedTotal') {
+                        row.dedTotal = value;
+                        row.dedSupply = Math.round(value / 1.1);
+                        row.dedTax = value - row.dedSupply;
+                        const sInput = tbody.querySelector(`input[data-month="${month}"][data-field="dedSupply"]`);
+                        const tInput = tbody.querySelector(`input[data-month="${month}"][data-field="dedTax"]`);
+                        if (sInput) sInput.value = row.dedSupply;
+                        if (tInput) tInput.value = row.dedTax;
+                    } else if (field === 'totTotal') {
+                        row.totTotal = value;
+                        row.totSupply = Math.round(value / 1.1);
+                        row.totTax = value - row.totSupply;
+                        const sInput = tbody.querySelector(`input[data-month="${month}"][data-field="totSupply"]`);
+                        const tInput = tbody.querySelector(`input[data-month="${month}"][data-field="totTax"]`);
+                        if (sInput) sInput.value = row.totSupply;
+                        if (tInput) tInput.value = row.totTax;
+                    } else if (field === 'dedSupply') {
+                        row.dedSupply = value;
+                        row.dedTax = Math.round(value * 0.1);
+                        row.dedTotal = value + row.dedTax;
+                        const tInput = tbody.querySelector(`input[data-month="${month}"][data-field="dedTax"]`);
+                        const totInput = tbody.querySelector(`input[data-month="${month}"][data-field="dedTotal"]`);
+                        if (tInput) tInput.value = row.dedTax;
+                        if (totInput) totInput.value = row.dedTotal;
+                    } else if (field === 'totSupply') {
+                        row.totSupply = value;
+                        row.totTax = Math.round(value * 0.1);
+                        row.totTotal = value + row.totTax;
+                        const tInput = tbody.querySelector(`input[data-month="${month}"][data-field="totTax"]`);
+                        const totInput = tbody.querySelector(`input[data-month="${month}"][data-field="totTotal"]`);
+                        if (tInput) tInput.value = row.totTax;
+                        if (totInput) totInput.value = row.totTotal;
+                    } else if (field === 'dedTax') {
+                        row.dedTax = value;
+                        row.dedTotal = (row.dedSupply || 0) + value;
+                        const totInput = tbody.querySelector(`input[data-month="${month}"][data-field="dedTotal"]`);
+                        if (totInput) totInput.value = row.dedTotal;
+                    } else if (field === 'totTax') {
+                        row.totTax = value;
+                        row.totTotal = (row.totSupply || 0) + value;
+                        const totInput = tbody.querySelector(`input[data-month="${month}"][data-field="totTotal"]`);
+                        if (totInput) totInput.value = row.totTotal;
+                    } else {
+                        row[field] = value;
+                    }
 
                     updateVatCalculations();
                     localStorage.setItem('vat_card_data', JSON.stringify(state.vatCardData));
