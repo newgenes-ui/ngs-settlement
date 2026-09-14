@@ -314,10 +314,21 @@
                     </div>
                     <div class="table-card">
                         <div class="table-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-                            <div class="filter-group">
-                                <button class="filter-btn active" id="btn-fixed-labor" onclick="toggleFixedTab('labor')">인건비</button>
-                                <button class="filter-btn" id="btn-fixed-office" onclick="toggleFixedTab('office')">사무실비용</button>
-                                <button class="filter-btn" id="btn-fixed-vendor" onclick="toggleFixedTab('vendor')">고정 거래처 지출</button>
+                            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                                <div class="filter-group">
+                                    <button class="filter-btn active" id="btn-fixed-labor" onclick="toggleFixedTab('labor')">인건비</button>
+                                    <button class="filter-btn" id="btn-fixed-office" onclick="toggleFixedTab('office')">사무실비용</button>
+                                    <button class="filter-btn" id="btn-fixed-vendor" onclick="toggleFixedTab('vendor')">고정 거래처 지출</button>
+                                </div>
+                                <div id="fixed-labor-filter-wrap" style="display: inline-flex; align-items: center; gap: 6px; background: var(--bg-card); padding: 5px 12px; border-radius: 8px; border: 1px solid var(--border); box-shadow: var(--shadow-sm);">
+                                    <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); display: flex; align-items: center; gap: 4px;">
+                                        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                        직원별 필터:
+                                    </span>
+                                    <select id="fixed-labor-person-filter" style="padding: 4px 10px; font-size: 0.82rem; font-weight: 600; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-primary); color: var(--text-primary); cursor: pointer; outline: none;">
+                                        <option value="ALL">전체 직원</option>
+                                    </select>
+                                </div>
                             </div>
                             <div style="display: flex; gap: 8px;">
                                 <button id="btn-fixed-register" style="font-size:0.85rem; padding:8px 16px; border-radius:6px; background:var(--accent-indigo); color:white; border:none; cursor:pointer; font-weight:600; box-shadow:var(--shadow-sm);">월별등록</button>
@@ -571,6 +582,9 @@
 
             [btnLabor, btnOffice, btnVendor].forEach(b => b.classList.remove('active'));
             [contLabor, contOffice, contVendor].forEach(c => c.style.display = 'none');
+
+            const laborFilterWrap = document.getElementById('fixed-labor-filter-wrap');
+            if (laborFilterWrap) laborFilterWrap.style.display = type === 'labor' ? 'inline-flex' : 'none';
 
             if(type === 'labor') {
                 btnLabor.classList.add('active');

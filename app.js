@@ -26,6 +26,7 @@
         fixedLaborPeople: [],
         fixedOfficeColumns: [],
         fixedVendorColumns: [],
+        selectedLaborPerson: 'ALL',
         isVatAuthorized: sessionStorage.getItem('vat_authorized') === 'true',
         pendingView: null,
         charts: {}
@@ -1120,10 +1121,55 @@
 
     // ===== 고정지출 렌더 =====
     function renderFixedExpensesView() {
+        populateLaborPersonFilter();
         renderFixedSummaryCards();
         renderFixedLaborTable();
         renderFixedOfficeTable();
         renderFixedVendorTable();
+    }
+
+    // 직원별 필터 옵션 구성
+    function populateLaborPersonFilter() {
+        const select = document.getElementById('fixed-labor-person-filter');
+        if (!select) return;
+
+        const personMap = new Map();
+
+        // 1) 기본 직원 목록
+        if (state.fixedLaborPeople && Array.isArray(state.fixedLaborPeople)) {
+            state.fixedLaborPeople.forEach(p => {
+                if (p.name) personMap.set(p.name, p.role || '');
+            });
+        }
+
+        // 2) 실제 데이터
+        if (state.fixedLaborData && Array.isArray(state.fixedLaborData)) {
+            state.fixedLaborData.forEach(m => {
+                if (m.items && Array.isArray(m.items)) {
+                    m.items.forEach(i => {
+                        if (i.name && !personMap.has(i.name)) {
+                            personMap.set(i.name, i.role || '');
+                        }
+                    });
+                }
+            });
+        }
+
+        const currentVal = state.selectedLaborPerson || 'ALL';
+
+        let optionsHtml = '<option value="ALL">전체 직원 (전체 보기)</option>';
+        personMap.forEach((role, name) => {
+            const label = role ? `${name} (${role})` : name;
+            optionsHtml += `<option value="${name}" ${currentVal === name ? 'selected' : ''}>${label}</option>`;
+        });
+
+        select.innerHTML = optionsHtml;
+
+        select.onchange = (e) => {
+            state.selectedLaborPerson = e.target.value;
+            renderFixedSummaryCards();
+            renderFixedLaborTable();
+        };
     }
 
     function renderFixedSummaryCards() {
@@ -1168,9 +1214,32 @@
 
         const periodLabel = state.currentPeriod === 'all' ? '전체 기간' : '선택 기간';
 
+        const selectedPerson = state.selectedLaborPerson || 'ALL';
+        let laborCardTitle = `${periodLabel} 직원 총 인건비 지출`;
+        let laborCardValue = formatCurrency(laborTotal);
+        let laborCardSub = '급여 + 4대보험 + 법인카드 합계';
+
+        if (selectedPerson !== 'ALL') {
+            let personLaborTotal = 0;
+            let pSalary = 0, pIns = 0, pCard = 0;
+            filteredLabor.forEach(m => {
+                if (m.items) {
+                    m.items.filter(i => i.name === selectedPerson).forEach(i => {
+                        personLaborTotal += (i.salary + i.ins + i.card);
+                        pSalary += i.salary;
+                        pIns += i.ins;
+                        pCard += i.card;
+                    });
+                }
+            });
+            laborCardTitle = `${periodLabel} [${selectedPerson}] 인건비 지출`;
+            laborCardValue = formatCurrency(personLaborTotal);
+            laborCardSub = `급여 ${formatCurrency(pSalary)} + 4대보험 ${formatCurrency(pIns)} + 법인카드 ${formatCurrency(pCard)}`;
+        }
+
         container.innerHTML = `
             ${createSummaryCard('#d4a373', '💰', `${periodLabel} 총 고정 지출 (인건비+사무실+이자)`, formatCurrency(grandTotal), '인건비 + 사무실 고정비 + 이자비용 합산')}
-            ${createSummaryCard('#6b705c', '👥', `${periodLabel} 직원 총 인건비 지출`, formatCurrency(laborTotal), '급여 + 4대보험 + 법인카드 합계')}
+            ${createSummaryCard('#6b705c', '👥', laborCardTitle, laborCardValue, laborCardSub)}
             ${createSummaryCard('#a5a58d', '🏢', `${periodLabel} 사무실 전체 고정 지출`, formatCurrency(officeAndVendor), '세금, 법인폰, 렌탈비 + 거래처 고정비')}
             ${createSummaryCard('#b5838d', '📊', `${periodLabel} 총 금융 대출 이자비용`, formatCurrency(interestTotal), '소상공인, 기업은행, 기보, 신용대출 이자 합산')}
         `;
@@ -1185,61 +1254,116 @@
         let totalSalary = 0, totalIns = 0, totalCard = 0, grandTotal = 0;
 
         const filteredLabor = getFilteredFixedData(state.fixedLaborData, true);
+        const selectedPerson = state.selectedLaborPerson || 'ALL';
 
-        filteredLabor.forEach(monthData => {
-            const rowCount = monthData.items.length;
-            let monthTotal = monthData.items.reduce((s, i) => s + i.salary + i.ins + i.card, 0);
-            
-            let monthVal = '';
-            const m = monthData.month.match(/(\d+)년\s+(\d+)월/);
-            if (m) {
-                monthVal = `${m[1]}-${String(m[2]).padStart(2, '0')}`;
+        if (selectedPerson === 'ALL') {
+            filteredLabor.forEach(monthData => {
+                const rowCount = monthData.items.length;
+                let monthTotal = monthData.items.reduce((s, i) => s + i.salary + i.ins + i.card, 0);
+                
+                let monthVal = '';
+                const m = monthData.month.match(/(\d+)년\s+(\d+)월/);
+                if (m) {
+                    monthVal = `${m[1]}-${String(m[2]).padStart(2, '0')}`;
+                }
+
+                monthData.items.forEach((item, idx) => {
+                    const itemTotal = item.salary + item.ins + item.card;
+                    totalSalary += item.salary;
+                    totalIns += item.ins;
+                    totalCard += item.card;
+                    grandTotal += itemTotal;
+                    
+                    html += `<tr>`;
+                    if (idx === 0) {
+                        html += `<td rowspan="${rowCount}" class="text-center" style="vertical-align:middle; font-weight:600;">${monthData.month}</td>`;
+                    }
+                    html += `
+                        <td>${item.name}</td>
+                        <td>${item.role}</td>
+                        <td class="text-right">${formatCurrency(item.salary)}</td>
+                        <td class="text-right" style="color:var(--text-secondary);">${formatCurrency(item.ins)}</td>
+                        <td class="text-right" style="color:var(--accent-rose); font-weight:600;">${formatCurrency(item.card)}</td>
+                        <td class="text-right font-bold">${formatCurrency(itemTotal)}</td>
+                    `;
+                    if (idx === 0) {
+                        html += `<td rowspan="${rowCount}" class="text-center" style="vertical-align:middle; color:var(--accent-indigo); font-weight:700;">${formatCurrency(monthTotal)}</td>`;
+                        html += `<td rowspan="${rowCount}" class="text-center" style="vertical-align:middle;">
+                            <div style="display:flex; flex-direction:column; gap:4px; align-items:center;">
+                                <button style="padding:4px 8px; font-size:0.75rem; border:1px solid var(--border); background:white; cursor:pointer; border-radius:4px;" onclick="window.editFixedExpense('labor', '${monthVal}')">수정</button>
+                                <button style="padding:4px 8px; font-size:0.75rem; border:1px solid #fecaca; background:#fef2f2; color:#ef4444; cursor:pointer; border-radius:4px;" onclick="window.deleteFixedExpense('labor', '${monthVal}')">삭제</button>
+                            </div>
+                        </td>`;
+                    }
+                    html += `</tr>`;
+                });
+            });
+
+            tbody.innerHTML = html;
+            tfoot.innerHTML = `
+                <tr>
+                    <td colspan="3" class="text-center">전체 직원 총합계</td>
+                    <td class="text-right">${formatCurrency(totalSalary)}</td>
+                    <td class="text-right">${formatCurrency(totalIns)}</td>
+                    <td class="text-right" style="color:var(--accent-rose);">${formatCurrency(totalCard)}</td>
+                    <td class="text-right font-bold">${formatCurrency(grandTotal)}</td>
+                    <td class="text-center font-bold" style="color:var(--accent-indigo);">${formatCurrency(grandTotal)}</td>
+                    <td></td>
+                </tr>
+            `;
+        } else {
+            let matchCount = 0;
+            filteredLabor.forEach(monthData => {
+                let monthVal = '';
+                const m = monthData.month.match(/(\d+)년\s+(\d+)월/);
+                if (m) {
+                    monthVal = `${m[1]}-${String(m[2]).padStart(2, '0')}`;
+                }
+
+                const personItems = (monthData.items || []).filter(i => i.name === selectedPerson);
+                personItems.forEach(item => {
+                    matchCount++;
+                    const itemTotal = item.salary + item.ins + item.card;
+                    totalSalary += item.salary;
+                    totalIns += item.ins;
+                    totalCard += item.card;
+                    grandTotal += itemTotal;
+
+                    html += `
+                        <tr style="transition: background 0.15s ease;">
+                            <td class="text-center" style="vertical-align:middle; font-weight:600;">${monthData.month}</td>
+                            <td style="font-weight:700; color:var(--accent-indigo);">${item.name}</td>
+                            <td><span style="display:inline-block; padding:2px 8px; border-radius:4px; background:var(--bg-secondary); font-size:0.8rem;">${item.role}</span></td>
+                            <td class="text-right">${formatCurrency(item.salary)}</td>
+                            <td class="text-right" style="color:var(--text-secondary);">${formatCurrency(item.ins)}</td>
+                            <td class="text-right" style="color:var(--accent-rose); font-weight:600;">${formatCurrency(item.card)}</td>
+                            <td class="text-right font-bold" style="color:var(--text-primary);">${formatCurrency(itemTotal)}</td>
+                            <td class="text-center" style="color:var(--accent-indigo); font-weight:700;">${formatCurrency(itemTotal)}</td>
+                            <td class="text-center" style="vertical-align:middle;">
+                                <button style="padding:4px 8px; font-size:0.75rem; border:1px solid var(--border); background:white; cursor:pointer; border-radius:4px;" onclick="window.editFixedExpense('labor', '${monthVal}')">수정</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            });
+
+            if (matchCount === 0) {
+                html = `<tr><td colspan="9" class="text-center" style="padding:30px; color:var(--text-secondary);">선택하신 기간 동안 [${selectedPerson}] 직원의 등록된 인건비 내역이 없습니다.</td></tr>`;
             }
 
-            monthData.items.forEach((item, idx) => {
-                const itemTotal = item.salary + item.ins + item.card;
-                totalSalary += item.salary;
-                totalIns += item.ins;
-                totalCard += item.card;
-                grandTotal += itemTotal;
-                
-                html += `<tr>`;
-                if (idx === 0) {
-                    html += `<td rowspan="${rowCount}" class="text-center" style="vertical-align:middle; font-weight:600;">${monthData.month}</td>`;
-                }
-                html += `
-                    <td>${item.name}</td>
-                    <td>${item.role}</td>
-                    <td class="text-right">${formatCurrency(item.salary)}</td>
-                    <td class="text-right" style="color:var(--text-secondary);">${formatCurrency(item.ins)}</td>
-                    <td class="text-right" style="color:var(--accent-rose); font-weight:600;">${formatCurrency(item.card)}</td>
-                    <td class="text-right">${formatCurrency(itemTotal)}</td>
-                `;
-                if (idx === 0) {
-                    html += `<td rowspan="${rowCount}" class="text-center" style="vertical-align:middle; color:var(--accent-indigo); font-weight:700;">${formatCurrency(monthTotal)}</td>`;
-                    html += `<td rowspan="${rowCount}" class="text-center" style="vertical-align:middle;">
-                        <div style="display:flex; flex-direction:column; gap:4px; align-items:center;">
-                            <button style="padding:4px 8px; font-size:0.75rem; border:1px solid var(--border); background:white; cursor:pointer; border-radius:4px;" onclick="window.editFixedExpense('labor', '${monthVal}')">수정</button>
-                            <button style="padding:4px 8px; font-size:0.75rem; border:1px solid #fecaca; background:#fef2f2; color:#ef4444; cursor:pointer; border-radius:4px;" onclick="window.deleteFixedExpense('labor', '${monthVal}')">삭제</button>
-                        </div>
-                    </td>`;
-                }
-                html += `</tr>`;
-            });
-        });
-
-        tbody.innerHTML = html;
-        tfoot.innerHTML = `
-            <tr>
-                <td colspan="3" class="text-center">총합계</td>
-                <td class="text-right">${formatCurrency(totalSalary)}</td>
-                <td class="text-right">${formatCurrency(totalIns)}</td>
-                <td class="text-right" style="color:var(--accent-rose);">${formatCurrency(totalCard)}</td>
-                <td class="text-right">${formatCurrency(grandTotal)}</td>
-                <td class="text-center" style="color:var(--accent-indigo);">${formatCurrency(grandTotal)}</td>
-                <td></td>
-            </tr>
-        `;
+            tbody.innerHTML = html;
+            tfoot.innerHTML = `
+                <tr style="background:rgba(99, 102, 241, 0.08);">
+                    <td colspan="3" class="text-center" style="font-weight:800; color:var(--accent-indigo);">[${selectedPerson}] 기간 누적 총합계</td>
+                    <td class="text-right" style="font-weight:700;">${formatCurrency(totalSalary)}</td>
+                    <td class="text-right" style="color:var(--text-secondary); font-weight:700;">${formatCurrency(totalIns)}</td>
+                    <td class="text-right" style="color:var(--accent-rose); font-weight:700;">${formatCurrency(totalCard)}</td>
+                    <td class="text-right" style="font-weight:800; color:var(--text-primary);">${formatCurrency(grandTotal)}</td>
+                    <td class="text-center" style="color:var(--accent-indigo); font-weight:800;">${formatCurrency(grandTotal)}</td>
+                    <td></td>
+                </tr>
+            `;
+        }
     }
 
     function renderFixedOfficeTable() {
