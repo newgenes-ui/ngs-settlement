@@ -4491,10 +4491,10 @@
                 if (isExcel) {
                     if (typeof XLSX !== 'undefined') {
                         try {
-                            const workbook = XLSX.read(buffer, { type: 'array' });
+                            const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
                             const firstSheetName = workbook.SheetNames[0];
                             const worksheet = workbook.Sheets[firstSheetName];
-                            const csv = XLSX.utils.sheet_to_csv(worksheet);
+                            const csv = XLSX.utils.sheet_to_csv(worksheet, { dateNF: 'YYYY-MM-DD' });
                             resolve(csv);
                             return;
                         } catch (err) {
