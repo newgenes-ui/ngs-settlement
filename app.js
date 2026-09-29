@@ -355,6 +355,84 @@
         return items;
     }
 
+    // ===== EXT 재고관리 추가매입 파서 =====
+    function parseExtInvAddPurchaseCSV(text) {
+        if (!text) return [];
+        const lines = parseCSVTextIntoLines(text);
+        if (lines.length < 2) return [];
+
+        let headerRowIdx = -1;
+        let headers = [];
+        for (let r = 0; r < Math.min(lines.length, 5); r++) {
+            const parsed = parseCSVLine(lines[r]);
+            const joined = parsed.join(',').replace(/\ufeff/g, '');
+            if (joined.includes('일자') || joined.includes('품목코드') || joined.includes('수량')) {
+                headerRowIdx = r;
+                headers = parsed.map(h => (h || '').trim().replace(/^\ufeff/, ''));
+                break;
+            }
+        }
+
+        let dateIdx = -1, codeIdx = -1, nameIdx = -1, qtyIdx = -1;
+        let unitPriceIdx = -1, supplyIdx = -1, taxIdx = -1, totalIdx = -1;
+
+        if (headerRowIdx !== -1) {
+            headers.forEach((h, idx) => {
+                if (h.includes('일자')) dateIdx = idx;
+                else if (h.includes('코드')) codeIdx = idx;
+                else if (h.includes('품목명') || h.includes('규격')) nameIdx = idx;
+                else if (h.includes('수량')) qtyIdx = idx;
+                else if (h.includes('단가')) unitPriceIdx = idx;
+                else if (h.includes('공급가')) supplyIdx = idx;
+                else if (h.includes('부가세') || h.includes('세액')) taxIdx = idx;
+                else if (h.includes('합계') || h.includes('총액') || h.includes('총금액')) totalIdx = idx;
+            });
+        }
+
+        const startRow = headerRowIdx !== -1 ? headerRowIdx + 1 : 1;
+        const items = [];
+
+        for (let i = startRow; i < lines.length; i++) {
+            const v = parseCSVLine(lines[i]);
+            if (!v || v.length === 0) continue;
+            const firstVal = (v[0] || '').trim().replace(/^\ufeff/, '');
+            if (!firstVal || firstVal.startsWith('총합계') || firstVal.startsWith('총계') || firstVal.startsWith('합계')) continue;
+
+            const rawDate = dateIdx !== -1 ? v[dateIdx] : v[0];
+            if (!rawDate) continue;
+
+            const rawCode = codeIdx !== -1 ? v[codeIdx] : v[1];
+            const code = normalizeExtCode(rawCode);
+            if (code === 'AA' || code === 'A') continue;
+
+            const name = (nameIdx !== -1 ? v[nameIdx] : v[2]) || '';
+            const qty = parseInt(qtyIdx !== -1 ? v[qtyIdx] : v[3]) || 0;
+            let supplyAmount = supplyIdx !== -1 ? parseAmount(v[supplyIdx]) : parseAmount(v[5]);
+            let taxAmount = taxIdx !== -1 ? parseAmount(v[taxIdx]) : parseAmount(v[6]);
+            let totalAmount = totalIdx !== -1 ? parseAmount(v[totalIdx]) : parseAmount(v[7]);
+            let unitPrice = unitPriceIdx !== -1 ? parseAmount(v[unitPriceIdx]) : parseAmount(v[4]);
+
+            if (!totalAmount && (supplyAmount || taxAmount)) {
+                totalAmount = supplyAmount + taxAmount;
+            }
+            if (!unitPrice && qty > 0 && supplyAmount > 0) {
+                unitPrice = Math.round(supplyAmount / qty);
+            }
+
+            items.push({
+                dateNo: rawDate,
+                code,
+                name,
+                qty,
+                unitPrice,
+                supplyAmount,
+                taxAmount,
+                totalAmount: totalAmount || (supplyAmount + taxAmount)
+            });
+        }
+        return items;
+    }
+
     // ===== 데이터 로드 =====
     async function loadData() {
         try {
@@ -377,8 +455,8 @@
                 Promise.resolve(null),
                 Promise.resolve(null),
                 Promise.resolve(null),
-                fetch(`EXT재고관리/EXT 기초매입 신규.csv?v=${t}`).then(r => r.ok ? r.text() : null).catch(() => null),
-                !savedExtInvSales ? (async () => {
+                fetch(encodeURI(`EXT재고관리/EXT 기초매입 신규.csv?v=${t}`)).then(r => r.ok ? r.text() : null).catch(() => null),
+                (async () => {
                     const candidateFiles = [
                         `EXT재고관리/판매현황_수정.csv?v=${t}`,
                         `EXT재고관리/판매현황.csv?v=${t}`,
@@ -386,7 +464,7 @@
                     ];
                     for (const f of candidateFiles) {
                         try {
-                            const r = await fetch(f);
+                            const r = await fetch(encodeURI(f));
                             if (r.ok) {
                                 const txt = await r.text();
                                 if (txt && txt.trim().length > 0) return txt;
@@ -394,10 +472,34 @@
                         } catch(e) {}
                     }
                     return null;
-                })() : Promise.resolve(null)
+                })(),
+                (async () => {
+                    const candidateFiles = [
+                        `EXT재고관리/추가 선매입.csv?v=${t}`,
+                        `EXT재고관리/추가매입 수정.csv?v=${t}`,
+                        `EXT재고관리/추가매입.csv?v=${t}`
+                    ];
+                    let combinedItems = [];
+                    for (const f of candidateFiles) {
+                        try {
+                            const r = await fetch(encodeURI(f));
+                            if (r.ok) {
+                                const txt = await r.text();
+                                if (txt && txt.trim().length > 0) {
+                                    const parsed = parseExtInvAddPurchaseCSV(txt);
+                                    parsed.forEach(newItem => {
+                                        combinedItems = combinedItems.filter(item => !(item.dateNo === newItem.dateNo && item.code === newItem.code));
+                                        combinedItems.push(newItem);
+                                    });
+                                }
+                            }
+                        } catch(e) {}
+                    }
+                    return combinedItems;
+                })()
             ];
 
-            const [salesText, cardText, purchaseText, extPurchaseText, extSalesText, nujenPurchaseText, nujenSalesText, extInvPurchaseText, extInvSalesText] = await Promise.all(fetches);
+            const [salesText, cardText, purchaseText, extPurchaseText, extSalesText, nujenPurchaseText, nujenSalesText, extInvPurchaseText, extInvSalesText, extInvAddPurchaseItems] = await Promise.all(fetches);
 
             const cutoffDate = "2026/09/30";
             function filterCutoff(d, dateField) {
@@ -664,6 +766,11 @@
             }
 
             // 9. EXT 재고관리 - 판매현황(실적) 데이터 로드
+            let serverSalesItems = [];
+            if (extInvSalesText) {
+                serverSalesItems = parseExtInvSalesCSV(extInvSalesText);
+            }
+
             if (savedExtInvSales) {
                 try {
                     state.extInvSalesData = JSON.parse(savedExtInvSales);
@@ -682,19 +789,34 @@
                         localStorage.setItem('custom_ext_inv_sales_data', JSON.stringify(state.extInvSalesData));
                     }
                 } catch(e) {
-                    state.extInvSalesData = [];
+                    state.extInvSalesData = serverSalesItems;
                 }
-            } else if (extInvSalesText) {
-                state.extInvSalesData = parseExtInvSalesCSV(extInvSalesText);
-                state.extInvSalesData.sort((a, b) => b.dateNo.localeCompare(a.dateNo));
+            } else {
+                state.extInvSalesData = serverSalesItems;
             }
+            state.extInvSalesData.sort((a, b) => (b.dateNo || '').localeCompare(a.dateNo || ''));
 
             // 10. EXT 재고관리 - 추가 매입 데이터 로드 (기초매입 미반영)
+            let localAddPurchase = [];
             if (savedExtInvAddPurchase) {
-                state.extInvAddPurchaseData = JSON.parse(savedExtInvAddPurchase);
-            } else {
-                state.extInvAddPurchaseData = [];
+                try {
+                    localAddPurchase = JSON.parse(savedExtInvAddPurchase);
+                } catch(e) {
+                    localAddPurchase = [];
+                }
             }
+
+            if (extInvAddPurchaseItems && Array.isArray(extInvAddPurchaseItems) && extInvAddPurchaseItems.length > 0) {
+                let merged = [...extInvAddPurchaseItems];
+                localAddPurchase.forEach(locItem => {
+                    merged = merged.filter(item => !(item.dateNo === locItem.dateNo && item.code === locItem.code));
+                    merged.push(locItem);
+                });
+                state.extInvAddPurchaseData = merged;
+            } else {
+                state.extInvAddPurchaseData = localAddPurchase;
+            }
+            state.extInvAddPurchaseData.sort((a, b) => (b.dateNo || '').localeCompare(a.dateNo || ''));
 
             // 부가세 카드 데이터 로드
             const savedVatData = localStorage.getItem('vat_card_data');
@@ -4928,7 +5050,9 @@
             vendor: state.fixedVendorData,
             people: state.fixedLaborPeople,
             offCols: state.fixedOfficeColumns,
-            venCols: state.fixedVendorColumns
+            venCols: state.fixedVendorColumns,
+            extSales: state.extInvSalesData,
+            extAddPurchase: state.extInvAddPurchaseData
         };
         const jsonStr = JSON.stringify(shareObj);
         const encoded = btoa(encodeURIComponent(jsonStr).replace(/%([0-9A-F]{2})/g, (match, p1) => {
@@ -5001,10 +5125,20 @@
             localStorage.setItem('fixed_vendor_columns', JSON.stringify(state.fixedVendorColumns));
             modified = true;
         }
+        if (Array.isArray(shared.extSales) && shared.extSales.length > 0) {
+            state.extInvSalesData = shared.extSales;
+            localStorage.setItem('custom_ext_inv_sales_data', JSON.stringify(state.extInvSalesData));
+            modified = true;
+        }
+        if (Array.isArray(shared.extAddPurchase) && shared.extAddPurchase.length > 0) {
+            state.extInvAddPurchaseData = shared.extAddPurchase;
+            localStorage.setItem('custom_ext_inv_add_purchase_data', JSON.stringify(state.extInvAddPurchaseData));
+            modified = true;
+        }
 
         if (modified) {
             setTimeout(() => {
-                showToast('🔗 공유받은 최신 결산 데이터(신용카드 매입 및 수정 내역)가 완벽하게 적용되었습니다!');
+                showToast('🔗 공유받은 최신 결산 데이터(신용카드 매입, 고정지출 및 EXT 재고 현황)가 완벽하게 적용되었습니다!');
             }, 800);
         }
         return modified;
