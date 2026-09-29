@@ -16,7 +16,7 @@ if %errorlevel% neq 0 (
 
 echo.
 echo [2/4] 변경된 데이터 및 소스코드 감지 중...
-git add app.js index.html index.css *.csv *.xlsx update_data.js deploy.bat "[결산 자동배포].bat"
+git add app.js index.html index.css *.csv *.xlsx update_data.js deploy.bat "[결산 자동배포].bat" EXT재고관리/ "뉴진스 재고관리/"
 
 echo.
 echo [3/4] 변경 사항 기록 중...

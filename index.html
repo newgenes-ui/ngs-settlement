@@ -547,7 +547,8 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-    <script src="app.js?v=1.9.3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="app.js?v=2.0.0"></script>
     <script>
         function toggleDashboardChart(type) {
             const title = document.getElementById('dashboard-chart-title');
@@ -763,7 +764,7 @@
     <div class="modal-overlay" id="csv-upload-modal">
         <div class="modal" style="max-width: 480px; border-radius: var(--radius-lg);">
             <div class="modal-header" style="padding: 16px 20px;">
-                <h3 style="font-weight: 700; font-size: 1.1rem;">📂 월별 CSV 데이터 등록</h3>
+                <h3 style="font-weight: 700; font-size: 1.1rem;">📂 월별 데이터 등록 (CSV / 엑셀)</h3>
                 <button class="modal-close" id="csv-upload-modal-close">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
@@ -772,25 +773,26 @@
                 <div class="margin-bottom: 16px;">
                     <label style="font-size:0.85rem; font-weight:600; color:var(--text-secondary); margin-bottom:6px; display:block;">등록 구분</label>
                     <select id="csv-upload-type" style="width:100%; padding:10px 12px; border:1px solid var(--border-light); border-radius:var(--radius-md); font-size:0.95rem; box-sizing:border-box; background:var(--bg-secondary); color:var(--text-primary);">
-                        <option value="sales">매출 내역 CSV</option>
-                        <option value="card">카드매출 내역 CSV</option>
-                        <option value="purchases">매입 내역 CSV</option>
-                        <option value="ext-inv-add-purchase">EXT 추가매입 CSV</option>
-                        <option value="ext-inv-sales">EXT 판매현황 CSV</option>
+                        <option value="sales">매출 내역 CSV/엑셀</option>
+                        <option value="card">카드매출 내역 CSV/엑셀</option>
+                        <option value="purchases">매입 내역 CSV/엑셀</option>
+                        <option value="ext-inv-add-purchase">EXT 추가매입 CSV/엑셀</option>
+                        <option value="ext-inv-sales">EXT 판매현황 CSV/엑셀</option>
                     </select>
                 </div>
 
                 <div style="margin-bottom: 16px;">
-                    <label style="font-size:0.85rem; font-weight:600; color:var(--text-secondary); margin-bottom:6px; display:block;">인코딩 설정</label>
+                    <label style="font-size:0.85rem; font-weight:600; color:var(--text-secondary); margin-bottom:6px; display:block;">인코딩 설정 (CSV용, 자동 감지됨)</label>
                     <select id="csv-upload-encoding" style="width:100%; padding:10px 12px; border:1px solid var(--border-light); border-radius:var(--radius-md); font-size:0.95rem; box-sizing:border-box; background:var(--bg-secondary); color:var(--text-primary);">
-                        <option value="EUC-KR">EUC-KR (대부분의 국세청/카드사 다운로드 파일)</option>
-                        <option value="UTF-8">UTF-8 (유니코드 파일)</option>
+                        <option value="EUC-KR">자동 감지 (EUC-KR / UTF-8)</option>
+                        <option value="UTF-8">UTF-8 고정</option>
+                        <option value="EUC-KR">EUC-KR 고정</option>
                     </select>
                 </div>
 
                 <div style="margin-bottom: 16px;">
-                    <label style="font-size:0.85rem; font-weight:600; color:var(--text-secondary); margin-bottom:6px; display:block;">CSV 파일 선택</label>
-                    <input type="file" id="csv-file-input" accept=".csv" style="width:100%; padding:8px 10px; border:1px solid var(--border-light); border-radius:var(--radius-md); font-size:0.9rem; box-sizing:border-box; background:var(--bg-secondary); color:var(--text-primary);">
+                    <label style="font-size:0.85rem; font-weight:600; color:var(--text-secondary); margin-bottom:6px; display:block;">파일 선택 (CSV 또는 XLSX 엑셀 파일)</label>
+                    <input type="file" id="csv-file-input" accept=".csv, .xlsx, .xls" style="width:100%; padding:8px 10px; border:1px solid var(--border-light); border-radius:var(--radius-md); font-size:0.9rem; box-sizing:border-box; background:var(--bg-secondary); color:var(--text-primary);">
                 </div>
 
                 <div style="margin-bottom: 20px;">
