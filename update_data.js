@@ -1,5 +1,7 @@
 const fs = require('fs');
 const path = require('path');
+let XLSX;
+try { XLSX = require('xlsx'); } catch(e) {}
 
 // 기준 연도
 const YEAR = 2026;
@@ -393,7 +395,194 @@ function runMerge() {
         }
     }
 
+    // ===== 6. EXT 재고관리 폴더 및 다운로드 폴더 자동 감지 및 스마트 통합 =====
+    try {
+        processExtInventoryFiles();
+    } catch (e) {
+        console.log('   ⚠️ EXT 재고관리 파일 처리 중 오류:', e.message);
+    }
+
     console.log('\n🎉 모든 데이터 병합 및 설정이 성공적으로 완료되었습니다!');
+}
+
+function processExtInventoryFiles() {
+    const extDir = path.join('.', 'EXT재고관리');
+    if (!fs.existsSync(extDir)) return;
+
+    console.log('\n[6/6] EXT 재고관리 엑셀/CSV 파일 스마트 감지 및 자동 통합 중...');
+    const allFiles = fs.readdirSync(extDir);
+
+    // 다운로드 폴더에서도 최근 EXT 관련 파일 자동 감지
+    try {
+        const userProfile = process.env.USERPROFILE || 'C:\\Users\\admin';
+        const downloadsDir = path.join(userProfile, 'Downloads');
+        if (fs.existsSync(downloadsDir)) {
+            const dlFiles = fs.readdirSync(downloadsDir);
+            const now = Date.now();
+            dlFiles.forEach(f => {
+                if ((f.endsWith('.csv') || f.endsWith('.xlsx')) && (f.includes('선매입') || f.includes('추가매입') || f.includes('판매현황') || f.includes('기초매입'))) {
+                    const fullPath = path.join(downloadsDir, f);
+                    try {
+                        const stat = fs.statSync(fullPath);
+                        if (now - stat.mtimeMs < 14 * 24 * 60 * 60 * 1000) {
+                            const targetPath = path.join(extDir, f);
+                            if (!fs.existsSync(targetPath)) {
+                                fs.copyFileSync(fullPath, targetPath);
+                                console.log(`   📥 다운로드 폴더에서 EXT 파일 감지 및 가져옴: ${f}`);
+                                allFiles.push(f);
+                            }
+                        }
+                    } catch(e) {}
+                }
+            });
+        }
+    } catch(e) {}
+
+    function readRows(filePath) {
+        if (filePath.endsWith('.xlsx') && XLSX) {
+            const wb = XLSX.readFile(filePath);
+            const sheet = wb.Sheets[wb.SheetNames[0]];
+            return XLSX.utils.sheet_to_json(sheet, {header: 1, raw: false});
+        } else if (filePath.endsWith('.csv')) {
+            const text = fs.readFileSync(filePath, 'utf8');
+            return parseCSVTextIntoLines(text).map(parseCSVLine);
+        }
+        return [];
+    }
+
+    // 1. 추가 선매입 파일 감지 및 병합 (파일명에 '추가' 또는 '선매입' 포함된 모든 파일)
+    const addPurchaseFiles = allFiles.filter(f => (f.includes('추가') || f.includes('선매입')) && (f.endsWith('.csv') || f.endsWith('.xlsx')));
+    if (addPurchaseFiles.length > 0) {
+        console.log(`   🔎 감지된 추가 선매입 파일 목록: ${addPurchaseFiles.join(', ')}`);
+        const addMap = new Map();
+
+        addPurchaseFiles.forEach(f => {
+            const fullPath = path.join(extDir, f);
+            try {
+                const rows = readRows(fullPath);
+                if (rows.length < 2) return;
+                let headerIdx = -1;
+                for (let r = 0; r < Math.min(rows.length, 5); r++) {
+                    const lineStr = (rows[r] || []).join(',');
+                    if (lineStr.includes('일자') || lineStr.includes('코드') || lineStr.includes('수량')) {
+                        headerIdx = r;
+                        break;
+                    }
+                }
+                const headers = headerIdx !== -1 ? rows[headerIdx].map(h => String(h || '').trim().replace(/^\ufeff/, '')) : [];
+                let dateIdx = -1, codeIdx = -1, nameIdx = -1, qtyIdx = -1, priceIdx = -1, supplyIdx = -1, taxIdx = -1, totalIdx = -1;
+                headers.forEach((h, idx) => {
+                    if (h.includes('일자')) dateIdx = idx;
+                    else if (h.includes('코드')) codeIdx = idx;
+                    else if (h.includes('품목명') || h.includes('규격')) nameIdx = idx;
+                    else if (h.includes('수량')) qtyIdx = idx;
+                    else if (h.includes('단가')) priceIdx = idx;
+                    else if (h.includes('공급가')) supplyIdx = idx;
+                    else if (h.includes('부가세') || h.includes('세액')) taxIdx = idx;
+                    else if (h.includes('합계') || h.includes('총액')) totalIdx = idx;
+                });
+
+                const startRow = headerIdx !== -1 ? headerIdx + 1 : 1;
+                for (let i = startRow; i < rows.length; i++) {
+                    const row = rows[i];
+                    if (!row || row.length === 0 || !row[0]) continue;
+                    const dateNo = String(dateIdx !== -1 ? row[dateIdx] : row[0]).trim().replace(/^\ufeff/, '');
+                    if (!dateNo || dateNo.startsWith('총계') || dateNo.startsWith('총합계') || dateNo.startsWith('합계')) continue;
+                    const code = String(codeIdx !== -1 ? row[codeIdx] : (row[1] || '')).trim();
+                    if (!code) continue;
+                    const name = String(nameIdx !== -1 ? row[nameIdx] : (row[2] || '')).trim();
+                    const qty = parseInt(qtyIdx !== -1 ? row[qtyIdx] : (row[3] || '0'), 10) || 0;
+                    const price = parseAmount(priceIdx !== -1 ? row[priceIdx] : row[4]);
+                    const supply = parseAmount(supplyIdx !== -1 ? row[supplyIdx] : row[5]);
+                    const tax = parseAmount(taxIdx !== -1 ? row[taxIdx] : row[6]);
+                    let total = parseAmount(totalIdx !== -1 ? row[totalIdx] : row[7]);
+                    if (!total && (supply || tax)) total = supply + tax;
+
+                    const key = `${dateNo}_${code}`;
+                    addMap.set(key, { dateNo, code, name, qty, price, supply, tax, total });
+                }
+            } catch(e) {}
+        });
+
+        if (addMap.size > 0) {
+            const sorted = Array.from(addMap.values()).sort((a, b) => b.dateNo.localeCompare(a.dateNo));
+            const outLines = [
+                '일자-No.,품목코드,품목명(규격),수량,단가,공급가액,부가세,합계',
+                ...sorted.map(r => `${r.dateNo},${r.code},"${r.name}",${r.qty},${formatAmount(r.price)},${formatAmount(r.supply)},${formatAmount(r.tax)},${formatAmount(r.total)}`)
+            ];
+            fs.writeFileSync(path.join(extDir, '추가 선매입.csv'), outLines.join('\n') + '\n', 'utf8');
+            console.log(`   ✅ EXT재고관리/추가 선매입.csv 자동 통합 저장 완료: 총 ${sorted.length}건`);
+        }
+    }
+
+    // 2. 판매현황 파일 감지 및 병합 (파일명에 '판매' 포함된 모든 파일)
+    const salesFiles = allFiles.filter(f => f.includes('판매') && (f.endsWith('.csv') || f.endsWith('.xlsx')) && !f.includes('기초'));
+    if (salesFiles.length > 0) {
+        console.log(`   🔎 감지된 EXT 판매현황 파일 목록: ${salesFiles.join(', ')}`);
+        const salesMap = new Map();
+
+        salesFiles.forEach(f => {
+            const fullPath = path.join(extDir, f);
+            try {
+                const rows = readRows(fullPath);
+                if (rows.length < 2) return;
+                let headerIdx = -1;
+                for (let r = 0; r < Math.min(rows.length, 5); r++) {
+                    const lineStr = (rows[r] || []).join(',');
+                    if (lineStr.includes('일자') || lineStr.includes('거래처') || lineStr.includes('코드') || lineStr.includes('합계')) {
+                        headerIdx = r;
+                        break;
+                    }
+                }
+                const headers = headerIdx !== -1 ? rows[headerIdx].map(h => String(h || '').trim().replace(/^\ufeff/, '')) : [];
+                let dateIdx = -1, buyerIdx = -1, collectionIdx = -1, qtyIdx = -1, priceIdx = -1, supplyIdx = -1, taxIdx = -1, totalIdx = -1, codeIdx = -1, nameIdx = -1;
+                headers.forEach((h, idx) => {
+                    if (h.includes('일자')) dateIdx = idx;
+                    else if (h.includes('거래처')) buyerIdx = idx;
+                    else if (h.includes('수금일')) collectionIdx = idx;
+                    else if (h.includes('수량')) qtyIdx = idx;
+                    else if (h.includes('단가')) priceIdx = idx;
+                    else if (h.includes('공급가')) supplyIdx = idx;
+                    else if (h.includes('부가세') || h.includes('세액')) taxIdx = idx;
+                    else if (h.includes('합계') || h.includes('총액')) totalIdx = idx;
+                    else if (h.includes('코드')) codeIdx = idx;
+                    else if (h.includes('품목명') || h.includes('규격')) nameIdx = idx;
+                });
+
+                const startRow = headerIdx !== -1 ? headerIdx + 1 : 1;
+                for (let i = startRow; i < rows.length; i++) {
+                    const row = rows[i];
+                    if (!row || row.length === 0 || !row[0]) continue;
+                    const dateNo = String(dateIdx !== -1 ? row[dateIdx] : row[0]).trim().replace(/^\ufeff/, '');
+                    if (!dateNo || dateNo.startsWith('총계') || dateNo.startsWith('총합계') || dateNo.startsWith('합계')) continue;
+                    const buyer = String(buyerIdx !== -1 ? row[buyerIdx] : (row[1] || '')).trim();
+                    const collection = String(collectionIdx !== -1 ? row[collectionIdx] : (row[2] || '')).trim();
+                    const qty = parseInt(qtyIdx !== -1 ? row[qtyIdx] : (row[3] || '0'), 10) || 0;
+                    const price = parseAmount(priceIdx !== -1 ? row[priceIdx] : row[4]);
+                    const supply = parseAmount(supplyIdx !== -1 ? row[supplyIdx] : row[5]);
+                    const tax = parseAmount(taxIdx !== -1 ? row[taxIdx] : row[6]);
+                    let total = parseAmount(totalIdx !== -1 ? row[totalIdx] : row[7]);
+                    if (!total && (supply || tax)) total = supply + tax;
+                    const code = String(codeIdx !== -1 ? row[codeIdx] : (row[8] || '')).trim();
+                    const name = String(nameIdx !== -1 ? row[nameIdx] : (row[9] || '')).trim();
+                    if (!code) continue;
+
+                    const key = `${dateNo}_${code}`;
+                    salesMap.set(key, { dateNo, buyer, collection, qty, price, supply, tax, total, code, name });
+                }
+            } catch(e) {}
+        });
+
+        if (salesMap.size > 0) {
+            const sorted = Array.from(salesMap.values()).sort((a, b) => b.dateNo.localeCompare(a.dateNo));
+            const outLines = [
+                '일자-No.,거래처명,수금일,수량,단가,공급가액,부가세,합계,품목코드,품목명(규격)',
+                ...sorted.map(r => `${r.dateNo},"${r.buyer}",${r.collection},${r.qty},${formatAmount(r.price)},${formatAmount(r.supply)},${formatAmount(r.tax)},${formatAmount(r.total)},${r.code},"${r.name}"`)
+            ];
+            fs.writeFileSync(path.join(extDir, '판매현황_수정.csv'), outLines.join('\n') + '\n', 'utf8');
+            console.log(`   ✅ EXT재고관리/판매현황_수정.csv 자동 통합 저장 완료: 총 ${sorted.length}건`);
+        }
+    }
 }
 
 try {
