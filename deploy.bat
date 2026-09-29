@@ -23,7 +23,7 @@ echo [3/4] 변경 사항 기록 중...
 git commit -m "매월 데이터 자동 업데이트 및 배포 - %date% %time%"
 
 echo.
-echo [4/4] 깃허브로 전송 중 (Vercel 모바일 자동 배포)...
+echo [4/5] 깃허브로 전송 중...
 git push origin main
 if %errorlevel% neq 0 (
     echo.
@@ -31,6 +31,11 @@ if %errorlevel% neq 0 (
     pause
     exit /b %errorlevel%
 )
+
+echo.
+echo [5/5] Vercel 모바일 사이트 즉시 배포 중...
+call npx vercel --prod --yes
+
 
 echo.
 echo ==========================================
