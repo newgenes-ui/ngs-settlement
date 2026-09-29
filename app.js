@@ -5149,21 +5149,20 @@
         if (!btn) return;
         btn.addEventListener('click', async () => {
             try {
-                const encoded = encodeShareData();
-                const shareUrl = `${window.location.origin}${window.location.pathname}#share=${encoded}`;
+                const cleanUrl = `${window.location.origin}${window.location.pathname}`;
                 
                 if (navigator.clipboard && navigator.clipboard.writeText) {
-                    await navigator.clipboard.writeText(shareUrl);
+                    await navigator.clipboard.writeText(cleanUrl);
                 } else {
                     const input = document.createElement('textarea');
-                    input.value = shareUrl;
+                    input.value = cleanUrl;
                     document.body.appendChild(input);
                     input.select();
                     document.execCommand('copy');
                     document.body.removeChild(input);
                 }
                 
-                showToast('✅ 내가 입력/수정한 모든 내역이 반영된 공유 링크가 복사되었습니다! 상대방에게 전달해 주세요.');
+                showToast('✅ 깔끔한 결산 공유 링크가 복사되었습니다! 카톡에 바로 붙여넣기(Ctrl+V)하세요.');
             } catch (err) {
                 alert('링크 복사 실패: ' + err.message);
             }
