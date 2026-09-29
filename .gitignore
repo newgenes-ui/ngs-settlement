@@ -1,2 +1,6 @@
 *.xls
 .gemini/
+.vercel
+.env*
+node_modules/
+
