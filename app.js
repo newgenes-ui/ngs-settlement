@@ -3812,11 +3812,28 @@
 
         // 5. Inventory table
         const tbody = document.getElementById('ext-inv-tbody');
+        const tfoot = document.getElementById('ext-inv-tfoot');
         if (tbody) {
-            tbody.innerHTML = categories.filter(c => c.initQty > 0 || c.soldQty > 0).map(c => {
+            let sumTargetQty = 0;
+            let sumTargetAmount = 0;
+            let sumSoldQty = 0;
+            let sumSoldAmount = 0;
+            let sumStockQty = 0;
+            let sumStockAmount = 0;
+
+            const displayList = categories.filter(c => c.initQty > 0 || c.soldQty > 0);
+
+            tbody.innerHTML = displayList.map(c => {
                 const stockQty = Math.max(c.initQty - c.soldQty, 0);
                 const stockAmount = c.initAmount > 0 && c.initQty > 0 ? Math.round(stockQty * (c.initAmount / c.initQty)) : 0;
                 const soldRate = c.initQty > 0 ? ((c.soldQty / c.initQty) * 100).toFixed(1) : '0.0';
+
+                sumTargetQty += c.initQty;
+                sumTargetAmount += c.initAmount;
+                sumSoldQty += c.soldQty;
+                sumSoldAmount += c.soldAmount;
+                sumStockQty += stockQty;
+                sumStockAmount += stockAmount;
 
                 let statusHTML = '';
                 if (stockQty <= 0) {
@@ -3841,6 +3858,22 @@
                     </tr>
                 `;
             }).join('');
+
+            if (tfoot) {
+                const totalSoldQtyRate = sumTargetQty > 0 ? ((sumSoldQty / sumTargetQty) * 100).toFixed(1) : '0.0';
+                tfoot.innerHTML = `
+                    <tr class="total-row">
+                        <td colspan="2" class="text-center" style="font-weight:800;">합계</td>
+                        <td class="text-center" style="font-weight:800;">${sumTargetQty.toLocaleString()}개</td>
+                        <td class="text-right" style="font-weight:800;font-feature-settings:'tnum';font-variant-numeric:tabular-nums;">${sumTargetAmount.toLocaleString()}원</td>
+                        <td class="text-center" style="font-weight:800;color:var(--accent-indigo);">${sumSoldQty.toLocaleString()}개<br><span style="font-size:0.75rem;color:var(--text-tertiary);">(${totalSoldQtyRate}%)</span></td>
+                        <td class="text-right" style="font-weight:800;font-feature-settings:'tnum';font-variant-numeric:tabular-nums;color:var(--accent-indigo);">${sumSoldAmount.toLocaleString()}원</td>
+                        <td class="text-center" style="font-weight:800;">${sumStockQty.toLocaleString()}개</td>
+                        <td class="text-right" style="font-weight:800;font-feature-settings:'tnum';font-variant-numeric:tabular-nums;">${sumStockAmount.toLocaleString()}원</td>
+                        <td class="text-center" style="font-weight:800;color:var(--text-tertiary);">-</td>
+                    </tr>
+                `;
+            }
         }
 
         // 6. Additional purchase table
