@@ -3747,13 +3747,13 @@
     function renderExtInventoryView() {
         // Categories from purchase data
         const categories = [
-            { id: 'EXT10096K', code: 'EXT10096K', name: 'ExT 100 ul Kit (96 rxn)', initQty: 0, initAmount: 0, soldQty: 0, soldAmount: 0 },
-            { id: 'EXT1096K', code: 'EXT1096K', name: 'ExT 10 ul Kit (96 rxn)', initQty: 0, initAmount: 0, soldQty: 0, soldAmount: 0 },
-            { id: 'EXT1000S', code: 'EXT1000S', name: 'ExT Starter Pack (192 rxn)', initQty: 0, initAmount: 0, soldQty: 0, soldAmount: 0 },
-            { id: 'EXT10025K', code: 'EXT10025K', name: 'ExT 100 ul Kit (25 rxn)', initQty: 0, initAmount: 0, soldQty: 0, soldAmount: 0 },
-            { id: 'EXT1025K', code: 'EXT1025K', name: 'ExT 10 ul Kit (25 rxn)', initQty: 0, initAmount: 0, soldQty: 0, soldAmount: 0 },
-            { id: 'EXT1000S(Demo)', code: 'EXT1000S(Demo)', name: 'ExT Starter Pack (Demo)', initQty: 0, initAmount: 0, soldQty: 0, soldAmount: 0 },
-            { id: 'EXT50T', code: 'EXT50T', name: 'ExTransfection Tube', initQty: 0, initAmount: 0, soldQty: 0, soldAmount: 0 }
+            { id: 'EXT10096K', code: 'EXT10096K', name: 'ExT 100 ul Kit (96 rxn)', initQty: 0, initAmount: 0, addQty: 0, addAmount: 0, soldQty: 0, soldAmount: 0 },
+            { id: 'EXT1096K', code: 'EXT1096K', name: 'ExT 10 ul Kit (96 rxn)', initQty: 0, initAmount: 0, addQty: 0, addAmount: 0, soldQty: 0, soldAmount: 0 },
+            { id: 'EXT1000S', code: 'EXT1000S', name: 'ExT Starter Pack (192 rxn)', initQty: 0, initAmount: 0, addQty: 0, addAmount: 0, soldQty: 0, soldAmount: 0 },
+            { id: 'EXT10025K', code: 'EXT10025K', name: 'ExT 100 ul Kit (25 rxn)', initQty: 0, initAmount: 0, addQty: 0, addAmount: 0, soldQty: 0, soldAmount: 0 },
+            { id: 'EXT1025K', code: 'EXT1025K', name: 'ExT 10 ul Kit (25 rxn)', initQty: 0, initAmount: 0, addQty: 0, addAmount: 0, soldQty: 0, soldAmount: 0 },
+            { id: 'EXT1000S(Demo)', code: 'EXT1000S(Demo)', name: 'ExT Starter Pack (Demo)', initQty: 0, initAmount: 0, addQty: 0, addAmount: 0, soldQty: 0, soldAmount: 0 },
+            { id: 'EXT50T', code: 'EXT50T', name: 'ExTransfection Tube', initQty: 0, initAmount: 0, addQty: 0, addAmount: 0, soldQty: 0, soldAmount: 0 }
         ];
 
         // 1. Aggregate purchase (target) data
@@ -3763,6 +3763,16 @@
             if (cat) {
                 cat.initQty += p.qty;
                 cat.initAmount += p.totalAmount;
+            }
+        });
+
+        // 1-2. Aggregate additional purchase data
+        (state.extInvAddPurchaseData || []).forEach(p => {
+            const normCode = normalizeExtInvCode(p.code);
+            const cat = categories.find(c => c.id === normCode);
+            if (cat) {
+                cat.addQty += (p.qty || 0);
+                cat.addAmount += (p.totalAmount || 0);
             }
         });
 
@@ -3815,13 +3825,14 @@
         const tfoot = document.getElementById('ext-inv-tfoot');
         if (tbody) {
             let sumTargetQty = 0;
+            let sumAddQty = 0;
             let sumTargetAmount = 0;
             let sumSoldQty = 0;
             let sumSoldAmount = 0;
             let sumStockQty = 0;
             let sumStockAmount = 0;
 
-            const displayList = categories.filter(c => c.initQty > 0 || c.soldQty > 0);
+            const displayList = categories.filter(c => c.initQty > 0 || c.soldQty > 0 || c.addQty > 0);
 
             tbody.innerHTML = displayList.map(c => {
                 const stockQty = Math.max(c.initQty - c.soldQty, 0);
@@ -3829,6 +3840,7 @@
                 const soldRate = c.initQty > 0 ? ((c.soldQty / c.initQty) * 100).toFixed(1) : '0.0';
 
                 sumTargetQty += c.initQty;
+                sumAddQty += (c.addQty || 0);
                 sumTargetAmount += c.initAmount;
                 sumSoldQty += c.soldQty;
                 sumSoldAmount += c.soldAmount;
@@ -3849,6 +3861,7 @@
                         <td style="font-weight:700;">${c.name}</td>
                         <td style="font-family:monospace;font-size:0.82rem;color:var(--text-secondary);">${c.code}</td>
                         <td class="text-center" style="font-weight:600;">${c.initQty}개</td>
+                        <td class="text-center" style="font-weight:600;">${(c.addQty || 0).toLocaleString()}개</td>
                         <td class="text-right" style="font-feature-settings:'tnum';font-variant-numeric:tabular-nums;">${c.initAmount.toLocaleString()}원</td>
                         <td class="text-center" style="font-weight:600;color:var(--accent-indigo);">${c.soldQty}개<br><span style="font-size:0.75rem;color:var(--text-tertiary);">(${soldRate}%)</span></td>
                         <td class="text-right" style="font-feature-settings:'tnum';font-variant-numeric:tabular-nums;color:var(--accent-indigo);">${c.soldAmount.toLocaleString()}원</td>
@@ -3864,6 +3877,7 @@
                     <tr class="total-row">
                         <td colspan="2" class="text-center" style="font-weight:800;">합계</td>
                         <td class="text-center" style="font-weight:800;">${sumTargetQty.toLocaleString()}개</td>
+                        <td class="text-center" style="font-weight:800;">${sumAddQty.toLocaleString()}개</td>
                         <td class="text-right" style="font-weight:800;font-feature-settings:'tnum';font-variant-numeric:tabular-nums;">${sumTargetAmount.toLocaleString()}원</td>
                         <td class="text-center" style="font-weight:800;color:var(--accent-indigo);">${sumSoldQty.toLocaleString()}개</td>
                         <td class="text-right" style="font-weight:800;font-feature-settings:'tnum';font-variant-numeric:tabular-nums;color:var(--accent-indigo);">${sumSoldAmount.toLocaleString()}원</td>
