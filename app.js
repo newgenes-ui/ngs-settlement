@@ -449,7 +449,7 @@
 
             const fetches = [
                 !savedSales ? fetch(`매출.csv?v=${t}`).then(r => r.text()) : Promise.resolve(null),
-                !savedCard ? fetch(`카드매출전표.csv?v=${t}`).then(r => r.text()) : Promise.resolve(null),
+                fetch(`카드매출전표.csv?v=${t}`).then(r => r.ok ? r.text() : null).catch(() => null),
                 !savedPurchase ? fetch(`매입.csv?v=${t}`).then(r => r.text()) : Promise.resolve(null),
                 Promise.resolve(null),
                 Promise.resolve(null),
@@ -501,7 +501,7 @@
 
             const [salesText, cardText, purchaseText, extPurchaseText, extSalesText, nujenPurchaseText, nujenSalesText, extInvPurchaseText, extInvSalesText, extInvAddPurchaseItems] = await Promise.all(fetches);
 
-            const cutoffDate = "2026/09/30";
+            const cutoffDate = "2026/10/31";
             function filterCutoff(d, dateField) {
                 if (!d[dateField]) return true;
                 const clean = d[dateField].split(' ')[0].replace(/-/g, '/');
@@ -552,25 +552,49 @@
             }
 
             // 2. 카드매출
+            let validCardData = [];
             if (savedCard) {
-                state.cardSalesData = JSON.parse(savedCard);
-            } else if (cardText) {
-                const cardLines = parseCSVTextIntoLines(cardText);
-                state.cardSalesData = [];
-                for (let i = 3; i < cardLines.length; i++) {
-                    const v = parseCSVLine(cardLines[i]);
-                    if (!v[0] || v[0] === '총계') continue;
-                    state.cardSalesData.push({
-                        date: v[0],
-                        totalAmount: parseAmount(v[1]),
-                        totalCount: parseInt(v[2]) || 0,
-                        approvedAmount: parseAmount(v[3]),
-                        approvedCount: parseInt(v[4]) || 0,
-                        cancelledAmount: parseAmount(v[5]),
-                        cancelledCount: parseInt(v[6]) || 0
+                try {
+                    const parsed = JSON.parse(savedCard);
+                    validCardData = (Array.isArray(parsed) ? parsed : []).filter(item => {
+                        if (!item || !item.date) return false;
+                        const d = String(item.date).trim().replace(/^\ufeff/, '');
+                        if (['카드사', '조회일', '거래일자', '총계', '소계', '합계', '일별 승인내역', '일별승인내역', '회원ID', '가맹점'].some(kw => d.includes(kw))) return false;
+                        return /^\d{4}[-/.]\d{1,2}[-/.]\d{1,2}/.test(d) || /^\d{8}$/.test(d);
                     });
+                } catch (e) {
+                    validCardData = [];
                 }
-                state.cardSalesData = state.cardSalesData.filter(d => filterCutoff(d, 'date'));
+            }
+
+            if (validCardData.length > 0) {
+                state.cardSalesData = validCardData;
+                localStorage.setItem('custom_card_sales_data', JSON.stringify(validCardData));
+            } else {
+                if (savedCard) {
+                    localStorage.removeItem('custom_card_sales_data');
+                }
+                if (cardText) {
+                    const cardLines = parseCSVTextIntoLines(cardText);
+                    state.cardSalesData = [];
+                    for (let i = 0; i < cardLines.length; i++) {
+                        const v = parseCSVLine(cardLines[i]);
+                        if (!v || !v[0]) continue;
+                        const cleanDate = String(v[0]).trim().replace(/^\ufeff/, '');
+                        if (['카드사', '조회일', '거래일자', '총계', '소계', '합계', '일별 승인내역', '일별승인내역', '회원ID', '가맹점'].some(kw => cleanDate.includes(kw))) continue;
+                        if (!/^\d{4}[-/.]\d{1,2}[-/.]\d{1,2}/.test(cleanDate) && !/^\d{8}$/.test(cleanDate)) continue;
+                        state.cardSalesData.push({
+                            date: cleanDate,
+                            totalAmount: parseAmount(v[1]),
+                            totalCount: parseInt(v[2]) || 0,
+                            approvedAmount: parseAmount(v[3]),
+                            approvedCount: parseInt(v[4]) || 0,
+                            cancelledAmount: parseAmount(v[5]),
+                            cancelledCount: parseInt(v[6]) || 0
+                        });
+                    }
+                    state.cardSalesData = state.cardSalesData.filter(d => filterCutoff(d, 'date'));
+                }
             }
 
             // 3. 매입
@@ -1232,13 +1256,19 @@
     }
 
     function getFilteredData(data) {
-        if (state.currentPeriod === 'all') return data;
+        if (!Array.isArray(data)) return [];
+        const dateRegex = /^\d{4}[-/.]\d{1,2}[-/.]\d{1,2}/;
+        const validData = data.filter(item => {
+            if (!item || !item.date) return false;
+            const cleanDate = String(item.date).trim().replace(/^\ufeff/, '');
+            if (['카드사', '조회일', '거래일자', '총계', '소계', '합계', '일별 승인내역', '일별승인내역', '회원ID', '가맹점'].some(kw => cleanDate.includes(kw))) return false;
+            return dateRegex.test(cleanDate) || /^\d{8}$/.test(cleanDate);
+        });
 
-        const dateRegex = /^\d{4}[-/]\d{2}[-/]\d{2}/;
-        return data.filter(item => {
-            if (!item.date) return false;
-            const cleanDate = item.date.trim().replace(/^\ufeff/, '');
-            if (!dateRegex.test(cleanDate)) return false;
+        if (state.currentPeriod === 'all') return validData;
+
+        return validData.filter(item => {
+            const cleanDate = String(item.date).trim().replace(/^\ufeff/, '');
             if (state.currentPeriod === 'monthly') {
                 return getMonth(cleanDate) === state.selectedSubPeriod;
             } else if (state.currentPeriod === 'quarterly') {
@@ -4792,10 +4822,10 @@
 
         } else if (type === 'card') {
             const newItems = [];
-            let startRow = 3;
-            for (let r = 0; r < Math.min(lines.length, 5); r++) {
+            let startRow = 0;
+            for (let r = 0; r < Math.min(lines.length, 30); r++) {
                 const headerLine = parseCSVLine(lines[r]);
-                if (headerLine.includes('거래일자') || headerLine.includes('거래합계')) {
+                if (headerLine.some(col => (col || '').includes('거래일자') || (col || '').includes('거래합계'))) {
                     startRow = r + 1;
                     break;
                 }
@@ -4803,9 +4833,27 @@
 
             for (let i = startRow; i < lines.length; i++) {
                 const v = parseCSVLine(lines[i]);
-                if (!v[0] || v[0] === '총계') continue;
+                if (!v || !v[0]) continue;
+                const rawDate = String(v[0]).trim().replace(/^\ufeff/, '');
+
+                // 카드사, 조회일, 거래일자 등 메타/헤더/합계 행 제외
+                if (['카드사', '조회일', '거래일자', '총계', '소계', '합계', '일별 승인내역', '일별승인내역', '회원ID', '가맹점'].some(kw => rawDate.includes(kw))) {
+                    continue;
+                }
+
+                // 날짜 형식 검증 (YYYY-MM-DD, YYYY.MM.DD, YYYY/MM/DD, YYYYMMDD)
+                let cleanDate = rawDate;
+                if (/^\d{4}[./-]\d{1,2}[./-]\d{1,2}/.test(cleanDate)) {
+                    const parts = cleanDate.split(/[./-]/);
+                    cleanDate = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+                } else if (/^\d{8}$/.test(cleanDate)) {
+                    cleanDate = `${cleanDate.slice(0, 4)}-${cleanDate.slice(4, 6)}-${cleanDate.slice(6, 8)}`;
+                } else {
+                    continue;
+                }
+
                 newItems.push({
-                    date: v[0],
+                    date: cleanDate,
                     totalAmount: parseAmount(v[1]),
                     totalCount: parseInt(v[2]) || 0,
                     approvedAmount: parseAmount(v[3]),
@@ -4815,7 +4863,15 @@
                 });
             }
 
-            if (newItems.length === 0) throw new Error('등록할 수 있는 카드매출 행이 없습니다.');
+            if (newItems.length === 0) throw new Error('등록할 수 있는 유효한 카드매출 행이 없습니다. 날짜 및 거래 내역 형식을 확인해 주세요.');
+
+            // 기존 카드매출 데이터에서도 비정상 헤더/메타 행 정제
+            state.cardSalesData = state.cardSalesData.filter(item => {
+                if (!item || !item.date) return false;
+                const d = String(item.date).trim().replace(/^\ufeff/, '');
+                if (['카드사', '조회일', '거래일자', '총계', '소계', '합계', '일별 승인내역', '회원ID', '가맹점'].some(kw => d.includes(kw))) return false;
+                return /^\d{4}[-/.]\d{1,2}[-/.]\d{1,2}/.test(d) || /^\d{8}$/.test(d);
+            });
 
             const dates = new Set(newItems.map(item => item.date));
             state.cardSalesData = state.cardSalesData.filter(item => !dates.has(item.date));

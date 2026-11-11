@@ -257,6 +257,7 @@ function runMerge() {
             const cols = parseCSVLine(line);
             if (cols.length >= 7 && cols[0] && cols[0] !== '총계') {
                 const cleanDate = cols[0].trim().replace(/^\ufeff/, '');
+                if (['카드사', '조회일', '거래일자', '총계', '소계', '합계', '일별 승인내역', '회원ID', '가맹점'].some(kw => cleanDate.includes(kw))) continue;
                 if (/^\d{4}[-/]\d{2}[-/]\d{2}/.test(cleanDate)) {
                     cardMap.set(cleanDate, {
                         date: cleanDate,
