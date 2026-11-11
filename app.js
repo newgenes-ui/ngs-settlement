@@ -3860,13 +3860,12 @@
             }).join('');
 
             if (tfoot) {
-                const totalSoldQtyRate = sumTargetQty > 0 ? ((sumSoldQty / sumTargetQty) * 100).toFixed(1) : '0.0';
                 tfoot.innerHTML = `
                     <tr class="total-row">
                         <td colspan="2" class="text-center" style="font-weight:800;">합계</td>
                         <td class="text-center" style="font-weight:800;">${sumTargetQty.toLocaleString()}개</td>
                         <td class="text-right" style="font-weight:800;font-feature-settings:'tnum';font-variant-numeric:tabular-nums;">${sumTargetAmount.toLocaleString()}원</td>
-                        <td class="text-center" style="font-weight:800;color:var(--accent-indigo);">${sumSoldQty.toLocaleString()}개<br><span style="font-size:0.75rem;color:var(--text-tertiary);">(${totalSoldQtyRate}%)</span></td>
+                        <td class="text-center" style="font-weight:800;color:var(--accent-indigo);">${sumSoldQty.toLocaleString()}개</td>
                         <td class="text-right" style="font-weight:800;font-feature-settings:'tnum';font-variant-numeric:tabular-nums;color:var(--accent-indigo);">${sumSoldAmount.toLocaleString()}원</td>
                         <td class="text-center" style="font-weight:800;">${sumStockQty.toLocaleString()}개</td>
                         <td class="text-right" style="font-weight:800;font-feature-settings:'tnum';font-variant-numeric:tabular-nums;">${sumStockAmount.toLocaleString()}원</td>
