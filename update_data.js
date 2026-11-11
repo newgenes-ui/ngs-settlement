@@ -571,7 +571,7 @@ function processExtInventoryFiles() {
                     const dateNo = String(dateIdx !== -1 ? row[dateIdx] : row[0]).trim().replace(/^\ufeff/, '');
                     if (!dateNo || dateNo.startsWith('총계') || dateNo.startsWith('총합계') || dateNo.startsWith('합계')) continue;
                     const buyer = String(buyerIdx !== -1 ? row[buyerIdx] : (row[1] || '')).trim();
-                    const collection = String(collectionIdx !== -1 ? row[collectionIdx] : (row[2] || '')).trim();
+                    const collection = String(collectionIdx !== -1 ? row[collectionIdx] : (headerIdx !== -1 ? '' : (row[2] || ''))).trim();
                     const qty = parseInt(qtyIdx !== -1 ? row[qtyIdx] : (row[3] || '0'), 10) || 0;
                     const price = parseAmount(priceIdx !== -1 ? row[priceIdx] : row[4]);
                     const supply = parseAmount(supplyIdx !== -1 ? row[supplyIdx] : row[5]);
