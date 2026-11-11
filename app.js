@@ -300,7 +300,7 @@
 
             const rawCode = codeIdx !== -1 ? v[codeIdx] : v[2];
             const code = normalizeExtCode(rawCode);
-            if (code === 'AA' || code === 'A') continue;
+            if (!code || code === 'AA' || code === 'A') continue;
 
             const buyer = (buyerIdx !== -1 ? v[buyerIdx] : v[1]) || '';
             const name = (nameIdx !== -1 ? v[nameIdx] : v[3]) || '';
@@ -458,9 +458,9 @@
                 fetch(encodeURI(`EXT재고관리/EXT 기초매입 신규.csv?v=${t}`)).then(r => r.ok ? r.text() : null).catch(() => null),
                 (async () => {
                     const candidateFiles = [
+                        `EXT재고관리/EXT판매현황_11.11.csv?v=${t}`,
                         `EXT재고관리/판매현황_수정.csv?v=${t}`,
-                        `EXT재고관리/판매현황.csv?v=${t}`,
-                        `EXT재고관리/EXT 판매현황_신규.csv?v=${t}`
+                        `EXT재고관리/판매현황.csv?v=${t}`
                     ];
                     for (const f of candidateFiles) {
                         try {

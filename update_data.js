@@ -499,7 +499,7 @@ function processExtInventoryFiles() {
                     let total = parseAmount(totalIdx !== -1 ? row[totalIdx] : row[7]);
                     if (!total && (supply || tax)) total = supply + tax;
 
-                    const key = `${dateNo}_${code}`;
+                    const key = `${dateNo}_${code}_${i}_${supply}`;
                     addMap.set(key, { dateNo, code, name, qty, price, supply, tax, total });
                 }
             } catch(e) {}
