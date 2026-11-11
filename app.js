@@ -3750,6 +3750,7 @@
             { id: 'EXT10096K', code: 'EXT10096K', name: 'ExT 100 ul Kit (96 rxn)', initQty: 0, initAmount: 0, addQty: 0, addAmount: 0, soldQty: 0, soldAmount: 0 },
             { id: 'EXT1096K', code: 'EXT1096K', name: 'ExT 10 ul Kit (96 rxn)', initQty: 0, initAmount: 0, addQty: 0, addAmount: 0, soldQty: 0, soldAmount: 0 },
             { id: 'EXT1000S', code: 'EXT1000S', name: 'ExT Starter Pack (192 rxn)', initQty: 0, initAmount: 0, addQty: 0, addAmount: 0, soldQty: 0, soldAmount: 0 },
+            { id: 'EXT1000', code: 'EXT1000', name: 'ExTransfection System', initQty: 0, initAmount: 0, addQty: 0, addAmount: 0, soldQty: 0, soldAmount: 0 },
             { id: 'EXT10025K', code: 'EXT10025K', name: 'ExT 100 ul Kit (25 rxn)', initQty: 0, initAmount: 0, addQty: 0, addAmount: 0, soldQty: 0, soldAmount: 0 },
             { id: 'EXT1025K', code: 'EXT1025K', name: 'ExT 10 ul Kit (25 rxn)', initQty: 0, initAmount: 0, addQty: 0, addAmount: 0, soldQty: 0, soldAmount: 0 },
             { id: 'EXT1000S(Demo)', code: 'EXT1000S(Demo)', name: 'ExT Starter Pack (Demo)', initQty: 0, initAmount: 0, addQty: 0, addAmount: 0, soldQty: 0, soldAmount: 0 },
@@ -3759,7 +3760,11 @@
         // 1. Aggregate purchase (target) data
         state.extInvPurchaseData.forEach(p => {
             const normCode = normalizeExtInvCode(p.code);
-            const cat = categories.find(c => c.id === normCode);
+            let cat = categories.find(c => c.id === normCode);
+            if (!cat && normCode) {
+                cat = { id: normCode, code: p.code || normCode, name: p.name || normCode, initQty: 0, initAmount: 0, addQty: 0, addAmount: 0, soldQty: 0, soldAmount: 0 };
+                categories.push(cat);
+            }
             if (cat) {
                 cat.initQty += p.qty;
                 cat.initAmount += p.totalAmount;
@@ -3769,7 +3774,11 @@
         // 1-2. Aggregate additional purchase data
         (state.extInvAddPurchaseData || []).forEach(p => {
             const normCode = normalizeExtInvCode(p.code);
-            const cat = categories.find(c => c.id === normCode);
+            let cat = categories.find(c => c.id === normCode);
+            if (!cat && normCode) {
+                cat = { id: normCode, code: p.code || normCode, name: p.name || normCode, initQty: 0, initAmount: 0, addQty: 0, addAmount: 0, soldQty: 0, soldAmount: 0 };
+                categories.push(cat);
+            }
             if (cat) {
                 cat.addQty += (p.qty || 0);
                 cat.addAmount += (p.totalAmount || 0);
