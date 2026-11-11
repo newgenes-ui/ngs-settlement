@@ -46,6 +46,10 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
                         <span>종합 현황</span>
                     </a>
+                    <a href="#" class="nav-item" data-view="operating-profit" id="nav-operating-profit">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                        <span>영업순이익</span>
+                    </a>
                 </div>
                 <div class="nav-section">
                     <span class="nav-label">세부 내역</span>
@@ -162,6 +166,77 @@
                             </thead>
                             <tbody id="summary-tbody"></tbody>
                         </table>
+                    </div>
+                </div>
+
+                <!-- Operating Profit View (고정지출 포함 영업순이익) -->
+                <div class="view" id="view-operating-profit">
+                    <!-- 상단 안내 및 공식 배너 -->
+                    <div style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(16, 185, 129, 0.08)); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                        <div>
+                            <div style="font-weight: 700; font-size: 1.05rem; color: var(--text-primary); margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
+                                <span>💼 고정지출 반영 실질 영업순이익</span>
+                                <span style="font-size: 0.75rem; background: var(--accent-emerald); color: white; padding: 2px 8px; border-radius: 12px; font-weight: 600;">실수익 분석</span>
+                            </div>
+                            <div style="font-size: 0.85rem; color: var(--text-secondary);">
+                                총매출(세금계산서+카드)에서 매입원가 및 고정지출(인건비+사무실+거래처)을 모두 차감한 실제 최종 순이익입니다.
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; background: var(--bg-card); padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border-subtle); font-weight: 600;">
+                            <span style="color: var(--accent-indigo);">총매출(A)</span>
+                            <span style="color: var(--text-secondary);">-</span>
+                            <span style="color: var(--accent-rose);">매입원가(B)</span>
+                            <span style="color: var(--text-secondary);">-</span>
+                            <span style="color: #d97706;">고정지출(C)</span>
+                            <span style="color: var(--text-secondary);">=</span>
+                            <span style="color: var(--accent-emerald);">영업순이익</span>
+                        </div>
+                    </div>
+
+                    <!-- 요약 카드 (4개) -->
+                    <div class="summary-cards" id="operating-profit-summary-cards"></div>
+
+                    <!-- 영업순이익 및 비용구조 차트 -->
+                    <div class="table-card" style="margin-bottom: 24px;">
+                        <div class="table-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                            <div>
+                                <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--text-primary);">월별 영업순이익 및 손익 구조 추이</h3>
+                                <span style="font-size: 0.75rem; color: var(--text-secondary);">월별 총매출, 매입원가, 고정지출 및 실질 영업순이익 비교</span>
+                            </div>
+                        </div>
+                        <div class="chart-container" style="padding: 20px; background: var(--bg-card); display: flex; justify-content: center;">
+                            <div style="width: 100%; max-width: 900px; height: 340px;">
+                                <canvas id="operating-profit-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 월별 세부 정산 테이블 -->
+                    <div class="summary-table-card">
+                        <div class="table-header" style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border-subtle);">
+                            <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700; color: var(--text-primary);">월별 영업순이익 정산표</h3>
+                            <span style="font-size: 0.8rem; color: var(--text-secondary);">단위: 원 (공급가액 기준 정산)</span>
+                        </div>
+                        <div style="overflow-x: auto;">
+                            <table class="summary-table" id="operating-profit-table">
+                                <thead>
+                                    <tr>
+                                        <th class="text-left" style="min-width: 90px;">구분</th>
+                                        <th class="text-right" style="min-width: 120px;">총매출 (A)</th>
+                                        <th class="text-right" style="min-width: 120px;">매입원가 (B)</th>
+                                        <th class="text-right" style="min-width: 110px;">매출이익 (A-B)</th>
+                                        <th class="text-right" style="min-width: 100px;">인건비</th>
+                                        <th class="text-right" style="min-width: 100px;">사무실고정비</th>
+                                        <th class="text-right" style="min-width: 95px;">거래처고정비</th>
+                                        <th class="text-right" style="min-width: 115px; background: rgba(245, 158, 11, 0.08);">고정지출 (C)</th>
+                                        <th class="text-right" style="min-width: 125px; font-weight: 700; background: rgba(16, 185, 129, 0.08);">영업순이익 (A-B-C)</th>
+                                        <th class="text-right" style="min-width: 85px;">순이익률</th>
+                                        <th class="text-center" style="min-width: 70px;">상태</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="operating-profit-tbody"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
@@ -551,7 +626,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="app.js?v=1794360774711_0947"></script>
+    <script src="app.js?v=1794363628570_0947"></script>
     <script>
         function toggleDashboardChart(type) {
             const title = document.getElementById('dashboard-chart-title');

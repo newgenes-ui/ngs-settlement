@@ -3934,9 +3934,342 @@
         }
     }
 
+
+    // ===== 고정지출 월별 산출 헬퍼 =====
+    function getMonthlyFixedExpenses(monthKey) {
+        let labor = 0;
+        const laborEntry = (state.fixedLaborData || []).find(d => {
+            if (!d.month) return false;
+            const m = d.month.match(/(\d+)년\s+(\d+)월/);
+            const norm = m ? `${m[1]}-${String(m[2]).padStart(2, '0')}` : d.month;
+            return norm === monthKey;
+        });
+        if (laborEntry && laborEntry.items) {
+            laborEntry.items.forEach(i => {
+                labor += (i.salary || 0) + (i.ins || 0) + (i.card || 0);
+            });
+        }
+
+        let office = 0;
+        const officeEntry = (state.fixedOfficeData || []).find(d => d.month === monthKey);
+        if (officeEntry) {
+            (state.fixedOfficeColumns || []).forEach(col => {
+                office += (officeEntry[col.id] || 0);
+            });
+        }
+
+        let vendor = 0;
+        const vendorEntry = (state.fixedVendorData || []).find(d => d.month === monthKey);
+        if (vendorEntry) {
+            (state.fixedVendorColumns || []).forEach(col => {
+                vendor += (vendorEntry[col.id] || 0);
+            });
+        }
+
+        return { labor, office, vendor, total: labor + office + vendor };
+    }
+
+    // ===== 영업순이익 (고정지출 포함) 뷰 렌더 =====
+    function renderOperatingProfitView() {
+        const months = new Set();
+        state.salesData.forEach(r => { const m = getMonth(r.date); if (m) months.add(m); });
+        state.cardSalesData.forEach(r => { const m = getMonth(r.date); if (m) months.add(m); });
+        state.purchaseData.forEach(r => { const m = getMonth(r.date); if (m) months.add(m); });
+        (state.fixedLaborData || []).forEach(r => {
+            if (r.month) {
+                const match = r.month.match(/(\d+)년\s+(\d+)월/);
+                if (match) months.add(`${match[1]}-${String(match[2]).padStart(2, '0')}`);
+                else if (r.month.includes('-')) months.add(r.month);
+            }
+        });
+        (state.fixedOfficeData || []).forEach(r => { if (r.month) months.add(r.month); });
+        (state.fixedVendorData || []).forEach(r => { if (r.month) months.add(r.month); });
+        const sortedMonths = [...months].sort();
+
+        // 월별 정산 데이터 집계 (공급가액 기준 실질 정산)
+        const allMonthlyData = sortedMonths.map(m => {
+            let salesSupply = 0;
+            let salesTotal = 0;
+            state.salesData.forEach(r => {
+                if (getMonth(r.date) === m) {
+                    salesSupply += r.supplyAmount;
+                    salesTotal += r.totalAmount;
+                }
+            });
+            let cardSupply = 0;
+            let cardTotal = 0;
+            state.cardSalesData.forEach(r => {
+                if (getMonth(r.date) === m) {
+                    cardTotal += r.totalAmount;
+                    const tax = Math.round(r.totalAmount / 11);
+                    cardSupply += (r.totalAmount - tax);
+                }
+            });
+
+            const totalSales = salesSupply + cardSupply;
+
+            let purchaseSupply = 0;
+            let purchaseTotal = 0;
+            state.purchaseData.forEach(r => {
+                if (getMonth(r.date) === m) {
+                    purchaseSupply += r.supplyAmount;
+                    purchaseTotal += r.totalAmount;
+                }
+            });
+
+            const grossProfit = totalSales - purchaseSupply;
+            const fixed = getMonthlyFixedExpenses(m);
+            const netProfit = grossProfit - fixed.total;
+            const profitRate = totalSales !== 0 ? ((netProfit / totalSales) * 100) : 0;
+
+            const mParts = m.split('-');
+            const label = parseInt(mParts[1], 10) + '월';
+
+            return {
+                monthKey: m,
+                label,
+                totalSales,
+                salesSupply,
+                salesTotal,
+                cardSupply,
+                cardTotal,
+                purchaseSupply,
+                purchaseTotal,
+                grossProfit,
+                labor: fixed.labor,
+                office: fixed.office,
+                vendor: fixed.vendor,
+                fixedTotal: fixed.total,
+                netProfit,
+                profitRate
+            };
+        });
+
+        // 기간 필터 적용
+        let filteredMonthlyData = allMonthlyData;
+        if (state.currentPeriod === 'monthly' && state.selectedSubPeriod) {
+            filteredMonthlyData = allMonthlyData.filter(d => d.monthKey === state.selectedSubPeriod);
+        } else if (state.currentPeriod === 'quarterly' && state.selectedSubPeriod) {
+            filteredMonthlyData = allMonthlyData.filter(d => {
+                const parts = d.monthKey.split('-');
+                const q = Math.ceil(parseInt(parts[1], 10) / 3);
+                return `${parts[0]}-Q${q}` === state.selectedSubPeriod;
+            });
+        }
+
+        // 요약 카드 계산
+        const sumSales = filteredMonthlyData.reduce((s, d) => s + d.totalSales, 0);
+        const sumPurchases = filteredMonthlyData.reduce((s, d) => s + d.purchaseSupply, 0);
+        const sumLabor = filteredMonthlyData.reduce((s, d) => s + d.labor, 0);
+        const sumOffice = filteredMonthlyData.reduce((s, d) => s + d.office, 0);
+        const sumVendor = filteredMonthlyData.reduce((s, d) => s + d.vendor, 0);
+        const sumFixed = sumLabor + sumOffice + sumVendor;
+        const sumNetProfit = sumSales - sumPurchases - sumFixed;
+        const netProfitRate = sumSales !== 0 ? ((sumNetProfit / sumSales) * 100).toFixed(1) : '0.0';
+
+        const cardsContainer = document.getElementById('operating-profit-summary-cards');
+        if (cardsContainer) {
+            cardsContainer.innerHTML = [
+                createSummaryCard('indigo', ICONS.sales, '총매출액 (A)',
+                    formatCurrency(sumSales),
+                    `세금계산서 + 카드매출 공급가액 합산`),
+                createSummaryCard('rose', ICONS.purchase, '매입 원가 (B)',
+                    formatCurrency(sumPurchases),
+                    `제품/원자재 공급가액 합계`),
+                createSummaryCard('amber', ICONS.profit, '고정지출 합계 (C)',
+                    formatCurrency(sumFixed),
+                    `인건비: ${formatShortCurrency(sumLabor)} · 사무실: ${formatShortCurrency(sumOffice)} · 거래처: ${formatShortCurrency(sumVendor)}`),
+                createSummaryCard('emerald', ICONS.profit, '실질 영업순이익',
+                    formatCurrency(sumNetProfit),
+                    sumNetProfit >= 0
+                        ? `<span class="positive">▲ 흑자 (${netProfitRate}%) · 매출 대비</span>`
+                        : `<span class="negative">▼ 적자 (${netProfitRate}%) · 매출 대비</span>`)
+            ].join('');
+        }
+
+        // 차트 업데이트 (전체 월별 데이터 추이 표시)
+        updateOperatingProfitChart('operating-profit-chart', allMonthlyData);
+
+        // 테이블 렌더링 (역순: 최신월 먼저 표시)
+        const tbody = document.getElementById('operating-profit-tbody');
+        if (tbody) {
+            const displayRows = [...filteredMonthlyData].reverse();
+            let rowsHtml = displayRows.map(d => {
+                const profitCls = d.netProfit >= 0 ? 'profit-positive' : 'profit-negative';
+                const rateCls = d.profitRate >= 0 ? 'ratio-positive' : 'ratio-negative';
+                const statusBadge = d.netProfit >= 0
+                    ? `<span style="background: rgba(16, 185, 129, 0.15); color: #059669; padding: 3px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 700;">흑자</span>`
+                    : `<span style="background: rgba(244, 63, 94, 0.15); color: #e11d48; padding: 3px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 700;">적자</span>`;
+
+                return `
+                    <tr>
+                        <td style="font-weight: 600;">${d.monthKey} (${d.label})</td>
+                        <td class="text-right">${d.totalSales.toLocaleString()}원</td>
+                        <td class="text-right">${d.purchaseSupply.toLocaleString()}원</td>
+                        <td class="text-right" style="color: var(--accent-indigo); font-weight: 600;">${d.grossProfit.toLocaleString()}원</td>
+                        <td class="text-right" style="font-size: 0.85rem; color: var(--text-secondary);">${d.labor > 0 ? d.labor.toLocaleString() + '원' : '-'}</td>
+                        <td class="text-right" style="font-size: 0.85rem; color: var(--text-secondary);">${d.office > 0 ? d.office.toLocaleString() + '원' : '-'}</td>
+                        <td class="text-right" style="font-size: 0.85rem; color: var(--text-secondary);">${d.vendor > 0 ? d.vendor.toLocaleString() + '원' : '-'}</td>
+                        <td class="text-right" style="font-weight: 600; color: #d97706; background: rgba(245, 158, 11, 0.04);">${d.fixedTotal > 0 ? d.fixedTotal.toLocaleString() + '원' : '-'}</td>
+                        <td class="text-right ${profitCls}" style="font-weight: 700; background: rgba(16, 185, 129, 0.04);">${d.netProfit.toLocaleString()}원</td>
+                        <td class="text-right ${rateCls}" style="font-weight: 600;">${d.profitRate.toFixed(1)}%</td>
+                        <td class="text-center">${statusBadge}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            // 전체 합계 행
+            const grandSales = filteredMonthlyData.reduce((s, d) => s + d.totalSales, 0);
+            const grandPurchases = filteredMonthlyData.reduce((s, d) => s + d.purchaseSupply, 0);
+            const grandGross = grandSales - grandPurchases;
+            const grandLabor = filteredMonthlyData.reduce((s, d) => s + d.labor, 0);
+            const grandOffice = filteredMonthlyData.reduce((s, d) => s + d.office, 0);
+            const grandVendor = filteredMonthlyData.reduce((s, d) => s + d.vendor, 0);
+            const grandFixed = grandLabor + grandOffice + grandVendor;
+            const grandNet = grandGross - grandFixed;
+            const grandRate = grandSales !== 0 ? ((grandNet / grandSales) * 100).toFixed(1) : '0.0';
+            const grandCls = grandNet >= 0 ? 'profit-positive' : 'profit-negative';
+            const grandBadge = grandNet >= 0
+                ? `<span style="background: rgba(16, 185, 129, 0.2); color: #047857; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 800;">총 흑자</span>`
+                : `<span style="background: rgba(244, 63, 94, 0.2); color: #be123c; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 800;">총 적자</span>`;
+
+            rowsHtml += `
+                <tr class="total-row" style="background: var(--bg-tertiary); font-weight: 700; border-top: 2px solid var(--border-light);">
+                    <td>선택 기간 합계</td>
+                    <td class="text-right">${grandSales.toLocaleString()}원</td>
+                    <td class="text-right">${grandPurchases.toLocaleString()}원</td>
+                    <td class="text-right" style="color: var(--accent-indigo); font-weight: 700;">${grandGross.toLocaleString()}원</td>
+                    <td class="text-right">${grandLabor.toLocaleString()}원</td>
+                    <td class="text-right">${grandOffice.toLocaleString()}원</td>
+                    <td class="text-right">${grandVendor.toLocaleString()}원</td>
+                    <td class="text-right" style="color: #b45309;">${grandFixed.toLocaleString()}원</td>
+                    <td class="text-right ${grandCls}" style="font-size: 1.05rem;">${grandNet.toLocaleString()}원</td>
+                    <td class="text-right ${grandCls}">${grandRate}%</td>
+                    <td class="text-center">${grandBadge}</td>
+                </tr>
+            `;
+
+            tbody.innerHTML = rowsHtml;
+        }
+    }
+
+    // ===== 영업순이익 복합 차트 =====
+    function updateOperatingProfitChart(canvasId, monthlyData) {
+        const ctx = document.getElementById(canvasId);
+        if (!ctx) return;
+
+        if (state.charts[canvasId]) {
+            state.charts[canvasId].destroy();
+        }
+
+        const sorted = [...monthlyData].sort((a, b) => a.monthKey.localeCompare(b.monthKey));
+        const labels = sorted.map(d => d.label);
+
+        state.charts[canvasId] = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [
+                    {
+                        type: 'line',
+                        label: '영업순이익',
+                        data: sorted.map(d => d.netProfit),
+                        borderColor: '#8b5cf6',
+                        backgroundColor: '#8b5cf6',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#8b5cf6',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        fill: false,
+                        yAxisID: 'y',
+                        order: 1
+                    },
+                    {
+                        type: 'bar',
+                        label: '총매출 (A)',
+                        data: sorted.map(d => d.totalSales),
+                        backgroundColor: 'rgba(99, 102, 241, 0.75)',
+                        borderColor: '#6366f1',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                        order: 2
+                    },
+                    {
+                        type: 'bar',
+                        label: '매입원가 (B)',
+                        data: sorted.map(d => d.purchaseSupply),
+                        backgroundColor: 'rgba(244, 63, 94, 0.75)',
+                        borderColor: '#f43f5e',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                        order: 3
+                    },
+                    {
+                        type: 'bar',
+                        label: '고정지출 (C)',
+                        data: sorted.map(d => d.fixedTotal),
+                        backgroundColor: 'rgba(245, 158, 11, 0.75)',
+                        borderColor: '#f59e0b',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                        order: 4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            boxWidth: 8,
+                            font: { family: "'Inter', 'Noto Sans KR', sans-serif", size: 12, weight: '600' },
+                            color: '#5c564a'
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(30, 27, 22, 0.95)',
+                        titleFont: { size: 13, weight: '700' },
+                        bodyFont: { size: 12 },
+                        padding: 12,
+                        cornerRadius: 8,
+                        callbacks: {
+                            label(context) {
+                                return ` ${context.dataset.label}: ${context.raw.toLocaleString()}원`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { font: { family: "'Inter', 'Noto Sans KR', sans-serif", weight: '600' }, color: '#5c564a' }
+                    },
+                    y: {
+                        grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                        ticks: {
+                            font: { family: "'JetBrains Mono', monospace" },
+                            color: '#8a8278',
+                            callback(val) {
+                                return formatShortCurrency(val);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
     // ===== 뷰 전환 =====
     function switchView(viewName) {
-        if ((viewName === 'vat' || viewName === 'fixed-expenses') && !state.isVatAuthorized) {
+        if ((viewName === 'vat' || viewName === 'fixed-expenses' || viewName === 'operating-profit') && !state.isVatAuthorized) {
             state.pendingView = viewName;
             const modal = document.getElementById('password-modal');
             const input = document.getElementById('vat-password-input');
@@ -3945,6 +4278,8 @@
             if (descEl) {
                 if (viewName === 'fixed-expenses') {
                     descEl.innerHTML = '고정지출 내역을 조회하려면<br>관리자 비밀번호를 입력해 주세요.';
+                } else if (viewName === 'operating-profit') {
+                    descEl.innerHTML = '영업순이익 내역을 조회하려면<br>관리자 비밀번호(0610)를 입력해 주세요.';
                 } else {
                     descEl.innerHTML = '부가세 신고 내역을 조회하려면<br>관리자 비밀번호를 입력해 주세요.';
                 }
@@ -3974,6 +4309,7 @@
         // 타이틀 업데이트
         const titles = {
             'dashboard': ['종합 현황', '매출, 카드매출, 매입 종합 현황을 확인합니다.'],
+            'operating-profit': ['영업순이익 (고정지출 반영)', '매출, 매입 및 고정지출(인건비·사무실·거래처)을 종합 반영한 실질 영업순이익 현황입니다.'],
             'sales': ['매출 내역', '세금계산서 기반 매출 세부내역을 확인합니다.'],
             'inventory': ['ExT 재고관리', 'ExTransfection 제품군별 기초 입고 및 판매 대비 재고 현황입니다.'],
             'nujen': ['뉴진스 재고관리', 'NuGen 제품군별 기초 입고 및 판매 대비 재고 현황입니다.'],
@@ -3996,6 +4332,7 @@
     function renderCurrentView() {
         switch (state.currentView) {
             case 'dashboard': renderDashboard(); break;
+            case 'operating-profit': renderOperatingProfitView(); break;
             case 'sales': renderSalesView(); break;
             case 'inventory': renderInventoryView(); break;
             case 'nujen': renderNujenView(); break;
