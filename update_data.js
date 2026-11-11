@@ -490,7 +490,7 @@ function processExtInventoryFiles() {
                     const dateNo = String(dateIdx !== -1 ? row[dateIdx] : row[0]).trim().replace(/^\ufeff/, '');
                     if (!dateNo || dateNo.startsWith('총계') || dateNo.startsWith('총합계') || dateNo.startsWith('합계')) continue;
                     const code = String(codeIdx !== -1 ? row[codeIdx] : (row[1] || '')).trim();
-                    if (!code) continue;
+                    if (!code || !isExtItem(code, name)) continue;
                     const name = String(nameIdx !== -1 ? row[nameIdx] : (row[2] || '')).trim();
                     const qty = parseInt(qtyIdx !== -1 ? row[qtyIdx] : (row[3] || '0'), 10) || 0;
                     const price = parseAmount(priceIdx !== -1 ? row[priceIdx] : row[4]);
@@ -516,8 +516,22 @@ function processExtInventoryFiles() {
         }
     }
 
-    // 2. 판매현황 파일 감지 및 병합 (파일명에 '판매' 포함된 모든 파일)
-    const salesFiles = allFiles.filter(f => f.includes('판매') && (f.endsWith('.csv') || f.endsWith('.xlsx')) && !f.includes('기초'));
+    // 2. 판매현황 파일 감지 및 병합 (우선순위: 11월11일 EXT 중간판매현황 > EXT판매현황_11.11 > 기타)
+    function isExtItem(code, name) {
+        if (!code && !name) return false;
+        const c = (code || '').toUpperCase().replace(/[\s\-_]/g, '');
+        const n = (name || '').toLowerCase();
+        if (c.startsWith('EXT') || c.includes('EXT') || c.includes('DEMO')) return true;
+        if (n.includes('extransfection') || n.includes('starter pack') || n.includes('tube')) return true;
+        return false;
+    }
+
+    let salesFiles = allFiles.filter(f => f.includes('판매') && (f.endsWith('.csv') || f.endsWith('.xlsx')) && !f.includes('기초') && f !== '판매현황_수정.csv');
+    if (salesFiles.some(f => f.includes('중간판매현황'))) {
+        salesFiles = salesFiles.filter(f => f.includes('중간판매현황'));
+    } else if (salesFiles.some(f => f.includes('EXT판매현황_11.11'))) {
+        salesFiles = salesFiles.filter(f => f.includes('EXT판매현황_11.11'));
+    }
     if (salesFiles.length > 0) {
         console.log(`   🔎 감지된 EXT 판매현황 파일 목록: ${salesFiles.join(', ')}`);
         const salesMap = new Map();
@@ -568,7 +582,7 @@ function processExtInventoryFiles() {
                     const name = String(nameIdx !== -1 ? row[nameIdx] : (row[9] || '')).trim();
                     if (!code) continue;
 
-                    const key = `${dateNo}_${code}`;
+                    const key = `${dateNo}_${code}_${i}`;
                     salesMap.set(key, { dateNo, buyer, collection, qty, price, supply, tax, total, code, name });
                 }
             } catch(e) {}

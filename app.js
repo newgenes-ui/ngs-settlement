@@ -304,6 +304,17 @@
 
             const buyer = (buyerIdx !== -1 ? v[buyerIdx] : v[1]) || '';
             const name = (nameIdx !== -1 ? v[nameIdx] : v[3]) || '';
+
+            // EXT 품목 필터링: 비EXT 품목 완전 제외
+            const normClean = (code || '').toUpperCase().replace(/[\s\-_]/g, '');
+            const rawNameLower = (name || '').toLowerCase();
+            const isExt = normClean.startsWith('EXT') || 
+                          normClean.includes('EXT') || 
+                          normClean.includes('DEMO') || 
+                          rawNameLower.includes('extransfection') || 
+                          rawNameLower.includes('starter pack') || 
+                          (typeof classifyExtProduct === 'function' && classifyExtProduct(code, rawNameLower) !== null);
+            if (!isExt) continue;
             const qty = parseInt(qtyIdx !== -1 ? v[qtyIdx] : v[4]) || 0;
 
             let supplyAmount = supplyIdx !== -1 ? parseAmount(v[supplyIdx]) : 0;
@@ -458,6 +469,7 @@
                 fetch(encodeURI(`EXT재고관리/EXT 기초매입 신규.csv?v=${t}`)).then(r => r.ok ? r.text() : null).catch(() => null),
                 (async () => {
                     const candidateFiles = [
+                        `EXT재고관리/11월11일 EXT 중간판매현황.csv?v=${t}`,
                         `EXT재고관리/EXT판매현황_11.11.csv?v=${t}`,
                         `EXT재고관리/판매현황_수정.csv?v=${t}`,
                         `EXT재고관리/판매현황.csv?v=${t}`
@@ -789,35 +801,14 @@
                 }
             }
 
-            // 9. EXT 재고관리 - 판매현황(실적) 데이터 로드
+            // 9. EXT 재고관리 - 판매현황(실적) 데이터 로드 (기존 캐시 삭제 및 11월11일 EXT 중간판매현황 데이터로 완전 교체)
             let serverSalesItems = [];
             if (extInvSalesText) {
                 serverSalesItems = parseExtInvSalesCSV(extInvSalesText);
             }
 
-            if (savedExtInvSales) {
-                try {
-                    state.extInvSalesData = JSON.parse(savedExtInvSales);
-                    let needResave = false;
-                    state.extInvSalesData.forEach(item => {
-                        if ((!item.totalAmount || item.totalAmount === 0) && (item.supplyAmount || item.taxAmount)) {
-                            item.totalAmount = (item.supplyAmount || 0) + (item.taxAmount || 0);
-                            needResave = true;
-                        }
-                        if ((!item.unitPrice || item.unitPrice === 0) && item.qty > 0 && item.supplyAmount > 0) {
-                            item.unitPrice = Math.round(item.supplyAmount / item.qty);
-                            needResave = true;
-                        }
-                    });
-                    if (needResave) {
-                        localStorage.setItem('custom_ext_inv_sales_data', JSON.stringify(state.extInvSalesData));
-                    }
-                } catch(e) {
-                    state.extInvSalesData = serverSalesItems;
-                }
-            } else {
-                state.extInvSalesData = serverSalesItems;
-            }
+            localStorage.removeItem('custom_ext_inv_sales_data');
+            state.extInvSalesData = serverSalesItems;
             state.extInvSalesData.sort((a, b) => (b.dateNo || '').localeCompare(a.dateNo || ''));
 
             // 10. EXT 재고관리 - 추가 매입 데이터 로드 (기초매입 미반영)
